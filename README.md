@@ -44,7 +44,7 @@ xcodebuild \
 
 Workflow `.github/workflows/ios.yml` на каждый push/PR:
 
-1. `macos-14`, Xcode 15.4
+1. `macos-15`, Xcode 16 (latest stable)
 2. `brew install xcodegen`
 3. `xcodegen generate`
 4. `xcodebuild` для симулятора без подписи (`CODE_SIGNING_ALLOWED=NO`)

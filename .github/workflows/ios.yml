@@ -13,7 +13,7 @@ concurrency:
 jobs:
   build:
     name: Build (iOS Simulator)
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -21,7 +21,7 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '15.4'
+          xcode-version: 'latest-stable'
 
       - name: Write GoogleService-Info.plist (optional)
         env:
