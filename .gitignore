@@ -1,0 +1,27 @@
+# Xcode / Swift
+*.xcodeproj
+*.xcworkspace
+!*.xcodeproj/project.pbxproj
+xcuserdata/
+DerivedData/
+build/
+.build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# XcodeGen generated
+Muzea.xcodeproj/
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+
+# Secrets — never commit Firebase config
+GoogleService-Info.plist
+**/GoogleService-Info.plist
+*.p12
+*.mobileprovision
