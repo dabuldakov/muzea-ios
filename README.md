@@ -51,6 +51,22 @@ Workflow `.github/workflows/ios.yml` на каждый push/PR:
 
 Подпись/TestFlight не настроены — для них нужен Apple Developer аккаунт и секреты.
 
+## Установка на iPhone (бесплатный Apple ID + Windows)
+
+CI собирает неподписанный device-`.ipa` (job **Unsigned device .ipa**):
+
+1. Actions → последний run → блок **Artifacts** → скачай `Muzea-unsigned-ipa`.
+2. На Windows установи [Sideloadly](https://sideloadly.io) и iTunes (для драйверов iPhone).
+3. Подключи iPhone кабелем и доверься компьютеру.
+4. В Sideloadly выбери `.ipa`, укажи свой Apple ID и нажми Start.
+5. На iPhone: Настройки → Основные → VPN и управление устройством → доверься профилю разработчика.
+
+Ограничения бесплатной подписи:
+
+- подпись живёт **7 дней**, затем повторить установку;
+- до 3 приложений на аккаунт;
+- **push-уведомления не работают** (нет entitlement `aps-environment` у бесплатного профиля).
+
 ## Push-уведомления
 
 Чтобы пуши заработали:
