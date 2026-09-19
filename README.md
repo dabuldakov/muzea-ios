@@ -64,6 +64,19 @@ Workflow `.github/workflows/ios.yml` на каждый push/PR:
 Без файла приложение собирается и работает, но FCM отключается (в лог пишется
 предупреждение), push-токен не регистрируется.
 
+### Файл в CI
+
+`GoogleService-Info.plist` не коммитится. Чтобы сборка получала конфиг, добавь
+GitHub-секрет `GOOGLE_SERVICE_INFO_PLIST` со значением файла в base64:
+
+```bash
+base64 -i Muzea/Resources/GoogleService-Info.plist | pbcopy   # macOS
+base64 -w0 Muzea/Resources/GoogleService-Info.plist           # Linux
+```
+
+Workflow декодирует секрет в `Muzea/Resources/GoogleService-Info.plist` перед
+генерацией проекта. Если секрет не задан, шаг пропускается, сборка проходит без FCM.
+
 ## Структура
 
 ```
