@@ -15,8 +15,7 @@ final class ChatAuthManager {
     func ensureAuthenticated() async -> Bool {
         if let token = store.chatToken, !token.isEmpty {
             if let current = store.username,
-               let tokenUser = store.chatTokenUser,
-               tokenUser != current {
+               store.chatTokenUser != current {
                 invalidate()
             } else {
                 await registerFcmTokenIfNeeded()

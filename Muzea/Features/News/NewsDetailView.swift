@@ -4,6 +4,7 @@ struct NewsDetailView: View {
     let newsId: Int64
     let newsRepository: NewsRepository
     let ownUsername: String?
+    var authToken: String? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var news: NewsResponse?
@@ -32,7 +33,7 @@ struct NewsDetailView: View {
                     HStack {
                         Text("Автор: \(news.author)")
                         Spacer()
-                        Text(news.publishedAt)
+                        Text(DateTimeFormat.full(news.publishedAt))
                     }
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -41,7 +42,7 @@ struct NewsDetailView: View {
 
                     if let video = news.relatedVideo {
                         NavigationLink {
-                            VideoDetailView(video: video)
+                            VideoDetailView(video: video, authToken: authToken)
                         } label: {
                             Label("Смотреть: \(video.title)", systemImage: "play.rectangle")
                         }

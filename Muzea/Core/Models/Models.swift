@@ -191,6 +191,24 @@ struct AvatarResponse: Decodable {
     let avatarUrl: String?
 }
 
+struct ChatParticipantResponse: Decodable, Identifiable, Hashable {
+    var id: String { userUuid ?? "\(userId ?? 0)-\(username ?? "")" }
+    let userUuid: String?
+    let userId: Int64?
+    let username: String?
+    let firstName: String?
+    let lastName: String?
+    let fullName: String?
+    let nickname: String?
+    let avatarUrl: String?
+    let role: String?
+    let online: Bool?
+    let lastSeenAt: String?
+    let joinedAt: String?
+
+    var displayName: String { fullName ?? username ?? "Participant" }
+}
+
 struct AddContactRequest: Encodable {
     let contactUserUuid: String
     let contactName: String?
@@ -198,6 +216,15 @@ struct AddContactRequest: Encodable {
 
 struct CreatePrivateChatRequest: Encodable {
     let otherUserUuid: String
+}
+
+struct CreateGroupChatRequest: Encodable {
+    let title: String
+    let memberUuids: [String]
+}
+
+struct AddGroupParticipantsRequest: Encodable {
+    let memberUuids: [String]
 }
 
 struct SendMessageRequest: Encodable {

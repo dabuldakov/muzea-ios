@@ -6,6 +6,13 @@ private extension Data {
     }
 }
 
+struct MultipartFile {
+    let field: String
+    let fileName: String
+    let mimeType: String
+    let data: Data
+}
+
 final class HTTPClient {
     let baseURL: URL
     private let session: URLSession
@@ -59,12 +66,32 @@ final class HTTPClient {
         _ path: String,
         method: String = "POST",
         fields: [String: String] = [:],
-        fileField: String,
-        fileName: String,
-        mimeType: String,
-        fileData: Data,
+        files: [MultipartFile],
         authorized: Bool = true
     ) async throws -> T {
+        let data = try await uploadData(
+            path,
+            method: method,
+            fields: fields,
+            files: files,
+            authorized: authorized
+        )
+        do {
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            throw APIError.decoding(error)
+        }
+    }
+
+    /// multipart/form-data с файлами, возвращает сырое тело ответа (без JSON-разбора).
+    @discardableResult
+    func uploadData(
+        _ path: String,
+        method: String = "POST",
+        fields: [String: String] = [:],
+        files: [MultipartFile],
+        authorized: Bool = true
+    ) async throws -> Data {
         let boundary = "Boundary-\(UUID().uuidString)"
         var request = URLRequest(url: try makeURL(path, query: []))
         request.httpMethod = method
@@ -72,21 +99,8 @@ final class HTTPClient {
         if authorized, let token = tokenProvider(), !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        request.httpBody = multipartBody(
-            boundary: boundary,
-            fields: fields,
-            fileField: fileField,
-            fileName: fileName,
-            mimeType: mimeType,
-            fileData: fileData
-        )
-
-        let data = try await execute(request)
-        do {
-            return try JSONDecoder().decode(T.self, from: data)
-        } catch {
-            throw APIError.decoding(error)
-        }
+        request.httpBody = multipartBody(boundary: boundary, fields: fields, files: files)
+        return try await execute(request)
     }
 
     /// multipart/form-data только из текстовых полей (без файла).
@@ -172,10 +186,7 @@ final class HTTPClient {
     private func multipartBody(
         boundary: String,
         fields: [String: String],
-        fileField: String,
-        fileName: String,
-        mimeType: String,
-        fileData: Data
+        files: [MultipartFile]
     ) -> Data {
         var body = Data()
         let lineBreak = "\r\n"
@@ -184,11 +195,13 @@ final class HTTPClient {
             body.append("Content-Disposition: form-data; name=\"\(key)\"\(lineBreak)\(lineBreak)")
             body.append("\(value)\(lineBreak)")
         }
-        body.append("--\(boundary)\(lineBreak)")
-        body.append("Content-Disposition: form-data; name=\"\(fileField)\"; filename=\"\(fileName)\"\(lineBreak)")
-        body.append("Content-Type: \(mimeType)\(lineBreak)\(lineBreak)")
-        body.append(fileData)
-        body.append(lineBreak)
+        for file in files {
+            body.append("--\(boundary)\(lineBreak)")
+            body.append("Content-Disposition: form-data; name=\"\(file.field)\"; filename=\"\(file.fileName)\"\(lineBreak)")
+            body.append("Content-Type: \(file.mimeType)\(lineBreak)\(lineBreak)")
+            body.append(file.data)
+            body.append(lineBreak)
+        }
         body.append("--\(boundary)--\(lineBreak)")
         return body
     }

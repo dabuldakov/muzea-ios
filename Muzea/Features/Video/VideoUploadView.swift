@@ -1,5 +1,7 @@
 import SwiftUI
 import PhotosUI
+import AVFoundation
+import UIKit
 
 struct VideoUploadView: View {
     let videoRepository: VideoRepository
@@ -10,6 +12,8 @@ struct VideoUploadView: View {
     @State private var videoDescription = ""
     @State private var selectedItem: PhotosPickerItem?
     @State private var videoData: Data?
+    @State private var thumbnail: UploadFile?
+    @State private var previewImage: UIImage?
     @State private var fileName = "video.mp4"
     @State private var isUploading = false
     @State private var error: String?
@@ -29,6 +33,15 @@ struct VideoUploadView: View {
                             videoData == nil ? "Выбрать видео" : "Видео выбрано",
                             systemImage: "film"
                         )
+                    }
+
+                    if let previewImage {
+                        Image(uiImage: previewImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 140)
+                            .clipped()
+                            .cornerRadius(8)
                     }
                 }
 
@@ -61,10 +74,34 @@ struct VideoUploadView: View {
 
     private func loadVideo(_ item: PhotosPickerItem?) async {
         guard let item else { return }
-        if let data = try? await item.loadTransferable(type: Data.self) {
-            videoData = data
-            fileName = "video_\(Int(Date().timeIntervalSince1970)).mp4"
+        guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+        videoData = data
+        fileName = "video_\(Int(Date().timeIntervalSince1970)).mp4"
+        await makeThumbnail(from: data)
+    }
+
+    /// Извлекает кадр из видео для превью и загрузки на сервер (как Android MediaMetadataRetriever).
+    private func makeThumbnail(from data: Data) async {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("thumb_src_\(UUID().uuidString).mp4")
+        guard (try? data.write(to: url)) != nil else { return }
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let asset = AVURLAsset(url: url)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        let time = CMTime(seconds: 1, preferredTimescale: 600)
+
+        guard let result = try? await generator.image(at: time) else {
+            thumbnail = nil
+            previewImage = nil
+            return
         }
+        let cgImage = result.image
+        let image = UIImage(cgImage: cgImage)
+        guard let jpeg = image.jpegData(compressionQuality: 0.85) else { return }
+        previewImage = image
+        thumbnail = UploadFile(data: jpeg, fileName: "thumbnail.jpeg", mimeType: "image/jpeg")
     }
 
     private func upload() {
@@ -78,7 +115,8 @@ struct VideoUploadView: View {
                     description: videoDescription.isEmpty ? nil : videoDescription,
                     data: data,
                     fileName: fileName,
-                    mimeType: "video/mp4"
+                    mimeType: "video/mp4",
+                    thumbnail: thumbnail
                 )
                 dismiss()
             } catch {

@@ -56,6 +56,15 @@ struct ChatConversationView: View {
         }
         .navigationTitle(chat.title ?? "Чат")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                NavigationLink {
+                    GroupSettingsView(chat: chat, repository: repository, myUserUuid: myUserUuid)
+                } label: {
+                    Image(systemName: "info.circle")
+                }
+            }
+        }
         .task { await viewModel.start() }
     }
 
@@ -103,6 +112,12 @@ struct MessageRow: View {
                     .background(isMine ? Color.accentColor.opacity(0.85) : Color(.secondarySystemBackground))
                     .foregroundColor(isMine ? .white : .primary)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                if let createdAt = message.createdAt, !createdAt.isEmpty {
+                    Text(DateTimeFormat.full(createdAt))
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
             }
 
             if !isMine { Spacer(minLength: 40) }

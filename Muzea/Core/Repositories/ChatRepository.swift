@@ -39,6 +39,32 @@ final class ChatRepository {
         }
     }
 
+    func createGroupChat(title: String, memberUuids: [String]) async throws -> ChatResponse {
+        try await authorized {
+            try await client.request(
+                "POST",
+                "/api/chats/group",
+                body: CreateGroupChatRequest(title: title, memberUuids: memberUuids)
+            )
+        }
+    }
+
+    func loadChatParticipants(chatUuid: String) async throws -> [ChatParticipantResponse] {
+        try await authorized {
+            try await client.request("GET", "/api/chats/\(chatUuid)/participants")
+        }
+    }
+
+    func addGroupParticipants(chatUuid: String, memberUuids: [String]) async throws {
+        try await authorized {
+            try await client.requestVoid(
+                "POST",
+                "/api/chats/\(chatUuid)/participants",
+                body: AddGroupParticipantsRequest(memberUuids: memberUuids)
+            )
+        }
+    }
+
     // MARK: - Contacts
 
     func loadContacts() async throws -> [ContactResponse] {
@@ -105,10 +131,9 @@ final class ChatRepository {
             try await client.upload(
                 "/api/users/me/avatar",
                 fields: [:],
-                fileField: "file",
-                fileName: fileName,
-                mimeType: mimeType,
-                fileData: data
+                files: [
+                    MultipartFile(field: "file", fileName: fileName, mimeType: mimeType, data: data)
+                ]
             )
         }
         return response.avatarUrl
@@ -116,5 +141,19 @@ final class ChatRepository {
 
     func deleteAvatar() async throws {
         try await authorized { try await client.requestVoid("DELETE", "/api/users/me/avatar") }
+    }
+
+    /// Загружает аватар группы; сервер отвечает относительным путём картинки.
+    func uploadChatAvatar(chatUuid: String, data: Data, fileName: String, mimeType: String) async throws -> String? {
+        let raw: Data = try await authorized {
+            try await client.uploadData(
+                "/api/chats/\(chatUuid)/avatar",
+                fields: [:],
+                files: [
+                    MultipartFile(field: "file", fileName: fileName, mimeType: mimeType, data: data)
+                ]
+            )
+        }
+        return String(data: raw, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

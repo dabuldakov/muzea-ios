@@ -6,6 +6,7 @@ struct VideoListView: View {
 
     private let videoRepository: VideoRepository
     private let ownUsername: String?
+    private let authToken: String?
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
 
@@ -16,6 +17,7 @@ struct VideoListView: View {
         ))
         videoRepository = container.videoRepository
         ownUsername = container.tokenStore.username
+        authToken = container.tokenStore.token
     }
 
     var body: some View {
@@ -35,7 +37,12 @@ struct VideoListView: View {
                         LazyVGrid(columns: columns, spacing: 12) {
                             ForEach(viewModel.videos) { video in
                                 NavigationLink {
-                                    VideoDetailView(video: video)
+                                    VideoDetailView(
+                                        video: video,
+                                        repository: videoRepository,
+                                        ownUsername: ownUsername,
+                                        authToken: authToken
+                                    )
                                 } label: {
                                     VideoCell(video: video)
                                 }

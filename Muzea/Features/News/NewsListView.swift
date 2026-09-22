@@ -7,6 +7,7 @@ struct NewsListView: View {
     private let newsRepository: NewsRepository
     private let videoRepository: VideoRepository
     private let ownUsername: String?
+    private let authToken: String?
 
     init(container: AppContainer) {
         let store = container.tokenStore
@@ -18,6 +19,7 @@ struct NewsListView: View {
         newsRepository = container.newsRepository
         videoRepository = container.videoRepository
         ownUsername = store.username
+        authToken = store.token
     }
 
     var body: some View {
@@ -53,7 +55,8 @@ struct NewsListView: View {
                 NewsDetailView(
                     newsId: item.id,
                     newsRepository: newsRepository,
-                    ownUsername: ownUsername
+                    ownUsername: ownUsername,
+                    authToken: authToken
                 )
             }
             .sheet(isPresented: $showCreate) {
@@ -88,7 +91,11 @@ struct NewsRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title).font(.headline).lineLimit(2)
-                Text(item.author).font(.caption).foregroundColor(.secondary)
+                HStack {
+                    Text(item.author).font(.caption).foregroundColor(.secondary)
+                    Spacer()
+                    Text(DateTimeFormat.date(item.publishedAt)).font(.caption).foregroundColor(.secondary)
+                }
             }
         }
     }

@@ -36,10 +36,14 @@ final class NewsRepository {
             return try await client.upload(
                 "/api/news",
                 fields: fields,
-                fileField: "image",
-                fileName: image.fileName,
-                mimeType: image.mimeType,
-                fileData: image.data
+                files: [
+                    MultipartFile(
+                        field: "image",
+                        fileName: image.fileName,
+                        mimeType: image.mimeType,
+                        data: image.data
+                    )
+                ]
             )
         }
         return try await client.uploadForm("/api/news", fields: fields)
