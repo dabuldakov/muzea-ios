@@ -11,12 +11,16 @@ enum DateTimeFormat {
     private static let datePattern = "yyyy-MM-dd"
 
     /// Полное время, например «2026-09-22 12:00» в поясе устройства.
-    static func full(_ iso: String?) -> String { format(iso, pattern: dateTimePattern) }
+    static func full(_ iso: String?, timeZone: TimeZone = .current) -> String {
+        format(iso, pattern: dateTimePattern, timeZone: timeZone)
+    }
 
     /// Только дата, например «2026-09-22» в поясе устройства.
-    static func date(_ iso: String?) -> String { format(iso, pattern: datePattern) }
+    static func date(_ iso: String?, timeZone: TimeZone = .current) -> String {
+        format(iso, pattern: datePattern, timeZone: timeZone)
+    }
 
-    private static func format(_ iso: String?, pattern: String) -> String {
+    private static func format(_ iso: String?, pattern: String, timeZone: TimeZone) -> String {
         guard let iso, !iso.isEmpty else { return "" }
         let clipped = iso.count >= 19 ? String(iso.prefix(19)) : iso
 
@@ -29,7 +33,7 @@ enum DateTimeFormat {
 
         let output = DateFormatter()
         output.locale = Locale(identifier: "en_US_POSIX")
-        output.timeZone = .current
+        output.timeZone = timeZone
         output.dateFormat = pattern
         return output.string(from: date)
     }

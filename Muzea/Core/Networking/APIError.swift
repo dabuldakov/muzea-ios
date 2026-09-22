@@ -29,12 +29,16 @@ enum ImageURL {
     static func chat(_ path: String?) -> URL? { resolve(path, base: Config.chatBaseURL) }
 
     private static func resolve(_ path: String?, base: URL) -> URL? {
-        guard let path, !path.isEmpty else { return nil }
-        if path.hasPrefix("http") { return URL(string: path) }
+        guard let path else { return nil }
+        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") {
+            return URL(string: trimmed)
+        }
         let baseString = base.absoluteString.hasSuffix("/")
             ? String(base.absoluteString.dropLast())
             : base.absoluteString
-        let suffix = path.hasPrefix("/") ? path : "/" + path
+        let suffix = trimmed.hasPrefix("/") ? trimmed : "/" + trimmed
         return URL(string: baseString + suffix)
     }
 }

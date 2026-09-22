@@ -42,6 +42,28 @@ xcodebuild \
   CODE_SIGNING_ALLOWED=NO build
 ```
 
+## Тесты
+
+Юнит-тесты лежат в `MuzeaTests` (target `MuzeaTests`, `xcodebuild test` на симуляторе):
+
+- `DateTimeFormatTests`, `ImageURLTests` — форматирование времени и медиа-URL;
+- `FeedFilterTests` — фильтры новостей и видео (аналоги Android-тестов);
+- `JWTTests` — извлечение `sub` из chat-токена;
+- `TokenStoreTests` — ключи сессии, deviceId, logout;
+- `ModelsDecodingTests` — разбор реальных ответов серверов;
+- `HTTPClientTests`, `ChatAuthManagerTests`, `RepositoriesTests` — сетевой слой
+  через mock `URLProtocol` (заголовки, multipart, 401/retry, ошибки).
+
+Запуск всех тестов из командной строки:
+
+```bash
+xcodebuild test \
+  -project Muzea.xcodeproj \
+  -scheme Muzea \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  CODE_SIGNING_ALLOWED=NO
+```
+
 ## CI (GitHub Actions)
 
 Workflow `.github/workflows/ios.yml` на каждый push/PR:
@@ -50,6 +72,7 @@ Workflow `.github/workflows/ios.yml` на каждый push/PR:
 2. `brew install xcodegen`
 3. `xcodegen generate`
 4. `xcodebuild` для симулятора без подписи (`CODE_SIGNING_ALLOWED=NO`)
+5. job **Unit tests** — `xcodebuild test` на доступном iPhone-симуляторе
 
 Подпись/TestFlight не настроены — для них нужен Apple Developer аккаунт и секреты.
 

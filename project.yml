@@ -43,11 +43,30 @@ targets:
       - package: Firebase
         product: FirebaseMessaging
 
+  MuzeaTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: MuzeaTests
+    dependencies:
+      - target: Muzea
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.muzea.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Muzea.app/Muzea"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
 schemes:
   Muzea:
     build:
       targets:
         Muzea: all
+    test:
+      config: Debug
+      targets:
+        - MuzeaTests
     run:
       config: Debug
     archive:

@@ -6,6 +6,9 @@ final class ChatAuthManager {
     private let client: HTTPClient
     private let store: TokenStore
 
+    /// Причина последней неудачной аутентификации (nil — успех).
+    private(set) var lastFailureMessage: String?
+
     init(client: HTTPClient, store: TokenStore) {
         self.client = client
         self.store = store
@@ -13,6 +16,7 @@ final class ChatAuthManager {
 
     @discardableResult
     func ensureAuthenticated() async -> Bool {
+        lastFailureMessage = nil
         if let token = store.chatToken, !token.isEmpty {
             if let current = store.username,
                store.chatTokenUser != current {
@@ -25,6 +29,7 @@ final class ChatAuthManager {
 
         guard let username = store.username, !username.isEmpty,
               let password = store.password, !password.isEmpty else {
+            lastFailureMessage = "No saved credentials. Please log in to the app first."
             return false
         }
 
@@ -61,7 +66,15 @@ final class ChatAuthManager {
             store.chatToken = response.token
             store.chatTokenUser = username
             return true
+        } catch let error as APIError {
+            if case .server(let code, _) = error {
+                lastFailureMessage = "Login rejected by the chat server (HTTP \(code))."
+            } else {
+                lastFailureMessage = "Cannot reach the chat server."
+            }
+            return false
         } catch {
+            lastFailureMessage = "Cannot reach the chat server."
             return false
         }
     }
@@ -85,7 +98,19 @@ final class ChatAuthManager {
             store.chatToken = response.token
             store.chatTokenUser = username
             return true
+        } catch let error as APIError {
+            if case .server(let code, _) = error, code == 409 {
+                lastFailureMessage = "Chat account \"\(username)\" already exists on the chat server " +
+                    "with another password (likely from an older install). Log in with that password, " +
+                    "or use a different username."
+            } else if case .server(let code, _) = error {
+                lastFailureMessage = "Registration rejected by the chat server (HTTP \(code))."
+            } else {
+                lastFailureMessage = "Cannot reach the chat server."
+            }
+            return false
         } catch {
+            lastFailureMessage = "Cannot reach the chat server."
             return false
         }
     }

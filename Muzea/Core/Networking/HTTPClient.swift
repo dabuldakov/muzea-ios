@@ -18,13 +18,17 @@ final class HTTPClient {
     private let session: URLSession
     private let tokenProvider: () -> String?
 
-    init(baseURL: URL, tokenProvider: @escaping () -> String?) {
+    init(baseURL: URL, tokenProvider: @escaping () -> String?, session: URLSession? = nil) {
         self.baseURL = baseURL
         self.tokenProvider = tokenProvider
-        let configuration = URLSessionConfiguration.default
-        configuration.timeoutIntervalForRequest = 30
-        configuration.timeoutIntervalForResource = 60
-        self.session = URLSession(configuration: configuration)
+        if let session {
+            self.session = session
+        } else {
+            let configuration = URLSessionConfiguration.default
+            configuration.timeoutIntervalForRequest = 30
+            configuration.timeoutIntervalForResource = 60
+            self.session = URLSession(configuration: configuration)
+        }
     }
 
     // MARK: - Public API

@@ -18,8 +18,7 @@ final class VideoListViewModel: ObservableObject {
         isLoading = true
         do {
             let all = try await repository.getVideos()
-            let me = ownUsername?.trimmingCharacters(in: .whitespaces)
-            videos = all.filter { $0.uploadedBy.trimmingCharacters(in: .whitespaces) == (me ?? "") }
+            videos = VideoFeedFilter.filter(all, ownUsername: ownUsername)
             error = nil
         } catch {
             self.error = error.localizedDescription

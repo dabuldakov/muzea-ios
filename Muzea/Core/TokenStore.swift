@@ -3,7 +3,11 @@ import UIKit
 
 /// Локальное хранилище сессии, по ключам совпадает с Android TokenManager.
 final class TokenStore {
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
 
     var token: String? {
         get { defaults.string(forKey: "auth_token") }
