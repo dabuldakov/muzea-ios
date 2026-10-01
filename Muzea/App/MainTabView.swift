@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject private var container: AppContainer
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selection = 0
     @State private var unreadCount: Int64 = 0
 
@@ -34,6 +35,16 @@ struct MainTabView: View {
                     unreadCount = count
                 }
                 try? await Task.sleep(nanoseconds: Config.unreadPollInterval)
+            }
+        }
+        // Heartbeat «я на переднем плане»: продлевает серверное окно «в сети»,
+        // пока приложение активно. При сворачивании цикл снимается, и сервер
+        // догасит статус сам по TTL.
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            while !Task.isCancelled {
+                _ = await container.chatRepository.sendHeartbeat()
+                try? await Task.sleep(nanoseconds: Config.heartbeatInterval)
             }
         }
     }

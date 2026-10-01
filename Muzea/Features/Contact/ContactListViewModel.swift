@@ -32,6 +32,25 @@ final class ContactListViewModel: ObservableObject {
         }
     }
 
+    /// Обновляет только статусы, не трогая состав и порядок списка: сервер
+    /// присылает присутствие отдельным лёгким запросом, а не перезагрузкой
+    /// `/api/contacts`. Пустой ответ — сбой сети, а не «все офлайн», поэтому
+    /// список не переписываем.
+    func refreshPresence() async {
+        let uuids = contacts.compactMap { $0.contactUserUuid }
+        guard !uuids.isEmpty else { return }
+
+        let presence = await repository.loadPresence(userUuids: uuids)
+        guard !presence.isEmpty else { return }
+
+        contacts = contacts.map { contact in
+            guard let uuid = contact.contactUserUuid, let fresh = presence[uuid] else {
+                return contact
+            }
+            return contact.replacingPresence(online: fresh.online, lastSeenAt: fresh.lastSeenAt)
+        }
+    }
+
     func openChat(with contact: ContactResponse) async -> ChatResponse? {
         guard let uuid = contact.contactUserUuid, !uuid.isEmpty else {
             error = "У контакта нет UUID"

@@ -84,6 +84,71 @@ final class ChatRepository {
         }
     }
 
+    // MARK: - Presence
+
+    /// Heartbeat «я на переднем плане». Тихий метод: ошибку показывать нечего,
+    /// упавший удар значит лишь «статус обновится чуть позже», а окно TTL
+    /// намеренно шире интервала. Возвращает признак успеха.
+    func sendHeartbeat() async -> Bool {
+        guard await auth.ensureAuthenticated() else { return false }
+        do {
+            try await client.requestVoid("POST", "/api/presence/heartbeat")
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// Пакетный статус присутствия по UUID.
+    ///
+    /// Сервер ограничивает размер пачки, поэтому список режется на чанки, а
+    /// ответы склеиваются: иначе запрос на 300 контактов упал бы с 400. Пустой
+    /// вход возвращает пустой результат без обращения к сети. Ошибка отдельного
+    /// чанка не срывает остальные — частичный результат лучше пустого.
+    func loadPresence(userUuids: [String]) async -> [String: PresenceResponse] {
+        var seen = Set<String>()
+        let wanted = userUuids.filter {
+            let trimmed = $0.trimmingCharacters(in: .whitespacesAndNewlines)
+            return !trimmed.isEmpty && seen.insert(trimmed).inserted
+        }
+        guard !wanted.isEmpty else { return [:] }
+
+        var result: [String: PresenceResponse] = [:]
+        var index = 0
+        while index < wanted.count {
+            let end = min(index + Config.presenceBatchSize, wanted.count)
+            let chunk = Array(wanted[index..<end])
+            defer { index = end }
+
+            do {
+                let presence: [PresenceResponse] = try await authorized {
+                    try await client.request(
+                        "GET",
+                        "/api/presence",
+                        query: chunk.map { URLQueryItem(name: "userUuids", value: $0) }
+                    )
+                }
+                for item in presence { result[item.userUuid] = item }
+            } catch {
+                // Пропускаем чанк: остальные контакты всё равно обновятся.
+            }
+        }
+        return result
+    }
+
+    /// Серверный разлогин, обязательный до очистки локального токена: пока
+    /// сессия жива, сервер считает пользователя онлайн, и его статус «залипнет»
+    /// у чужих контактов. Сбою сети разлогин не мешает — TTL догасит сессию.
+    func logout() async -> Bool {
+        guard await auth.ensureAuthenticated() else { return true }
+        do {
+            try await client.requestVoid("POST", "/api/auth/logout")
+            return true
+        } catch {
+            return true
+        }
+    }
+
     // MARK: - Messages
 
     func loadMessages(chatUuid: String) async throws -> [MessageResponse] {

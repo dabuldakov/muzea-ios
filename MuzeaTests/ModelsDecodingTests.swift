@@ -101,12 +101,39 @@ final class ModelsDecodingTests: XCTestCase {
         let json = """
         {"contactUuid":"k-1","contactUserId":1,"contactUserUuid":"u-2",
          "username":"bob","firstName":null,"lastName":null,"fullName":null,
-         "avatarUrl":null,"contactName":null,"isOnline":true,
+         "avatarUrl":null,"contactName":null,"online":true,
          "lastSeenAt":null,"addedAt":"2026-01-01T00:00:00"}
         """
         let contact = try TestSupport.decode(ContactResponse.self, json)
         XCTAssertEqual(contact.displayName, "bob")
         XCTAssertTrue(contact.isOnline)
+    }
+
+    func testDecodesChatUserOnlineFromOnlineKey() throws {
+        let json = """
+        {"userUuid":"u-9","username":"alice","email":"a@b.c","firstName":null,
+         "lastName":null,"fullName":"Alice","avatarUrl":null,"online":true}
+        """
+        let user = try TestSupport.decode(ChatUserResponse.self, json)
+        XCTAssertEqual(user.isOnline, true)
+    }
+
+    func testDecodesPresenceBatch() throws {
+        let json = """
+        [{"userUuid":"u-1","online":true,"lastSeenAt":"2026-09-22T12:00:00Z"},
+         {"userUuid":"u-2","online":false,"lastSeenAt":null}]
+        """
+        let presence = try TestSupport.decode([PresenceResponse].self, json)
+        XCTAssertEqual(presence.count, 2)
+        XCTAssertTrue(presence[0].online)
+        XCTAssertEqual(presence[1].lastSeenAt, nil)
+    }
+
+    func testLegacyIsOnlineKeyNoLongerDecodesContact() throws {
+        // Бэкенд отдаёт "online". Со старым ключом обязательное поле просто не
+        // находится — лучше явная ошибка, чем молчаливый false у всех.
+        let legacy = #"{"contactUuid":"k-1","isOnline":true}"#
+        XCTAssertThrowsError(try TestSupport.decode(ContactResponse.self, legacy))
     }
 
     func testDecodesMessageResponse() throws {

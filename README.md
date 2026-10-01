@@ -3,9 +3,10 @@
 Нативный iOS-клиент Muzea (SwiftUI). Паритет с Android-приложением:
 авторизация, экран согласия на обработку персональных данных (ст. 9 ФЗ-152),
 новости, видео (включая удаление и превью), личные и групповые чаты, настройки
-группы и аватары чатов, контакты, профиль, аватары, push-уведомления и удаление
-аккаунта (ст. 14 ФЗ-152) с отзывом согласия. Время с сервера (UTC без зоны)
-приводится к локальному поясу устройства.
+группы и аватары чатов, контакты со статусом «в сети» и временем последнего
+визита, профиль, аватары, push-уведомления и удаление аккаунта (ст. 14 ФЗ-152)
+с отзывом согласия. Время с сервера (UTC без зоны) приводится к локальному поясу
+устройства.
 
 ## Стек
 
@@ -23,7 +24,7 @@
 | Сервис | Адрес | Назначение |
 |--------|-------|------------|
 | makeup | `https://api-muzea.su` | авторизация, новости, видео, профиль |
-| chat | `https://chat-muzea.su` | контакты, чаты, сообщения, аватары, FCM |
+| chat | `https://chat-muzea.su` | контакты, чаты, сообщения, аватары, присутствие, FCM |
 
 Адреса задаются в `Muzea/Core/Config.swift`, правовые реквизиты и ссылки —
 в `Muzea/Core/Legal.swift`.
@@ -52,15 +53,19 @@ xcodebuild \
 Юнит-тесты лежат в `MuzeaTests` (target `MuzeaTests`, `xcodebuild test` на симуляторе):
 
 - `DateTimeFormatTests`, `ImageURLTests` — форматирование времени и медиа-URL;
+- `LastSeenFormatterTests` — относительные подписи «был(а) N назад», UTC-разбор
+  `lastSeenAt`, клампинг будущих меток;
 - `FeedFilterTests` — фильтры новостей и видео (аналоги Android-тестов);
 - `JWTTests` — извлечение `sub` из chat-токена;
 - `TokenStoreTests` — ключи сессии, deviceId, Keychain-пароль, миграция, `clearAll`;
 - `ConsentManagerTests` — версионное согласие на обработку ПДн (ст. 9 ФЗ-152);
 - `ConfigurationTests` — HTTPS-адреса бэкендов и правовые реквизиты;
 - `DeleteAccountTests` — удаление аккаунта чат → основной сервер, трактовка 401/404;
-- `ModelsDecodingTests` — разбор реальных ответов серверов;
+- `ModelsDecodingTests` — разбор реальных ответов серверов, включая присутствие
+  (ключ `online` вместо устаревшего `isOnline`);
 - `HTTPClientTests`, `ChatAuthManagerTests`, `RepositoriesTests` — сетевой слой
-  через mock `URLProtocol` (заголовки, multipart, 401/retry, ошибки).
+  через mock `URLProtocol` (заголовки, multipart, 401/retry, batch-присутствие,
+  heartbeat, logout, ошибки).
 
 Запуск всех тестов из командной строки:
 
@@ -136,7 +141,7 @@ Muzea/
 │   ├── Networking/ HTTPClient, API, ошибки
 │   ├── Repositories/ auth/news/video/chat
 │   ├── Push/       FCM
-│   └── Util/       AvatarView, JWT, DateTimeFormat, ConsentManager, PasswordStore
+│   └── Util/       AvatarView, JWT, DateTimeFormat, LastSeenFormatter, ConsentManager, PasswordStore
 ├── Features/
 │   ├── Auth/       согласие (ФЗ-152), вход и регистрация
 │   ├── News/       лента, детали, создание, фильтр
@@ -146,6 +151,24 @@ Muzea/
 │   └── Profile/    профиль, аватар, оператор ПДн, удаление аккаунта
 └── Resources/      Info.plist, Assets
 ```
+
+## Присутствие «в сети»
+
+Статус опирается на серверное окно онлайна (TTL ≈ 45 с от последней активности):
+
+- **Heartbeat** — `MainTabView` раз в 15 с шлёт `POST /api/presence/heartbeat`,
+  пока приложение активно (`scenePhase == .active`). В фоне цикл снимается, и
+  сервер догасает статус сам.
+- **Опрос контактов** — `ContactListView` раз в 20 с запрашивает
+  `GET /api/presence?userUuids=…` пачками по 100 (см. `Config.presenceBatchSize`)
+  и обновляет только поля присутствия, не трогая состав и порядок списка.
+- **Подписи** — `LastSeenFormatter`: «в сети» с зелёной точкой, иначе «был(а)
+  только что / N мин назад / N ч назад», а старше суток — локальное время визита.
+- **Контракт JSON** — бэкенд отдаёт ключ `online` (не `isOnline`); модели
+  `ContactResponse` и `ChatUserResponse` маппят его через `CodingKeys`.
+- **Разлогин** — `AppContainer.logout()` сначала вызывает `POST /api/auth/logout`
+  (пока токен ещё валиден), и лишь затем чистит локальную сессию. Иначе сессия
+  осталась бы живой и пользователь «залип» бы в статусе у контактов.
 
 ## Персональные данные и правовое соответствие
 

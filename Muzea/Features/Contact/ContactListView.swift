@@ -10,6 +10,7 @@ struct ContactListView: View {
     @State private var newUsername = ""
     @State private var openedChat: ChatResponse?
     @State private var isOpening = false
+    @State private var presenceTask: Task<Void, Never>?
 
     init(container: AppContainer) {
         _viewModel = StateObject(wrappedValue: ContactListViewModel(repository: container.chatRepository))
@@ -63,6 +64,23 @@ struct ContactListView: View {
             }
         }
         .task { await viewModel.load() }
+        // Опрос статусов, пока экран на переднем плане: на возврате на экран
+        // первый запрос уходит сразу, в фоне цикл снимается.
+        .onAppear {
+            guard presenceTask == nil else { return }
+            presenceTask = Task {
+                await viewModel.refreshPresence()
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: Config.presencePollInterval)
+                    if Task.isCancelled { break }
+                    await viewModel.refreshPresence()
+                }
+            }
+        }
+        .onDisappear {
+            presenceTask?.cancel()
+            presenceTask = nil
+        }
     }
 
     private func openChat(_ contact: ContactResponse) {
@@ -89,9 +107,24 @@ struct ContactRow: View {
 
             Spacer()
 
-            Text(contact.isOnline ? "online" : "offline")
-                .font(.caption)
-                .foregroundColor(contact.isOnline ? .green : .secondary)
+            HStack(spacing: 4) {
+                // Точка нужна только рядом с «в сети»: у офлайна подпись уже
+                // несёт время последнего визита.
+                if contact.isOnline {
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 8, height: 8)
+                }
+                Text(statusText)
+                    .font(.caption)
+                    .foregroundColor(contact.isOnline ? .green : .secondary)
+            }
         }
+    }
+
+    private var statusText: String {
+        contact.isOnline
+            ? LastSeenFormatter.onlineText
+            : LastSeenFormatter.label(lastSeenAt: contact.lastSeenAt)
     }
 }

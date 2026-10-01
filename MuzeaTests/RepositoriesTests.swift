@@ -295,7 +295,7 @@ final class ChatRepositoryTests: XCTestCase {
     func testLoadContacts() async throws {
         MockURLProtocol.handler = { request in
             (MockURLProtocol.response(for: request),
-             TestSupport.data(#"[{"contactUuid":"k","isOnline":false}]"#))
+             TestSupport.data(#"[{"contactUuid":"k","online":false}]"#))
         }
 
         let contacts = try await repository().loadContacts()
@@ -310,7 +310,7 @@ final class ChatRepositoryTests: XCTestCase {
                 return (MockURLProtocol.response(for: request), TestSupport.data(#"{"userUuid":"u-9"}"#))
             }
             if request.url?.path == "/api/contacts" {
-                return (MockURLProtocol.response(for: request), TestSupport.data(#"{"contactUuid":"k","isOnline":false}"#))
+                return (MockURLProtocol.response(for: request), TestSupport.data(#"{"contactUuid":"k","online":false}"#))
             }
             return (MockURLProtocol.response(for: request, status: 404), Data())
         }
@@ -425,5 +425,79 @@ final class ChatRepositoryTests: XCTestCase {
         XCTAssertEqual(chatsCalls, 2)
         XCTAssertEqual(store.chatToken, "new-token")
         XCTAssertTrue(MockURLProtocol.requests.contains { $0.url?.path == "/api/auth/login" })
+    }
+
+    func testSendHeartbeatPostsWhenAuthenticated() async {
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request, status: 204), Data())
+        }
+
+        let ok = await repository().sendHeartbeat()
+
+        XCTAssertTrue(ok)
+        XCTAssertEqual(MockURLProtocol.requests.first?.httpMethod, "POST")
+        XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/presence/heartbeat")
+    }
+
+    func testLoadPresenceSendsRepeatedUserUuids() async {
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request),
+             TestSupport.data(#"[{"userUuid":"u-1","online":true,"lastSeenAt":"2026-09-22T12:00:00Z"}]"#))
+        }
+
+        let presence = await repository().loadPresence(userUuids: ["u-1", "u-2"])
+
+        let url = MockURLProtocol.requests.first?.url
+        XCTAssertEqual(url?.path, "/api/presence")
+        XCTAssertEqual(url?.query, "userUuids=u-1&userUuids=u-2")
+        XCTAssertEqual(presence["u-1"]?.online, true)
+    }
+
+    func testLoadPresenceChunksLargeLists() async {
+        let uuids = (0..<150).map { "u-\($0)" }
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request), TestSupport.data("[]"))
+        }
+
+        _ = await repository().loadPresence(userUuids: uuids)
+
+        XCTAssertEqual(MockURLProtocol.requests.count, 2)
+    }
+
+    func testLoadPresenceSkipsBlankAndDuplicateUuids() async {
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request), TestSupport.data("[]"))
+        }
+
+        _ = await repository().loadPresence(userUuids: ["u-1", "u-1", "  ", ""])
+
+        XCTAssertEqual(MockURLProtocol.requests.count, 1)
+        XCTAssertEqual(MockURLProtocol.requests.first?.url?.query, "userUuids=u-1")
+    }
+
+    func testLoadPresenceReturnsEmptyWithoutRequest() async {
+        let presence = await repository().loadPresence(userUuids: [])
+
+        XCTAssertTrue(presence.isEmpty)
+        XCTAssertTrue(MockURLProtocol.requests.isEmpty)
+    }
+
+    func testLogoutPostsToAuthLogout() async {
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request, status: 204), Data())
+        }
+
+        let ok = await repository().logout()
+
+        XCTAssertTrue(ok)
+        XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/auth/logout")
+    }
+
+    func testLogoutStillSucceedsOnNetworkFailure() async {
+        MockURLProtocol.handler = { _ in throw URLError(.cannotConnectToHost) }
+
+        let ok = await repository().logout()
+
+        XCTAssertTrue(ok)
     }
 }

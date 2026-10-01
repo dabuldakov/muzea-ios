@@ -80,7 +80,7 @@ struct ProfileView: View {
                     }
                     .disabled(viewModel.isBusy)
                     Button("Выйти", role: .destructive) {
-                        container.logout()
+                        Task { await container.logout() }
                     }
                 }
             }
@@ -102,7 +102,9 @@ struct ProfileView: View {
                     Button("Удалить", role: .destructive) { Task { await deleteAccount() } }
                     Button("Отмена", role: .cancel) {}
                 case .failure:
-                    Button("Выйти из приложения", role: .destructive) { container.logout() }
+                    Button("Выйти из приложения", role: .destructive) {
+                        Task { await container.logout() }
+                    }
                     Button("Отмена", role: .cancel) {}
                 case .none:
                     EmptyView()
@@ -136,10 +138,12 @@ struct ProfileView: View {
     private func deleteAccount() async {
         switch await viewModel.deleteAccount() {
         case .deleted:
+            // Аккаунт уже удалён на обоих серверах: серверный logout тут не
+            // нужен, а вызвал бы повторную регистрацию. Чистим только локально.
+            container.clearLocalSession()
             container.tokenStore.clearAll()
             container.consentManager.revoke()
             container.isConsentAccepted = false
-            container.logout()
         case .chatFailed:
             deleteDialog = .failure("Не удалось удалить переписку на сервере чата. Проверьте подключение и повторите попытку.")
         case .failed(let message):

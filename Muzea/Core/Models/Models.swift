@@ -124,6 +124,13 @@ struct ChatUserResponse: Decodable {
     let fullName: String?
     let avatarUrl: String?
     let isOnline: Bool?
+
+    // Бэкенд отдаёт ключ "online", а не "isOnline": без маппинга флаг всегда
+    // оставался бы nil, и «в сети» не горело ни у кого.
+    private enum CodingKeys: String, CodingKey {
+        case userUuid, username, email, firstName, lastName, fullName, avatarUrl
+        case isOnline = "online"
+    }
 }
 
 struct ChatResponse: Decodable, Identifiable, Hashable {
@@ -163,6 +170,43 @@ struct ContactResponse: Decodable, Identifiable, Hashable {
     let addedAt: String?
 
     var displayName: String { contactName ?? fullName ?? username ?? "Contact" }
+
+    // Ключ присутствия приходит как "online" (ContactDto помечен @JsonProperty).
+    // Со старым "isOnline" декодирование падало на обязательном Bool.
+    private enum CodingKeys: String, CodingKey {
+        case contactUuid, contactUserId, contactUserUuid, username, firstName, lastName
+        case fullName, avatarUrl, contactName, lastSeenAt, addedAt
+        case isOnline = "online"
+    }
+
+    /// Копия контакта с обновлённым присутствием. `lastSeenAt` сохраняется,
+    /// если сервер не прислал новое значение.
+    func replacingPresence(online: Bool, lastSeenAt: String?) -> ContactResponse {
+        ContactResponse(
+            contactUuid: contactUuid,
+            contactUserId: contactUserId,
+            contactUserUuid: contactUserUuid,
+            username: username,
+            firstName: firstName,
+            lastName: lastName,
+            fullName: fullName,
+            avatarUrl: avatarUrl,
+            contactName: contactName,
+            isOnline: online,
+            lastSeenAt: lastSeenAt ?? self.lastSeenAt,
+            addedAt: addedAt
+        )
+    }
+}
+
+/// Статус присутствия одного пользователя из `GET /api/presence`.
+///
+/// `online` вычислен сервером по TTL от последней активности, а не прочитан
+/// из флага в БД. `lastSeenAt` приходит, пока пользователь хоть раз был в сети.
+struct PresenceResponse: Decodable {
+    let userUuid: String
+    let online: Bool
+    let lastSeenAt: String?
 }
 
 struct MessageResponse: Decodable, Identifiable, Hashable {

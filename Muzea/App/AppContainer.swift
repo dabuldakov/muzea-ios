@@ -47,7 +47,19 @@ final class AppContainer: ObservableObject {
         isConsentAccepted = true
     }
 
-    func logout() {
+    /// Разлогин: сначала гасим сессию на чат-сервере, и только затем чистим
+    /// локальный токен. Порядок обязателен — запрос несёт access-токен, а после
+    /// локальной очистки сервер его уже не проверит, и пользователь продолжит
+    /// светиться «в сети» у контактов до истечения TTL.
+    func logout() async {
+        _ = await chatRepository.logout()
+        clearLocalSession()
+    }
+
+    /// Локальный выход без обращения к серверу. Нужен после удаления аккаунта,
+    /// когда серверная сессия уже уничтожена и логин/регистрация заново создали
+    /// бы аккаунт.
+    func clearLocalSession() {
         authRepository.logout()
         isLoggedIn = false
     }
