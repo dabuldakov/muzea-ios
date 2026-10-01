@@ -22,9 +22,17 @@ struct ContactListView: View {
         NavigationStack {
             Group {
                 if viewModel.contacts.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "person.2").font(.largeTitle).foregroundColor(.secondary)
-                        Text(viewModel.error ?? "Нет контактов").foregroundColor(.secondary)
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        VStack(spacing: 8) {
+                            Image(systemName: "person.2").font(.largeTitle).foregroundColor(.secondary)
+                            Text(viewModel.error ?? "Нет контактов")
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
                     }
                 } else {
                     List(viewModel.contacts) { contact in

@@ -13,6 +13,8 @@ final class ContactListViewModel: ObservableObject {
     }
 
     func load() async {
+        isLoading = true
+        defer { isLoading = false }
         do {
             contacts = try await repository.loadContacts()
             error = nil
