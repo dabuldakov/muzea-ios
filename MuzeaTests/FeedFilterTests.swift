@@ -66,9 +66,10 @@ final class FeedFilterTests: XCTestCase {
             url: "https://example.com/video\(id)",
             thumbnailUrl: nil,
             fileSize: nil,
-            duration: nil,
+            durationSeconds: nil,
             views: 0,
             likes: nil,
+            likedByMe: nil,
             uploadedBy: uploadedBy,
             uploadedAt: "2026-01-01T00:00:00"
         )

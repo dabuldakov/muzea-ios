@@ -58,9 +58,13 @@ struct VideoResponse: Decodable, Identifiable, Hashable {
     let url: String
     let thumbnailUrl: String?
     let fileSize: Int64?
-    let duration: String?
+    // Бэкенд отдаёт длительность числом секунд (durationSeconds), а не строкой
+    // duration; строка не приходила никогда. likedByMe — лайк текущего
+    // пользователя, тоже присутствует в ответе.
+    let durationSeconds: Double?
     let views: Int
     let likes: Int?
+    let likedByMe: Bool?
     let uploadedBy: String
     let uploadedAt: String
 

@@ -111,7 +111,7 @@ final class VideoRepositoryTests: XCTestCase {
         VideoRepository(client: TestSupport.makeupClient(tokenStore: store))
     }
 
-    private let videoJSON = #"{"id":1,"title":"V","description":null,"url":"/api/videos/stream/x.mp4","thumbnailUrl":null,"fileSize":null,"duration":null,"views":0,"likes":null,"uploadedBy":"me","uploadedAt":"2026-01-01T00:00:00"}"#
+    private let videoJSON = #"{"id":1,"title":"V","description":null,"url":"/api/videos/stream/x.mp4","thumbnailUrl":null,"fileSize":null,"durationSeconds":null,"views":0,"likes":null,"likedByMe":null,"uploadedBy":"me","uploadedAt":"2026-01-01T00:00:00"}"#
 
     func testGetVideos() async throws {
         MockURLProtocol.handler = { request in

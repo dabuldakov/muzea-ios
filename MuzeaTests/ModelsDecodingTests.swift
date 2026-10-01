@@ -20,9 +20,10 @@ final class ModelsDecodingTests: XCTestCase {
             "url": "/api/videos/stream/0c0ec89e.mp4",
             "thumbnailUrl": "https://api-muzea.su/api/videos/thumbnail/0c0ec89e.jpeg",
             "fileSize": 9478047,
-            "duration": null,
+            "durationSeconds": null,
             "views": 19,
-            "likes": null,
+            "likes": 0,
+            "likedByMe": null,
             "uploadedBy": "dabuldakov",
             "uploadedAt": "2026-05-03T12:05:36.065212"
           }
@@ -58,12 +59,14 @@ final class ModelsDecodingTests: XCTestCase {
         let json = """
         {"id": 1, "title": "V", "description": "d",
          "url": "https://cdn.example.com/v.mp4", "thumbnailUrl": null,
-         "fileSize": 10, "duration": "00:10", "views": 5, "likes": 2,
-         "uploadedBy": "me", "uploadedAt": "2026-01-01T00:00:00"}
+         "fileSize": 10, "durationSeconds": 10, "views": 5, "likes": 2,
+         "likedByMe": true, "uploadedBy": "me", "uploadedAt": "2026-01-01T00:00:00"}
         """
         let video = try TestSupport.decode(VideoResponse.self, json)
         XCTAssertEqual(video.fullVideoURL?.absoluteString, "https://cdn.example.com/v.mp4")
         XCTAssertNil(video.fullThumbnailURL)
+        XCTAssertEqual(video.durationSeconds, 10)
+        XCTAssertEqual(video.likedByMe, true)
     }
 
     func testDecodesChatAuthResponse() throws {
