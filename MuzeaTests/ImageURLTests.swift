@@ -4,8 +4,8 @@ import XCTest
 /// Зеркалит Android `MediaUrlTest`.
 final class ImageURLTests: XCTestCase {
 
-    func testAbsoluteHTTPURLIsReturnedUnchanged() {
-        let url = "http://90.188.89.63:8085/api/news/image/abc.jpeg"
+    func testAbsoluteSameDomainURLIsReturnedUnchanged() {
+        let url = "https://api-muzea.su/api/news/image/abc.jpeg"
         XCTAssertEqual(ImageURL.makeup(url)?.absoluteString, url)
     }
 
@@ -15,35 +15,35 @@ final class ImageURLTests: XCTestCase {
     }
 
     func testAbsoluteImageURLIsNotPrefixed() {
-        let serverURL = "http://90.188.89.63:8085/api/news/image/4b1d5b51.jpeg"
+        let serverURL = "https://api-muzea.su/api/news/image/4b1d5b51.jpeg"
         XCTAssertEqual(ImageURL.makeup(serverURL)?.absoluteString, serverURL)
     }
 
     func testRelativePathWithLeadingSlashIsJoinedToBase() {
         XCTAssertEqual(
             ImageURL.makeup("/api/videos/stream/file.mp4")?.absoluteString,
-            "http://90.188.89.63:8085/api/videos/stream/file.mp4"
+            "https://api-muzea.su/api/videos/stream/file.mp4"
         )
     }
 
     func testRelativePathWithoutLeadingSlashIsJoinedToBase() {
         XCTAssertEqual(
             ImageURL.chat("api/avatars/uuid.png")?.absoluteString,
-            "http://90.188.89.63:8086/api/avatars/uuid.png"
+            "https://chat-muzea.su/api/avatars/uuid.png"
         )
     }
 
     func testBaseURLTrailingSlashDoesNotDouble() {
         XCTAssertEqual(
             ImageURL.chat("/api/avatars/uuid.png")?.absoluteString,
-            "http://90.188.89.63:8086/api/avatars/uuid.png"
+            "https://chat-muzea.su/api/avatars/uuid.png"
         )
     }
 
     func testSurroundingWhitespaceIsTrimmed() {
         XCTAssertEqual(
             ImageURL.makeup("  /a.png  ")?.absoluteString,
-            "http://90.188.89.63:8085/a.png"
+            "https://api-muzea.su/a.png"
         )
     }
 

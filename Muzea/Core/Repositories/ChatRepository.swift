@@ -143,6 +143,21 @@ final class ChatRepository {
         try await authorized { try await client.requestVoid("DELETE", "/api/users/me/avatar") }
     }
 
+    /// Полное удаление аккаунта на чат-сервере вместе с сообщениями, контактами,
+    /// вложениями и FCM-токенами.
+    ///
+    /// Намеренно обходится без повторной авторизации: сервер отвечает 401 после
+    /// удаления, а перерегистрация тут же создала бы аккаунт заново. 401 и 404
+    /// считаются успехом.
+    func deleteAccount() async throws {
+        guard await auth.ensureAuthenticated() else { throw APIError.unauthorized }
+        do {
+            try await client.requestVoid("DELETE", "/api/users/me")
+        } catch APIError.server(let code, _) where code == 401 || code == 404 {
+            return
+        }
+    }
+
     /// Загружает аватар группы; сервер отвечает относительным путём картинки.
     func uploadChatAvatar(chatUuid: String, data: Data, fileName: String, mimeType: String) async throws -> String? {
         let raw: Data = try await authorized {

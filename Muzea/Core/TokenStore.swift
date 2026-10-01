@@ -2,11 +2,15 @@ import Foundation
 import UIKit
 
 /// Локальное хранилище сессии, по ключам совпадает с Android TokenManager.
+/// Пароль хранится в Keychain, а не в UserDefaults (аналог SecurePasswordStore).
 final class TokenStore {
     private let defaults: UserDefaults
+    private let passwordStore: PasswordStoring
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, passwordStore: PasswordStoring = KeychainPasswordStore()) {
         self.defaults = defaults
+        self.passwordStore = passwordStore
+        migrateLegacyPassword()
     }
 
     var token: String? {
@@ -25,8 +29,8 @@ final class TokenStore {
     }
 
     var password: String? {
-        get { defaults.string(forKey: "password") }
-        set { defaults.set(newValue, forKey: "password") }
+        get { passwordStore.password }
+        set { passwordStore.password = newValue }
     }
 
     var chatToken: String? {
@@ -67,5 +71,26 @@ final class TokenStore {
         ["auth_token", "username", "chat_token", "chat_token_user"].forEach {
             defaults.removeObject(forKey: $0)
         }
+        passwordStore.clear()
+    }
+
+    /// Полная очистка локальных данных пользователя — при удалении аккаунта
+    /// или отзыве согласия на обработку персональных данных.
+    func clearAll() {
+        for key in defaults.dictionaryRepresentation().keys {
+            defaults.removeObject(forKey: key)
+        }
+        passwordStore.clear()
+    }
+
+    /// Ранее пароль лежал в UserDefaults открытым текстом. Переносим его в Keychain
+    /// и удаляем из обычных настроек.
+    private func migrateLegacyPassword() {
+        let legacy = defaults.string(forKey: "password")
+        guard let legacy, !legacy.isEmpty else { return }
+        if passwordStore.password == nil {
+            passwordStore.password = legacy
+        }
+        defaults.removeObject(forKey: "password")
     }
 }

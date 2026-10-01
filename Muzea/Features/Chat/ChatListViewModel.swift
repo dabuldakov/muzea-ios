@@ -24,7 +24,7 @@ final class ChatListViewModel: ObservableObject {
     func startAutoRefresh() async {
         while !Task.isCancelled {
             await load()
-            try? await Task.sleep(nanoseconds: 8_000_000_000)
+            try? await Task.sleep(nanoseconds: Config.chatListRefreshInterval)
         }
     }
 }

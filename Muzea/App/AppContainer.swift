@@ -3,6 +3,7 @@ import SwiftUI
 
 final class AppContainer: ObservableObject {
     let tokenStore: TokenStore
+    let consentManager: ConsentManager
     let authRepository: AuthRepository
     let newsRepository: NewsRepository
     let videoRepository: VideoRepository
@@ -10,10 +11,13 @@ final class AppContainer: ObservableObject {
     let chatRepository: ChatRepository
 
     @Published var isLoggedIn: Bool
+    @Published var isConsentAccepted: Bool
 
     init() {
         let store = TokenStore()
         tokenStore = store
+        let consent = ConsentManager()
+        consentManager = consent
 
         let api = API(tokenStore: store)
         authRepository = AuthRepository(client: api.makeup, store: store)
@@ -25,6 +29,7 @@ final class AppContainer: ObservableObject {
         chatRepository = ChatRepository(client: api.chat, auth: chatAuth)
 
         isLoggedIn = store.isLoggedIn
+        isConsentAccepted = consent.isAccepted
 
         PushManager.shared.onToken = { token in
             store.fcmToken = token
@@ -36,6 +41,10 @@ final class AppContainer: ObservableObject {
 
     func didLogin() {
         isLoggedIn = true
+    }
+
+    func didAcceptConsent() {
+        isConsentAccepted = true
     }
 
     func logout() {

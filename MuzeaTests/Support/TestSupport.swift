@@ -26,9 +26,14 @@ enum TestSupport {
     }
 
     /// Изолированный UserDefaults, чтобы тесты не влияли друг на друга.
+    /// Пароль — в памяти, чтобы не трогать Keychain симулятора.
     static func makeStore() -> TokenStore {
         let defaults = UserDefaults(suiteName: "muzea-tests-\(UUID().uuidString)")!
-        return TokenStore(defaults: defaults)
+        return TokenStore(defaults: defaults, passwordStore: InMemoryPasswordStore())
+    }
+
+    static func makeStore(defaults: UserDefaults, passwords: PasswordStoring = InMemoryPasswordStore()) -> TokenStore {
+        TokenStore(defaults: defaults, passwordStore: passwords)
     }
 
     static func data(_ json: String) -> Data { Data(json.utf8) }

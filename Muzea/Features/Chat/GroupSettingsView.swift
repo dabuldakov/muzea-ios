@@ -117,6 +117,10 @@ struct GroupSettingsView: View {
 
     private func uploadAvatar(_ item: PhotosPickerItem?) async {
         guard let item, let data = try? await item.loadTransferable(type: Data.self) else { return }
+        guard data.count <= Config.maxAvatarBytes else {
+            error = "Выберите изображение размером до 5 МБ"
+            return
+        }
         isUploading = true
         do {
             let path = try await repository.uploadChatAvatar(

@@ -48,6 +48,18 @@ final class AuthRepository {
         )
     }
 
+    /// Удаление новостей, видео и профиля на основном бэкенде.
+    ///
+    /// 404 считается успехом: аккаунт мог быть удалён при предыдущей попытке,
+    /// где чат-сервер отвечает раньше основного.
+    func deleteAccount(id: Int64) async throws {
+        do {
+            try await client.requestVoid("DELETE", "/api/users/\(id)")
+        } catch APIError.server(let code, _) where code == 404 {
+            return
+        }
+    }
+
     func logout() {
         store.clear()
     }

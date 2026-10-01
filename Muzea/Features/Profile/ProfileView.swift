@@ -8,6 +8,12 @@ struct ProfileView: View {
     @State private var fullName = ""
     @State private var email = ""
     @State private var selectedPhoto: PhotosPickerItem?
+    @State private var deleteDialog: DeleteDialog?
+
+    private enum DeleteDialog {
+        case confirm
+        case failure(String)
+    }
 
     init(container: AppContainer) {
         _viewModel = StateObject(wrappedValue: ProfileViewModel(
@@ -53,6 +59,14 @@ struct ProfileView: View {
                     LabeledContent("Роль", value: viewModel.user?.role ?? "")
                 }
 
+                Section {
+                    NavigationLink {
+                        OperatorInfoView()
+                    } label: {
+                        Label("Оператор персональных данных", systemImage: "person.text.rectangle")
+                    }
+                }
+
                 if let error = viewModel.error {
                     Section { Text(error).foregroundColor(.red) }
                 }
@@ -61,6 +75,10 @@ struct ProfileView: View {
                     Button("Сохранить") {
                         Task { _ = await viewModel.update(fullName: fullName, email: email) }
                     }
+                    Button("Удалить аккаунт", role: .destructive) {
+                        deleteDialog = .confirm
+                    }
+                    .disabled(viewModel.isBusy)
                     Button("Выйти", role: .destructive) {
                         container.logout()
                     }
@@ -75,15 +93,57 @@ struct ProfileView: View {
             .onChange(of: selectedPhoto) { newValue in
                 Task { await loadPhoto(newValue) }
             }
+            .alert("Удалить аккаунт?", isPresented: Binding(
+                get: { deleteDialog != nil },
+                set: { if !$0 { deleteDialog = nil } }
+            )) {
+                switch deleteDialog {
+                case .confirm:
+                    Button("Удалить", role: .destructive) { Task { await deleteAccount() } }
+                    Button("Отмена", role: .cancel) {}
+                case .failure:
+                    Button("Выйти из приложения", role: .destructive) { container.logout() }
+                    Button("Отмена", role: .cancel) {}
+                case .none:
+                    EmptyView()
+                }
+            } message: {
+                switch deleteDialog {
+                case .confirm:
+                    Text("Профиль, сообщения, публикации и видео будут удалены, обработка персональных данных прекратится. Отменить удаление нельзя.")
+                case .failure(let message):
+                    Text(message)
+                case .none:
+                    EmptyView()
+                }
+            }
         }
     }
 
     private func loadPhoto(_ item: PhotosPickerItem?) async {
         guard let item, let data = try? await item.loadTransferable(type: Data.self) else { return }
+        guard data.count <= Config.maxAvatarBytes else {
+            viewModel.error = "Выберите изображение размером до 5 МБ"
+            return
+        }
         await viewModel.uploadAvatar(
             data: data,
             fileName: "avatar_\(Int(Date().timeIntervalSince1970)).jpg",
             mimeType: "image/jpeg"
         )
+    }
+
+    private func deleteAccount() async {
+        switch await viewModel.deleteAccount() {
+        case .deleted:
+            container.tokenStore.clearAll()
+            container.consentManager.revoke()
+            container.isConsentAccepted = false
+            container.logout()
+        case .chatFailed:
+            deleteDialog = .failure("Не удалось удалить переписку на сервере чата. Проверьте подключение и повторите попытку.")
+        case .failed(let message):
+            deleteDialog = .failure(message)
+        }
     }
 }

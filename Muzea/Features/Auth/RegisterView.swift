@@ -1,13 +1,17 @@
 import SwiftUI
+import UIKit
 
 struct RegisterView: View {
     @EnvironmentObject private var container: AppContainer
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
 
     @State private var username = ""
     @State private var fullName = ""
     @State private var email = ""
     @State private var password = ""
+    @State private var confirmPassword = ""
+    @State private var consentAccepted = false
     @State private var isLoading = false
     @State private var error: String?
 
@@ -24,6 +28,17 @@ struct RegisterView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     SecureField("Пароль", text: $password)
+                    SecureField("Подтвердите пароль", text: $confirmPassword)
+                }
+
+                Section {
+                    Toggle("Я принимаю Пользовательское соглашение и Политику обработки персональных данных", isOn: $consentAccepted)
+                        .font(.footnote)
+                    HStack(spacing: 16) {
+                        Button("Пользовательское соглашение") { open(Legal.termsURL) }
+                        Button("Политика обработки ПДн") { open(Legal.policyURL) }
+                    }
+                    .font(.caption)
                 }
 
                 if let error {
@@ -53,7 +68,17 @@ struct RegisterView: View {
     }
 
     private var isValid: Bool {
-        !username.isEmpty && !fullName.isEmpty && email.contains("@") && password.count >= 6
+        !username.isEmpty
+            && !fullName.isEmpty
+            && email.contains("@")
+            && password.count >= 6
+            && password == confirmPassword
+            && consentAccepted
+    }
+
+    private func open(_ url: String) {
+        guard let target = URL(string: url) else { return }
+        openURL(target)
     }
 
     private func register() {

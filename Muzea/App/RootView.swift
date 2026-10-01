@@ -5,7 +5,12 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if container.isLoggedIn {
+            // Без согласия на обработку персональных данных приложение не запускается (ст. 9 ФЗ-152).
+            if !container.isConsentAccepted {
+                ConsentView(consent: container.consentManager) {
+                    container.didAcceptConsent()
+                }
+            } else if container.isLoggedIn {
                 MainTabView()
             } else {
                 LoginView()
