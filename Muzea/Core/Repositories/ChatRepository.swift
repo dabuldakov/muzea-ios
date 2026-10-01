@@ -153,7 +153,10 @@ final class ChatRepository {
         guard await auth.ensureAuthenticated() else { throw APIError.unauthorized }
         do {
             try await client.requestVoid("DELETE", "/api/users/me")
-        } catch APIError.server(let code, _) where code == 401 || code == 404 {
+        } catch APIError.unauthorized {
+            // HTTPClient отдаёт 401 как .unauthorized, а не .server(401, ...).
+            return
+        } catch APIError.server(let code, _) where code == 404 {
             return
         }
     }

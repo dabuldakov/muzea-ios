@@ -4,6 +4,14 @@ import UIKit
 /// Локальное хранилище сессии, по ключам совпадает с Android TokenManager.
 /// Пароль хранится в Keychain, а не в UserDefaults (аналог SecurePasswordStore).
 final class TokenStore {
+    /// Ключи, которыми владеет приложение: сессия, чат, push, устройство.
+    private static let ownedKeys = [
+        "auth_token", "username", "email", "password",
+        "chat_token", "chat_token_user",
+        "fcm_token", "fcm_token_registered",
+        "device_id"
+    ]
+
     private let defaults: UserDefaults
     private let passwordStore: PasswordStoring
 
@@ -77,6 +85,8 @@ final class TokenStore {
     /// Полная очистка локальных данных пользователя — при удалении аккаунта
     /// или отзыве согласия на обработку персональных данных.
     func clearAll() {
+        for key in Self.ownedKeys { defaults.removeObject(forKey: key) }
+        // Подстраховка от ключей, добавленных в будущем.
         for key in defaults.dictionaryRepresentation().keys {
             defaults.removeObject(forKey: key)
         }
