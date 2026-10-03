@@ -98,21 +98,38 @@ Workflow `.github/workflows/ios.yml` на каждый push/PR:
 
 Подпись/TestFlight не настроены — для них нужен Apple Developer аккаунт и секреты.
 
-## Установка на iPhone (бесплатный Apple ID + Windows)
+## Установка на iPhone (бесплатный Apple ID)
 
-CI собирает неподписанный device-`.ipa` (job **Release .ipa**):
+CI собирает неподписанный device-`.ipa` (job **Release .ipa**). Установить можно
+с macOS или Windows:
 
-1. Actions → последний run → блок **Artifacts** → скачай `Muzea-unsigned-ipa`.
-2. На Windows установи [Sideloadly](https://sideloadly.io) и iTunes (для драйверов iPhone).
-3. Подключи iPhone кабелем и доверься компьютеру.
-4. В Sideloadly выбери `.ipa`, укажи свой Apple ID и нажми Start.
-5. На iPhone: Настройки → Основные → VPN и управление устройством → доверься профилю разработчика.
+1. Скачай `.ipa`:
+   - **проще** — из [Releases](https://github.com/dabuldakov/muzea-ios/releases)
+     возьми `Muzea-unsigned.ipa` из последнего релиза (вход в GitHub не нужен);
+   - если релиза ещё нет — Actions → последний **успешный** run → блок **Artifacts** →
+     `Muzea-unsigned-ipa` (это zip) → распакуй, внутри `Muzea-unsigned.ipa` (скачивание
+     артефактов требует входа в GitHub).
+2. Установи Sideloadly:
+   [macOS](https://sideloadly.io/SideloadlySetup.dmg) ·
+   [Windows 64-bit](https://sideloadly.io/SideloadlySetup64.exe).
+   На **Windows** дополнительно нужны «веб-версии» iTunes и iCloud (не из Microsoft
+   Store). **На macOS iTunes не нужен.**
+3. Подключи iPhone кабелем и на устройстве нажми «Доверять этому компьютеру».
+4. Перетащи `.ipa` в Sideloadly, укажи свой Apple ID и нажми **Start**.
+5. На iPhone: Настройки → Основные → VPN и управление устройством → доверься профилю
+   разработчика.
+6. Включи режим разработчика (обязательно на iOS 16+): Настройки → Конфиденциальность и
+   безопасность → Режим разработчика → включить и перезагрузить iPhone. Пункт появляется
+   после установки приложения.
 
 Ограничения бесплатной подписи:
 
 - подпись живёт **7 дней**, затем повторить установку;
 - до 3 приложений на аккаунт;
-- **push-уведомления не работают** (нет entitlement `aps-environment` у бесплатного профиля).
+- **push-уведомления не работают** (нет entitlement `aps-environment` у бесплатного профиля);
+- при включённой 2FA Sideloadly попросит код подтверждения.
+
+Альтернативы Sideloadly: AltStore (авто-подпись) или сборка проекта из исходников в Xcode.
 
 ## Push-уведомления
 
