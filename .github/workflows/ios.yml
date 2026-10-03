@@ -3,6 +3,7 @@ name: iOS CI
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
   workflow_dispatch:
 
@@ -107,9 +108,11 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
 
+  # Релизная сборка запускается только после успешных сборки и ВСЕХ тестов:
+  # релизный артефакт не должен собираться из красного состояния.
   ipa:
-    name: Unsigned device .ipa (for Sideloadly)
-    needs: build
+    name: Release .ipa (unsigned, for Sideloadly)
+    needs: [ build, test ]
     runs-on: macos-15
     timeout-minutes: 45
     steps:
