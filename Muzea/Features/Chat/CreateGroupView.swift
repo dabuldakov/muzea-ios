@@ -2,17 +2,23 @@ import SwiftUI
 
 /// Создание группового чата: название и необязательный выбор участников.
 struct CreateGroupView: View {
-    let repository: ChatRepository
+    let container: AppContainer
     let onCreated: (ChatResponse) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel: CreateGroupViewModel
     @State private var title = ""
-    @State private var contacts: [ContactResponse] = []
     @State private var selected: Set<String> = []
-    @State private var isLoadingContacts = false
     @State private var showMemberPicker = false
-    @State private var isSubmitting = false
-    @State private var error: String?
+
+    init(container: AppContainer, onCreated: @escaping (ChatResponse) -> Void) {
+        self.container = container
+        self.onCreated = onCreated
+        _viewModel = StateObject(wrappedValue: CreateGroupViewModel(
+            chatRepository: container.chatRepository,
+            contactRepository: container.contactRepository
+        ))
+    }
 
     var body: some View {
         NavigationStack {
@@ -31,10 +37,10 @@ struct CreateGroupView: View {
                             Image(systemName: "chevron.right").foregroundColor(.secondary)
                         }
                     }
-                    .disabled(isLoadingContacts)
+                    .disabled(viewModel.isLoadingContacts)
                 }
 
-                if let error {
+                if let error = viewModel.error {
                     Section { Text(error).foregroundColor(.red) }
                 }
             }
@@ -45,17 +51,17 @@ struct CreateGroupView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Создать") { create() }
-                        .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || isSubmitting)
+                        .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isSubmitting)
                 }
             }
-            .task { await loadContacts() }
+            .task { await viewModel.loadContacts() }
             .sheet(isPresented: $showMemberPicker) {
                 NavigationStack {
                     Group {
-                        if contacts.isEmpty {
+                        if viewModel.contacts.isEmpty {
                             Text("Нет контактов").foregroundColor(.secondary)
                         } else {
-                            MemberPickerView(contacts: contacts, selected: $selected)
+                            MemberPickerView(contacts: viewModel.contacts, selected: $selected)
                         }
                     }
                     .navigationTitle("Участники")
@@ -69,26 +75,12 @@ struct CreateGroupView: View {
         }
     }
 
-    private func loadContacts() async {
-        isLoadingContacts = true
-        contacts = (try? await repository.loadContacts()) ?? []
-        isLoadingContacts = false
-    }
-
     private func create() {
-        let name = title.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty else { return }
-        isSubmitting = true
-        error = nil
         Task {
-            do {
-                let chat = try await repository.createGroupChat(title: name, memberUuids: Array(selected))
+            if let chat = await viewModel.create(title: title, memberUuids: Array(selected)) {
                 onCreated(chat)
                 dismiss()
-            } catch {
-                self.error = error.localizedDescription
             }
-            isSubmitting = false
         }
     }
 }

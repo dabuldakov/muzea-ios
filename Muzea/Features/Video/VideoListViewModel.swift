@@ -1,10 +1,15 @@
 import Foundation
 
+/// Единое состояние ленты видео.
+struct VideoFeedUiState: Equatable {
+    var videos: [VideoResponse] = []
+    var isLoading = false
+    var error: String?
+}
+
 @MainActor
 final class VideoListViewModel: ObservableObject {
-    @Published var videos: [VideoResponse] = []
-    @Published var isLoading = false
-    @Published var error: String?
+    @Published private(set) var state = VideoFeedUiState()
 
     private let repository: VideoRepository
     private let ownUsername: String?
@@ -12,17 +17,23 @@ final class VideoListViewModel: ObservableObject {
     init(repository: VideoRepository, ownUsername: String?) {
         self.repository = repository
         self.ownUsername = ownUsername
+        // Сначала отдаём кэш, чтобы вкладка показалась мгновенно.
+        state.videos = VideoFeedFilter.filter(repository.cachedVideos(), ownUsername: ownUsername)
     }
 
     func load() async {
-        isLoading = true
+        if state.videos.isEmpty { state.isLoading = true }
         do {
             let all = try await repository.getVideos()
-            videos = VideoFeedFilter.filter(all, ownUsername: ownUsername)
-            error = nil
+            state.videos = VideoFeedFilter.filter(all, ownUsername: ownUsername)
+            state.error = nil
         } catch {
-            self.error = error.localizedDescription
+            state.error = error.localizedDescription
         }
-        isLoading = false
+        state.isLoading = false
+    }
+
+    func consumeError() {
+        state.error = nil
     }
 }

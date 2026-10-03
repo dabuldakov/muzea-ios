@@ -13,7 +13,7 @@ struct RootView: View {
             } else if container.isLoggedIn {
                 MainTabView()
             } else {
-                LoginView()
+                LoginView(container: container)
             }
         }
     }

@@ -2,9 +2,11 @@ import SwiftUI
 import UIKit
 
 struct RegisterView: View {
-    @EnvironmentObject private var container: AppContainer
+    let container: AppContainer
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @StateObject private var viewModel: AuthViewModel
 
     @State private var username = ""
     @State private var fullName = ""
@@ -12,8 +14,11 @@ struct RegisterView: View {
     @State private var password = ""
     @State private var confirmPassword = ""
     @State private var consentAccepted = false
-    @State private var isLoading = false
-    @State private var error: String?
+
+    init(container: AppContainer) {
+        self.container = container
+        _viewModel = StateObject(wrappedValue: AuthViewModel(repository: container.authRepository))
+    }
 
     var body: some View {
         NavigationStack {
@@ -41,7 +46,7 @@ struct RegisterView: View {
                     .font(.caption)
                 }
 
-                if let error {
+                if let error = viewModel.state.error {
                     Section {
                         Text(error).foregroundColor(.red)
                     }
@@ -49,13 +54,13 @@ struct RegisterView: View {
 
                 Section {
                     Button(action: register) {
-                        if isLoading {
+                        if viewModel.state.isLoading {
                             ProgressView().frame(maxWidth: .infinity)
                         } else {
                             Text("Зарегистрироваться").frame(maxWidth: .infinity)
                         }
                     }
-                    .disabled(!isValid || isLoading)
+                    .disabled(!isValid || viewModel.state.isLoading)
                 }
             }
             .navigationTitle("Регистрация")
@@ -82,22 +87,17 @@ struct RegisterView: View {
     }
 
     private func register() {
-        isLoading = true
-        error = nil
         Task {
-            do {
-                _ = try await container.authRepository.register(
-                    username: username,
-                    email: email,
-                    password: password,
-                    fullName: fullName
-                )
+            let success = await viewModel.register(
+                username: username,
+                email: email,
+                password: password,
+                fullName: fullName
+            )
+            if success {
                 container.didLogin()
                 dismiss()
-            } catch {
-                self.error = error.localizedDescription
             }
-            isLoading = false
         }
     }
 }

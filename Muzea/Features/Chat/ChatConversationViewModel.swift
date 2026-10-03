@@ -1,39 +1,45 @@
 import Foundation
 
+/// Единое состояние экрана переписки.
+struct ChatConversationUiState: Equatable {
+    var messages: [MessageResponse] = []
+    var isLoading = false
+    var error: String?
+}
+
 @MainActor
 final class ChatConversationViewModel: ObservableObject {
-    @Published var messages: [MessageResponse] = []
-    @Published var error: String?
+    @Published private(set) var state = ChatConversationUiState()
 
     let chatUuid: String
     let myUserUuid: String?
 
-    private let repository: ChatRepository
-    private var lastMarkedRead: String?
+    private let repository: MessageRepository
+    private let reducer = ChatMessageReducer()
+    private var lastMarkedReadUuid: String?
 
-    init(chatUuid: String, repository: ChatRepository, myUserUuid: String?) {
+    init(chatUuid: String, repository: MessageRepository, myUserUuid: String?) {
         self.chatUuid = chatUuid
         self.repository = repository
         self.myUserUuid = myUserUuid
+        // Стартуем с кэша: при повторном входе переписка видна сразу, а опрос
+        // догружает свежие сообщения фоном. Кэш хранит сообщения в порядке
+        // сервера (сначала новые), поэтому seed() сортирует их до показа.
+        state.messages = reducer.seed(repository.cachedMessages(chatUuid: chatUuid))
     }
 
+    /// Опрос: первый запрос уходит сразу, поэтому отдельный refresh() при входе
+    /// был бы вторым обращением к серверу подряд.
     func start() async {
-        await refresh()
         while !Task.isCancelled {
+            await loadOnce()
             try? await Task.sleep(nanoseconds: Config.chatPollInterval)
-            await refresh()
         }
     }
 
+    /// Разовая загрузка вне цикла опроса (pull-to-refresh).
     func refresh() async {
-        do {
-            let loaded = try await repository.loadMessages(chatUuid: chatUuid)
-            merge(loaded)
-            await markRead()
-            error = nil
-        } catch {
-            self.error = error.localizedDescription
-        }
+        await loadOnce()
     }
 
     func send(_ text: String) async {
@@ -60,25 +66,43 @@ final class ChatConversationViewModel: ObservableObject {
 
         do {
             let sent = try await repository.sendMessage(chatUuid: chatUuid, text: trimmed)
-            messages.removeAll { $0.messageUuid == optimistic.messageUuid }
-            merge([sent])
+            state.messages = reducer.applyServerEcho(
+                current: state.messages,
+                localUuid: optimistic.messageUuid,
+                serverMessage: sent
+            )
             await markRead()
         } catch {
-            self.error = error.localizedDescription
+            state.error = error.localizedDescription
+        }
+    }
+
+    private func loadOnce() async {
+        // Спиннер показываем только когда показать нечего: переписка из кэша уже
+        // на экране, и мигать индикатором при входе незачем.
+        if state.messages.isEmpty { state.isLoading = true }
+        do {
+            let loaded = try await repository.loadMessages(chatUuid: chatUuid)
+            state.isLoading = false
+            state.error = nil
+            merge(loaded)
+            await markRead()
+        } catch {
+            state.isLoading = false
+            state.error = error.localizedDescription
         }
     }
 
     private func merge(_ incoming: [MessageResponse]) {
-        var map: [String: MessageResponse] = [:]
-        for message in incoming { map[message.messageUuid] = message }
-        for message in messages { map[message.messageUuid] = message }
-        messages = map.values.sorted { ($0.createdAt ?? "") < ($1.createdAt ?? "") }
+        state.messages = reducer.merge(current: state.messages, incoming: incoming)
     }
 
     private func markRead() async {
-        guard let latest = messages.last(where: { !$0.messageUuid.hasPrefix("local-") }) else { return }
-        guard latest.messageUuid != lastMarkedRead else { return }
-        lastMarkedRead = latest.messageUuid
+        let latest = state.messages.last {
+            !$0.messageUuid.isEmpty && !$0.messageUuid.hasPrefix("local-")
+        }
+        guard let latest, latest.messageUuid != lastMarkedReadUuid else { return }
+        lastMarkedReadUuid = latest.messageUuid
         await repository.markMessagesAsRead(chatUuid: chatUuid, upToMessageUuid: latest.messageUuid)
     }
 }

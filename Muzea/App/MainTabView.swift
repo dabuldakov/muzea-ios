@@ -31,7 +31,7 @@ struct MainTabView: View {
         }
         .task {
             while !Task.isCancelled {
-                if let count = try? await container.chatRepository.totalUnreadCount() {
+                if let count = try? await container.chatSessionRepository.totalUnreadCount() {
                     unreadCount = count
                 }
                 try? await Task.sleep(nanoseconds: Config.unreadPollInterval)
@@ -43,7 +43,7 @@ struct MainTabView: View {
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             while !Task.isCancelled {
-                _ = await container.chatRepository.sendHeartbeat()
+                _ = await container.chatSessionRepository.sendHeartbeat()
                 try? await Task.sleep(nanoseconds: Config.heartbeatInterval)
             }
         }

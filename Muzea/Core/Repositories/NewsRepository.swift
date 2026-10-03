@@ -1,12 +1,7 @@
 import Foundation
 
-struct UploadFile {
-    let data: Data
-    let fileName: String
-    let mimeType: String
-}
-
-final class NewsRepository {
+/// Реализация `NewsRepository` на основном бэкенде.
+final class NewsRepositoryImpl: NewsRepository {
     private let client: HTTPClient
 
     init(client: HTTPClient) {

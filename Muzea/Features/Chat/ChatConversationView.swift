@@ -3,16 +3,15 @@ import UIKit
 
 struct ChatConversationView: View {
     let chat: ChatResponse
-    let repository: ChatRepository
     let myUserUuid: String?
 
+    @EnvironmentObject private var router: Router
     @StateObject private var viewModel: ChatConversationViewModel
     @State private var input = ""
     @State private var didScrollToUnread = false
 
-    init(chat: ChatResponse, repository: ChatRepository, myUserUuid: String?) {
+    init(chat: ChatResponse, repository: MessageRepository, myUserUuid: String?) {
         self.chat = chat
-        self.repository = repository
         self.myUserUuid = myUserUuid
         _viewModel = StateObject(wrappedValue: ChatConversationViewModel(
             chatUuid: chat.chatUuid,
@@ -26,7 +25,7 @@ struct ChatConversationView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 8) {
-                        ForEach(viewModel.messages) { message in
+                        ForEach(viewModel.state.messages) { message in
                             MessageRow(
                                 message: message,
                                 isMine: message.senderUuid != nil && message.senderUuid == myUserUuid
@@ -36,7 +35,7 @@ struct ChatConversationView: View {
                     }
                     .padding(8)
                 }
-                .onChange(of: viewModel.messages.count) { _ in
+                .onChange(of: viewModel.state.messages.count) { _ in
                     scroll(proxy)
                 }
                 .onAppear { scroll(proxy) }
@@ -58,8 +57,8 @@ struct ChatConversationView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                NavigationLink {
-                    GroupSettingsView(chat: chat, repository: repository, myUserUuid: myUserUuid)
+                Button {
+                    router.push(.groupSettings(chat))
                 } label: {
                     Image(systemName: "info.circle")
                 }
@@ -75,16 +74,16 @@ struct ChatConversationView: View {
     }
 
     private func scroll(_ proxy: ScrollViewProxy) {
-        guard !viewModel.messages.isEmpty else { return }
+        guard !viewModel.state.messages.isEmpty else { return }
 
         if !didScrollToUnread {
             didScrollToUnread = true
             let unread = Int(chat.unreadCount ?? 0)
             let index = unread > 0
-                ? max(0, viewModel.messages.count - unread)
-                : viewModel.messages.count - 1
-            proxy.scrollTo(viewModel.messages[index].messageUuid, anchor: .top)
-        } else if let last = viewModel.messages.last {
+                ? max(0, viewModel.state.messages.count - unread)
+                : viewModel.state.messages.count - 1
+            proxy.scrollTo(viewModel.state.messages[index].messageUuid, anchor: .top)
+        } else if let last = viewModel.state.messages.last {
             proxy.scrollTo(last.messageUuid, anchor: .bottom)
         }
     }

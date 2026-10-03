@@ -1,12 +1,10 @@
 import SwiftUI
 
 struct VideoListView: View {
+    @EnvironmentObject private var container: AppContainer
     @StateObject private var viewModel: VideoListViewModel
+    @StateObject private var router = Router()
     @State private var showUpload = false
-
-    private let videoRepository: VideoRepository
-    private let ownUsername: String?
-    private let authToken: String?
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
 
@@ -15,57 +13,52 @@ struct VideoListView: View {
             repository: container.videoRepository,
             ownUsername: container.tokenStore.username
         ))
-        videoRepository = container.videoRepository
-        ownUsername = container.tokenStore.username
-        authToken = container.tokenStore.token
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if viewModel.videos.isEmpty {
-                    if viewModel.isLoading {
-                        ProgressView()
-                    } else {
-                        VStack(spacing: 8) {
-                            Image(systemName: "play.rectangle").font(.largeTitle).foregroundColor(.secondary)
-                            Text(viewModel.error ?? "Нет видео").foregroundColor(.secondary)
-                        }
-                    }
-                } else {
-                    ScrollView {
-                        LazyVGrid(columns: columns, spacing: 12) {
-                            ForEach(viewModel.videos) { video in
-                                NavigationLink {
-                                    VideoDetailView(
-                                        video: video,
-                                        repository: videoRepository,
-                                        ownUsername: ownUsername,
-                                        authToken: authToken
-                                    )
-                                } label: {
-                                    VideoCell(video: video)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding()
+        NavigationStack(path: $router.path) {
+            content
+                .navigationTitle("Видео")
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button { showUpload = true } label: { Image(systemName: "plus") }
                     }
                 }
-            }
-            .navigationTitle("Видео")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { showUpload = true } label: { Image(systemName: "plus") }
+                .refreshable { await viewModel.load() }
+                .navigationDestination(for: Route.self) { RouteDestinationView(route: $0) }
+                .sheet(isPresented: $showUpload) {
+                    VideoUploadView(container: container)
                 }
-            }
-            .refreshable { await viewModel.load() }
-            .sheet(isPresented: $showUpload) {
-                VideoUploadView(videoRepository: videoRepository, ownUsername: ownUsername)
-            }
         }
+        .environmentObject(router)
         .task {
-            if viewModel.videos.isEmpty { await viewModel.load() }
+            if viewModel.state.videos.isEmpty { await viewModel.load() }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if viewModel.state.videos.isEmpty {
+            if viewModel.state.isLoading {
+                ProgressView()
+            } else {
+                VStack(spacing: 8) {
+                    Image(systemName: "play.rectangle").font(.largeTitle).foregroundColor(.secondary)
+                    Text(viewModel.state.error ?? "Нет видео").foregroundColor(.secondary)
+                }
+            }
+        } else {
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 12) {
+                    ForEach(viewModel.state.videos) { video in
+                        NavigationLink(value: Route.videoDetail(video)) {
+                            VideoCell(video: video)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding()
+            }
         }
     }
 }

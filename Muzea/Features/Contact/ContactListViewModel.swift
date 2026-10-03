@@ -1,26 +1,34 @@
 import Foundation
 
+/// Единое состояние списка контактов.
+struct ContactListUiState: Equatable {
+    var contacts: [ContactResponse] = []
+    var isLoading = false
+    var error: String?
+}
+
 @MainActor
 final class ContactListViewModel: ObservableObject {
-    @Published var contacts: [ContactResponse] = []
-    @Published var isLoading = false
-    @Published var error: String?
+    @Published private(set) var state = ContactListUiState()
+    @Published private(set) var isOpeningChat = false
 
-    private let repository: ChatRepository
+    private let repository: ContactRepository
+    private let openPrivateChat: OpenPrivateChatUseCase
 
-    init(repository: ChatRepository) {
+    init(repository: ContactRepository, openPrivateChat: OpenPrivateChatUseCase) {
         self.repository = repository
+        self.openPrivateChat = openPrivateChat
     }
 
     func load() async {
-        isLoading = true
-        defer { isLoading = false }
+        state.isLoading = state.contacts.isEmpty
         do {
-            contacts = try await repository.loadContacts()
-            error = nil
+            state.contacts = try await repository.loadContacts()
+            state.error = nil
         } catch {
-            self.error = error.localizedDescription
+            state.error = error.localizedDescription
         }
+        state.isLoading = false
     }
 
     func add(username: String) async -> Bool {
@@ -29,23 +37,22 @@ final class ContactListViewModel: ObservableObject {
             await load()
             return true
         } catch {
-            self.error = error.localizedDescription
+            state.error = error.localizedDescription
             return false
         }
     }
 
     /// Обновляет только статусы, не трогая состав и порядок списка: сервер
     /// присылает присутствие отдельным лёгким запросом, а не перезагрузкой
-    /// `/api/contacts`. Пустой ответ — сбой сети, а не «все офлайн», поэтому
-    /// список не переписываем.
+    /// `/api/contacts`. Пустой ответ — сбой сети, а не «все офлайн».
     func refreshPresence() async {
-        let uuids = contacts.compactMap { $0.contactUserUuid }
+        let uuids = state.contacts.compactMap { $0.contactUserUuid }
         guard !uuids.isEmpty else { return }
 
         let presence = await repository.loadPresence(userUuids: uuids)
         guard !presence.isEmpty else { return }
 
-        contacts = contacts.map { contact in
+        state.contacts = state.contacts.map { contact in
             guard let uuid = contact.contactUserUuid, let fresh = presence[uuid] else {
                 return contact
             }
@@ -53,16 +60,25 @@ final class ContactListViewModel: ObservableObject {
         }
     }
 
+    /// Открывает существующую переписку или создаёт новую через use-case:
+    /// повторный тап по контакту больше не плодит дубликаты чатов.
     func openChat(with contact: ContactResponse) async -> ChatResponse? {
         guard let uuid = contact.contactUserUuid, !uuid.isEmpty else {
-            error = "У контакта нет UUID"
+            state.error = "У контакта нет UUID"
             return nil
         }
+        guard !isOpeningChat else { return nil }
+        isOpeningChat = true
+        defer { isOpeningChat = false }
         do {
-            return try await repository.createPrivateChat(userUuid: uuid)
+            return try await openPrivateChat(userUuid: uuid)
         } catch {
-            self.error = error.localizedDescription
+            state.error = error.localizedDescription
             return nil
         }
+    }
+
+    func consumeError() {
+        state.error = nil
     }
 }

@@ -2,10 +2,21 @@ import XCTest
 @testable import Muzea
 
 /// Удаление аккаунта: порядок чат → основной сервер и трактовка 401/404 как успеха
-/// (паритет с Android ProfileViewModel/UserRepository/ChatRepository).
+/// (паритет с Android ProfileViewModel/ChatSessionRepository/UserRepository).
 final class DeleteAccountTests: XCTestCase {
 
     private var store: TokenStore!
+
+    private let sampleUser = UserResponse(
+        id: 7,
+        userName: "me",
+        email: "me@example.com",
+        fullName: "Me",
+        avatarUrl: nil,
+        role: "USER",
+        createdAt: nil,
+        enabled: true
+    )
 
     override func setUp() {
         super.setUp()
@@ -22,13 +33,17 @@ final class DeleteAccountTests: XCTestCase {
         super.tearDown()
     }
 
-    private func chatRepository() -> ChatRepository {
+    private func chatSession() -> ChatSessionRepositoryImpl {
         let client = TestSupport.chatClient(tokenStore: store)
-        return ChatRepository(client: client, auth: ChatAuthManager(client: client, store: store))
+        let authorization = ChatAuthorization(
+            client: client,
+            auth: ChatAuthManager(client: client, store: store)
+        )
+        return ChatSessionRepositoryImpl(auth: authorization)
     }
 
-    private func authRepository() -> AuthRepository {
-        AuthRepository(client: TestSupport.makeupClient(tokenStore: store), store: store)
+    private func userRepository() -> UserRepositoryImpl {
+        UserRepositoryImpl(client: TestSupport.makeupClient(tokenStore: store))
     }
 
     func testChatDeleteAccountSendsDelete() async throws {
@@ -36,7 +51,7 @@ final class DeleteAccountTests: XCTestCase {
             (MockURLProtocol.response(for: request, status: 204), Data())
         }
 
-        try await chatRepository().deleteAccount()
+        try await chatSession().deleteAccount()
 
         XCTAssertEqual(MockURLProtocol.requests.first?.httpMethod, "DELETE")
         XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/users/me")
@@ -47,7 +62,7 @@ final class DeleteAccountTests: XCTestCase {
             (MockURLProtocol.response(for: request, status: 401), Data())
         }
 
-        try await chatRepository().deleteAccount()
+        try await chatSession().deleteAccount()
 
         // Без повторной авторизации: 401 после удаления — нормальный ответ сервера.
         XCTAssertEqual(MockURLProtocol.requests.count, 1)
@@ -58,7 +73,7 @@ final class DeleteAccountTests: XCTestCase {
             (MockURLProtocol.response(for: request, status: 404), Data())
         }
 
-        try await chatRepository().deleteAccount()
+        try await chatSession().deleteAccount()
     }
 
     func testChatDeleteAccountThrowsOnServerError() async {
@@ -67,7 +82,7 @@ final class DeleteAccountTests: XCTestCase {
         }
 
         do {
-            try await chatRepository().deleteAccount()
+            try await chatSession().deleteAccount()
             XCTFail("Ожидалась ошибка сервера")
         } catch {
             // ok
@@ -79,21 +94,23 @@ final class DeleteAccountTests: XCTestCase {
             (MockURLProtocol.response(for: request, status: 404), Data())
         }
 
-        try await authRepository().deleteAccount(id: 42)
+        try await userRepository().deleteAccount(id: 42)
 
         XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/users/42")
     }
 
-    func testMainDeleteAccountThrowsOnServerError() async throws {
+    func testMainDeleteAccountThrowsOnServerError() async {
         MockURLProtocol.handler = { request in
             (MockURLProtocol.response(for: request, status: 500), TestSupport.data("boom"))
         }
 
         do {
-            try await authRepository().deleteAccount(id: 42)
+            try await userRepository().deleteAccount(id: 42)
             XCTFail("Ожидалась ошибка сервера")
         } catch APIError.server(let code, _) {
             XCTAssertEqual(code, 500)
+        } catch {
+            XCTFail("Неожиданная ошибка: \(error)")
         }
     }
 
@@ -101,20 +118,16 @@ final class DeleteAccountTests: XCTestCase {
 
     @MainActor
     private func makeProfileViewModel() -> ProfileViewModel {
-        ProfileViewModel(authRepository: authRepository(), chatRepository: chatRepository())
-    }
-
-    @MainActor
-    private func seedUser(_ viewModel: ProfileViewModel) {
-        viewModel.user = UserResponse(
-            id: 7,
-            userName: "me",
-            email: "me@example.com",
-            fullName: "Me",
-            avatarUrl: nil,
-            role: "USER",
-            createdAt: nil,
-            enabled: true
+        let chatClient = TestSupport.chatClient(tokenStore: store)
+        let authorization = ChatAuthorization(
+            client: chatClient,
+            auth: ChatAuthManager(client: chatClient, store: store)
+        )
+        return ProfileViewModel(
+            userRepository: userRepository(),
+            avatarRepository: AvatarRepositoryImpl(auth: authorization),
+            chatSessionRepository: ChatSessionRepositoryImpl(auth: authorization),
+            initialUser: sampleUser
         )
     }
 
@@ -130,9 +143,7 @@ final class DeleteAccountTests: XCTestCase {
             return (MockURLProtocol.response(for: request, status: 204), Data())
         }
 
-        let viewModel = makeProfileViewModel()
-        seedUser(viewModel)
-        let outcome = await viewModel.deleteAccount()
+        let outcome = await makeProfileViewModel().deleteAccount()
 
         XCTAssertEqual(outcome, .deleted)
         XCTAssertEqual(order, ["chat-muzea.su", "api-muzea.su"])
@@ -149,9 +160,7 @@ final class DeleteAccountTests: XCTestCase {
             return (MockURLProtocol.response(for: request, status: 204), Data())
         }
 
-        let viewModel = makeProfileViewModel()
-        seedUser(viewModel)
-        let outcome = await viewModel.deleteAccount()
+        let outcome = await makeProfileViewModel().deleteAccount()
 
         XCTAssertEqual(outcome, .chatFailed)
         XCTAssertTrue(mainDeleteCalled)
@@ -166,9 +175,7 @@ final class DeleteAccountTests: XCTestCase {
             return (MockURLProtocol.response(for: request, status: 500), TestSupport.data("boom"))
         }
 
-        let viewModel = makeProfileViewModel()
-        seedUser(viewModel)
-        let outcome = await viewModel.deleteAccount()
+        let outcome = await makeProfileViewModel().deleteAccount()
 
         if case .failed = outcome {
             // ok

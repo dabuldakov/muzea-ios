@@ -2,20 +2,24 @@ import SwiftUI
 import PhotosUI
 
 struct CreateNewsView: View {
-    let newsRepository: NewsRepository
-    let videoRepository: VideoRepository
-    let ownUsername: String?
+    let container: AppContainer
 
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel: CreateNewsViewModel
     @State private var title = ""
     @State private var content = ""
     @State private var selectedImage: PhotosPickerItem?
     @State private var imageData: Data?
     @State private var imageName = "image.jpg"
-    @State private var ownVideos: [VideoResponse] = []
     @State private var selectedVideoId: Int64?
-    @State private var isSubmitting = false
-    @State private var error: String?
+
+    init(container: AppContainer) {
+        self.container = container
+        _viewModel = StateObject(wrappedValue: CreateNewsViewModel(
+            newsRepository: container.newsRepository,
+            videoRepository: container.videoRepository
+        ))
+    }
 
     var body: some View {
         NavigationStack {
@@ -35,30 +39,30 @@ struct CreateNewsView: View {
                     }
                 }
 
-                if !ownVideos.isEmpty {
+                if !viewModel.ownVideos.isEmpty {
                     Section("Видео") {
                         Picker("Видео", selection: $selectedVideoId) {
                             Text("Нет").tag(Int64?.none)
-                            ForEach(ownVideos) { video in
+                            ForEach(viewModel.ownVideos) { video in
                                 Text(video.title).tag(Int64?.some(video.id))
                             }
                         }
                     }
                 }
 
-                if let error {
+                if let error = viewModel.error {
                     Section { Text(error).foregroundColor(.red) }
                 }
 
                 Section {
                     Button(action: submit) {
-                        if isSubmitting {
+                        if viewModel.isSubmitting {
                             ProgressView().frame(maxWidth: .infinity)
                         } else {
                             Text("Опубликовать").frame(maxWidth: .infinity)
                         }
                     }
-                    .disabled(title.isEmpty || content.isEmpty || isSubmitting)
+                    .disabled(title.isEmpty || content.isEmpty || viewModel.isSubmitting)
                 }
             }
             .navigationTitle("Новая новость")
@@ -67,17 +71,11 @@ struct CreateNewsView: View {
                     Button("Отмена") { dismiss() }
                 }
             }
-            .task { await loadVideos() }
+            .task { await viewModel.loadVideos(ownUsername: container.tokenStore.username) }
             .onChange(of: selectedImage) { newValue in
                 Task { await loadImage(newValue) }
             }
         }
-    }
-
-    private func loadVideos() async {
-        guard let ownUsername else { return }
-        ownVideos = ((try? await videoRepository.getVideos()) ?? [])
-            .filter { $0.uploadedBy == ownUsername }
     }
 
     private func loadImage(_ item: PhotosPickerItem?) async {
@@ -89,24 +87,19 @@ struct CreateNewsView: View {
     }
 
     private func submit() {
-        isSubmitting = true
-        error = nil
         Task {
-            do {
-                let image = imageData.map {
-                    UploadFile(data: $0, fileName: imageName, mimeType: "image/jpeg")
-                }
-                _ = try await newsRepository.createNews(
-                    title: title,
-                    content: content,
-                    videoId: selectedVideoId,
-                    image: image
-                )
-                dismiss()
-            } catch {
-                self.error = error.localizedDescription
+            let image = imageData.map {
+                UploadFile(data: $0, fileName: imageName, mimeType: "image/jpeg")
             }
-            isSubmitting = false
+            let success = await viewModel.submit(
+                title: title,
+                content: content,
+                videoId: selectedVideoId,
+                image: image
+            )
+            if success {
+                dismiss()
+            }
         }
     }
 }

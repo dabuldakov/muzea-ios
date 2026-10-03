@@ -2,9 +2,9 @@ import SwiftUI
 import PhotosUI
 
 struct ProfileView: View {
-    @EnvironmentObject private var container: AppContainer
-    @StateObject private var viewModel: ProfileViewModel
+    let container: AppContainer
 
+    @StateObject private var viewModel: ProfileViewModel
     @State private var fullName = ""
     @State private var email = ""
     @State private var selectedPhoto: PhotosPickerItem?
@@ -16,9 +16,11 @@ struct ProfileView: View {
     }
 
     init(container: AppContainer) {
+        self.container = container
         _viewModel = StateObject(wrappedValue: ProfileViewModel(
-            authRepository: container.authRepository,
-            chatRepository: container.chatRepository
+            userRepository: container.userRepository,
+            avatarRepository: container.avatarRepository,
+            chatSessionRepository: container.chatSessionRepository
         ))
     }
 
@@ -29,45 +31,43 @@ struct ProfileView: View {
                     HStack {
                         Spacer()
                         VStack(spacing: 10) {
-                            AvatarView(url: ImageURL.chat(viewModel.avatarUrl), size: 96)
+                            AvatarView(url: ImageURL.chat(viewModel.state.avatarUrl), size: 96)
 
                             PhotosPicker(selection: $selectedPhoto, matching: .images) {
                                 Text("Сменить аватар")
                             }
-                            .disabled(viewModel.isBusy)
+                            .disabled(viewModel.state.isBusy)
 
-                            if viewModel.avatarUrl != nil {
+                            if viewModel.state.avatarUrl != nil {
                                 Button("Удалить аватар", role: .destructive) {
                                     Task { await viewModel.deleteAvatar() }
                                 }
-                                .disabled(viewModel.isBusy)
+                                .disabled(viewModel.state.isBusy)
                             }
 
-                            if viewModel.isBusy { ProgressView() }
+                            if viewModel.state.isBusy { ProgressView() }
                         }
                         Spacer()
                     }
                 }
 
                 Section("Профиль") {
-                    LabeledContent("Логин", value: viewModel.user?.userName ?? container.tokenStore.username ?? "")
+                    LabeledContent("Логин", value: viewModel.state.user?.userName ?? container.tokenStore.username ?? "")
                     TextField("Полное имя", text: $fullName)
                     TextField("Email", text: $email)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                    LabeledContent("Роль", value: viewModel.user?.role ?? "")
+                    LabeledContent("Роль", value: viewModel.state.user?.role ?? "")
                 }
 
                 Section {
-                    NavigationLink {
-                        OperatorInfoView()
-                    } label: {
+                    NavigationLink(value: Route.operatorInfo) {
                         Label("Оператор персональных данных", systemImage: "person.text.rectangle")
                     }
                 }
 
-                if let error = viewModel.error {
+                if let error = viewModel.state.error {
                     Section { Text(error).foregroundColor(.red) }
                 }
 
@@ -78,17 +78,18 @@ struct ProfileView: View {
                     Button("Удалить аккаунт", role: .destructive) {
                         deleteDialog = .confirm
                     }
-                    .disabled(viewModel.isBusy)
+                    .disabled(viewModel.state.isBusy)
                     Button("Выйти", role: .destructive) {
                         Task { await container.logout() }
                     }
                 }
             }
             .navigationTitle("Профиль")
+            .navigationDestination(for: Route.self) { RouteDestinationView(route: $0) }
             .task {
                 await viewModel.load()
-                fullName = viewModel.user?.fullName ?? viewModel.user?.userName ?? ""
-                email = viewModel.user?.email ?? ""
+                fullName = viewModel.state.user?.fullName ?? viewModel.state.user?.userName ?? ""
+                email = viewModel.state.user?.email ?? ""
             }
             .onChange(of: selectedPhoto) { newValue in
                 Task { await loadPhoto(newValue) }
@@ -125,7 +126,7 @@ struct ProfileView: View {
     private func loadPhoto(_ item: PhotosPickerItem?) async {
         guard let item, let data = try? await item.loadTransferable(type: Data.self) else { return }
         guard data.count <= Config.maxAvatarBytes else {
-            viewModel.error = "Выберите изображение размером до 5 МБ"
+            viewModel.reportValidationError("Выберите изображение размером до 5 МБ")
             return
         }
         await viewModel.uploadAvatar(
@@ -140,10 +141,7 @@ struct ProfileView: View {
         case .deleted:
             // Аккаунт уже удалён на обоих серверах: серверный logout тут не
             // нужен, а вызвал бы повторную регистрацию. Чистим только локально.
-            container.clearLocalSession()
-            container.tokenStore.clearAll()
-            container.consentManager.revoke()
-            container.isConsentAccepted = false
+            container.didDeleteAccount()
         case .chatFailed:
             deleteDialog = .failure("Не удалось удалить переписку на сервере чата. Проверьте подключение и повторите попытку.")
         case .failed(let message):

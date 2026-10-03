@@ -2,19 +2,21 @@ import SwiftUI
 
 struct NewsDetailView: View {
     let newsId: Int64
-    let newsRepository: NewsRepository
-    let ownUsername: String?
-    var authToken: String? = nil
+    let container: AppContainer
 
     @Environment(\.dismiss) private var dismiss
-    @State private var news: NewsResponse?
-    @State private var error: String?
-    @State private var isDeleting = false
+    @StateObject private var viewModel: NewsDetailViewModel
     @State private var showDeleteConfirm = false
+
+    init(newsId: Int64, container: AppContainer) {
+        self.newsId = newsId
+        self.container = container
+        _viewModel = StateObject(wrappedValue: NewsDetailViewModel(repository: container.newsRepository))
+    }
 
     var body: some View {
         ScrollView {
-            if let news {
+            if let news = viewModel.news {
                 VStack(alignment: .leading, spacing: 12) {
                     if let url = ImageURL.makeup(news.imageUrl) {
                         AsyncImage(url: url) { phase in
@@ -41,18 +43,20 @@ struct NewsDetailView: View {
                     Text(news.content)
 
                     if let video = news.relatedVideo {
-                        NavigationLink {
-                            VideoDetailView(video: video, authToken: authToken)
-                        } label: {
+                        NavigationLink(value: Route.videoDetail(video)) {
                             Label("Смотреть: \(video.title)", systemImage: "play.rectangle")
                         }
+                    }
+
+                    if let error = viewModel.error {
+                        Text(error).foregroundColor(.red).font(.footnote)
                     }
 
                     if canDelete(news) {
                         Button(role: .destructive) {
                             showDeleteConfirm = true
                         } label: {
-                            if isDeleting {
+                            if viewModel.isDeleting {
                                 ProgressView().frame(maxWidth: .infinity)
                             } else {
                                 Text("Удалить новость").frame(maxWidth: .infinity)
@@ -60,11 +64,11 @@ struct NewsDetailView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.red)
-                        .disabled(isDeleting)
+                        .disabled(viewModel.isDeleting)
                     }
                 }
                 .padding()
-            } else if let error {
+            } else if let error = viewModel.error {
                 Text(error).foregroundColor(.red).padding()
             } else {
                 ProgressView().padding()
@@ -72,7 +76,7 @@ struct NewsDetailView: View {
         }
         .navigationTitle("Новость")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .task { await viewModel.load(id: newsId) }
         .alert("Удалить новость?", isPresented: $showDeleteConfirm) {
             Button("Удалить", role: .destructive) { delete() }
             Button("Отмена", role: .cancel) {}
@@ -80,27 +84,14 @@ struct NewsDetailView: View {
     }
 
     private func canDelete(_ news: NewsResponse) -> Bool {
-        guard let ownUsername, !ownUsername.isEmpty else { return false }
+        guard let ownUsername = container.tokenStore.username, !ownUsername.isEmpty else { return false }
         return news.author == ownUsername
     }
 
-    private func load() async {
-        do {
-            news = try await newsRepository.getNewsById(newsId)
-        } catch {
-            self.error = error.localizedDescription
-        }
-    }
-
     private func delete() {
-        isDeleting = true
         Task {
-            do {
-                try await newsRepository.deleteNews(newsId)
+            if await viewModel.delete(id: newsId) {
                 dismiss()
-            } catch {
-                self.error = error.localizedDescription
-                isDeleting = false
             }
         }
     }

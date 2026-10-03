@@ -1,76 +1,43 @@
 import SwiftUI
 
 struct ContactListView: View {
+    @EnvironmentObject private var container: AppContainer
     @StateObject private var viewModel: ContactListViewModel
-
-    private let repository: ChatRepository
-    private let myUserUuid: String?
+    @StateObject private var router = Router()
 
     @State private var showAdd = false
     @State private var newUsername = ""
-    @State private var openedChat: ChatResponse?
-    @State private var isOpening = false
     @State private var presenceTask: Task<Void, Never>?
 
     init(container: AppContainer) {
-        _viewModel = StateObject(wrappedValue: ContactListViewModel(repository: container.chatRepository))
-        repository = container.chatRepository
-        myUserUuid = JWT.subject(from: container.tokenStore.chatToken)
+        _viewModel = StateObject(wrappedValue: ContactListViewModel(
+            repository: container.contactRepository,
+            openPrivateChat: container.openPrivateChat
+        ))
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if viewModel.contacts.isEmpty {
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        VStack(spacing: 8) {
-                            Image(systemName: "person.2").font(.largeTitle).foregroundColor(.secondary)
-                            Text(viewModel.error ?? "Нет контактов")
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
-                        }
+        NavigationStack(path: $router.path) {
+            content
+                .navigationTitle("Контакты")
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button { newUsername = ""; showAdd = true } label: { Image(systemName: "plus") }
                     }
-                } else {
-                    List(viewModel.contacts) { contact in
-                        Button {
-                            openChat(contact)
-                        } label: {
-                            ContactRow(contact: contact)
-                        }
-                        .buttonStyle(.plain)
+                }
+                .refreshable { await viewModel.load() }
+                .alert("Добавить контакт", isPresented: $showAdd) {
+                    TextField("Имя пользователя", text: $newUsername)
+                        .textInputAutocapitalization(.never)
+                    Button("Добавить") {
+                        let name = newUsername
+                        Task { _ = await viewModel.add(username: name) }
                     }
-                    .listStyle(.plain)
+                    Button("Отмена", role: .cancel) {}
                 }
-            }
-            .navigationTitle("Контакты")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { newUsername = ""; showAdd = true } label: { Image(systemName: "plus") }
-                }
-            }
-            .refreshable { await viewModel.load() }
-            .alert("Добавить контакт", isPresented: $showAdd) {
-                TextField("Имя пользователя", text: $newUsername)
-                    .textInputAutocapitalization(.never)
-                Button("Добавить") {
-                    let name = newUsername
-                    Task { _ = await viewModel.add(username: name) }
-                }
-                Button("Отмена", role: .cancel) {}
-            }
-            .navigationDestination(isPresented: Binding(
-                get: { openedChat != nil },
-                set: { if !$0 { openedChat = nil } }
-            )) {
-                if let openedChat {
-                    ChatConversationView(chat: openedChat, repository: repository, myUserUuid: myUserUuid)
-                }
-            }
+                .navigationDestination(for: Route.self) { RouteDestinationView(route: $0) }
         }
+        .environmentObject(router)
         .task { await viewModel.load() }
         // Опрос статусов, пока экран на переднем плане: на возврате на экран
         // первый запрос уходит сразу, в фоне цикл снимается.
@@ -91,12 +58,39 @@ struct ContactListView: View {
         }
     }
 
+    @ViewBuilder
+    private var content: some View {
+        if viewModel.state.contacts.isEmpty {
+            if viewModel.state.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                VStack(spacing: 8) {
+                    Image(systemName: "person.2").font(.largeTitle).foregroundColor(.secondary)
+                    Text(viewModel.state.error ?? "Нет контактов")
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+            }
+        } else {
+            List(viewModel.state.contacts) { contact in
+                Button {
+                    openChat(contact)
+                } label: {
+                    ContactRow(contact: contact)
+                }
+                .buttonStyle(.plain)
+            }
+            .listStyle(.plain)
+        }
+    }
+
     private func openChat(_ contact: ContactResponse) {
-        guard !isOpening else { return }
-        isOpening = true
         Task {
-            openedChat = await viewModel.openChat(with: contact)
-            isOpening = false
+            if let chat = await viewModel.openChat(with: contact) {
+                router.push(.conversation(chat))
+            }
         }
     }
 }

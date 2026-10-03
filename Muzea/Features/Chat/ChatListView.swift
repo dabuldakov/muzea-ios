@@ -1,68 +1,67 @@
 import SwiftUI
 
 struct ChatListView: View {
+    @EnvironmentObject private var container: AppContainer
     @StateObject private var viewModel: ChatListViewModel
-
-    private let repository: ChatRepository
-    private let myUserUuid: String?
-
+    @StateObject private var router = Router()
     @State private var showCreateGroup = false
-    @State private var openedChat: ChatResponse?
 
     init(container: AppContainer) {
         _viewModel = StateObject(wrappedValue: ChatListViewModel(repository: container.chatRepository))
-        repository = container.chatRepository
-        myUserUuid = JWT.subject(from: container.tokenStore.chatToken)
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if viewModel.chats.isEmpty {
-                    if viewModel.isLoading {
-                        ProgressView()
-                    } else {
-                        VStack(spacing: 8) {
-                            Image(systemName: "message").font(.largeTitle).foregroundColor(.secondary)
-                            Text(viewModel.error ?? "Нет чатов").foregroundColor(.secondary)
+        NavigationStack(path: $router.path) {
+            content
+                .navigationTitle("Чаты")
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button { showCreateGroup = true } label: {
+                            Image(systemName: "person.3")
                         }
                     }
-                } else {
-                    List(viewModel.chats) { chat in
-                        NavigationLink {
-                            ChatConversationView(chat: chat, repository: repository, myUserUuid: myUserUuid)
-                        } label: {
-                            ChatRow(chat: chat)
-                        }
-                    }
-                    .listStyle(.plain)
                 }
-            }
-            .navigationTitle("Чаты")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { showCreateGroup = true } label: {
-                        Image(systemName: "person.3")
+                .refreshable { await viewModel.load() }
+                .sheet(isPresented: $showCreateGroup) {
+                    CreateGroupView(container: container) { chat in
+                        showCreateGroup = false
+                        router.push(.conversation(chat))
+                        Task { await viewModel.load() }
                     }
                 }
-            }
-            .refreshable { await viewModel.load() }
-            .sheet(isPresented: $showCreateGroup) {
-                CreateGroupView(repository: repository) { chat in
-                    openedChat = chat
-                    Task { await viewModel.load() }
+                .navigationDestination(for: Route.self) { RouteDestinationView(route: $0) }
+        }
+        .environmentObject(router)
+        .task { await viewModel.startAutoRefresh() }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch viewModel.state.viewState {
+        case .list:
+            List(viewModel.state.chats) { chat in
+                NavigationLink(value: Route.conversation(chat)) {
+                    ChatRow(chat: chat)
                 }
             }
-            .navigationDestination(isPresented: Binding(
-                get: { openedChat != nil },
-                set: { if !$0 { openedChat = nil } }
-            )) {
-                if let openedChat {
-                    ChatConversationView(chat: openedChat, repository: repository, myUserUuid: myUserUuid)
-                }
+            .listStyle(.plain)
+
+        case .loading:
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+        case .error:
+            VStack(spacing: 8) {
+                Image(systemName: "message").font(.largeTitle).foregroundColor(.secondary)
+                Text(viewModel.state.error ?? "Ошибка").foregroundColor(.secondary)
+            }
+
+        case .empty:
+            VStack(spacing: 8) {
+                Image(systemName: "message").font(.largeTitle).foregroundColor(.secondary)
+                Text("Нет чатов").foregroundColor(.secondary)
             }
         }
-        .task { await viewModel.startAutoRefresh() }
     }
 }
 

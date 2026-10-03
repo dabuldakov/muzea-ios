@@ -65,7 +65,13 @@ xcodebuild \
   (ключ `online` вместо устаревшего `isOnline`);
 - `HTTPClientTests`, `ChatAuthManagerTests`, `RepositoriesTests` — сетевой слой
   через mock `URLProtocol` (заголовки, multipart, 401/retry, batch-присутствие,
-  heartbeat, logout, ошибки).
+  heartbeat, logout, ошибки), а также дедупликация приватных чатов;
+- `DomainLogicTests` — чистая логика: `ChatMessageReducer` (порядок сообщений и
+  подмена серверного эха без merцания), `OpenPrivateChatUseCase`, in-memory кэши
+  и `ChatListViewState`;
+- `ViewModelTests` — ViewModel-и на ручных тест-дублях протоколов
+  (`MuzeaTests/Support/RepositoryFakes.swift`): оптимистичная отправка, присутствие
+  без переупорядочивания, дедупликация чатов, фильтры лент, вход/регистрация.
 
 Запуск всех тестов из командной строки:
 
@@ -86,12 +92,15 @@ Workflow `.github/workflows/ios.yml` на каждый push/PR:
 3. `xcodegen generate`
 4. `xcodebuild` для симулятора без подписи (`CODE_SIGNING_ALLOWED=NO`)
 5. job **Unit tests** — `xcodebuild test` на доступном iPhone-симуляторе
+6. job **Release .ipa** (конфигурация `Release`) запускается только после успешных
+   сборки и всех тестов (`needs: [build, test]`), поэтому релизный артефакт не
+   собирается из красного состояния. Триггерится на push в `main`, PR и теги `v*`.
 
 Подпись/TestFlight не настроены — для них нужен Apple Developer аккаунт и секреты.
 
 ## Установка на iPhone (бесплатный Apple ID + Windows)
 
-CI собирает неподписанный device-`.ipa` (job **Unsigned device .ipa**):
+CI собирает неподписанный device-`.ipa` (job **Release .ipa**):
 
 1. Actions → последний run → блок **Artifacts** → скачай `Muzea-unsigned-ipa`.
 2. На Windows установи [Sideloadly](https://sideloadly.io) и iTunes (для драйверов iPhone).
@@ -131,19 +140,42 @@ base64 -w0 Muzea/Resources/GoogleService-Info.plist           # Linux
 Workflow декодирует секрет в `Muzea/Resources/GoogleService-Info.plist` перед
 генерацией проекта. Если секрет не задан, шаг пропускается, сборка проходит без FCM.
 
+## Архитектура
+
+Слоистое MVVM в духе Android-рефакторинга (SRP + протоколы + чистые use-cases):
+
+- **Domain** — контракты репозиториев (`ChatRepository`, `MessageRepository`,
+  `ContactRepository`, `AvatarRepository`, `ChatSessionRepository`, `NewsRepository`,
+  `VideoRepository`, `UserRepository`, `AuthRepositoryProtocol`), use-case
+  `OpenPrivateChatUseCase`, чистая логика `ChatMessageReducer` и `ChatListViewState`.
+- **Data (`Core/Repositories`)** — реализации на `URLSession`; бывший god-репозиторий
+  `ChatRepository` разбит по зонам ответственности, общая авторизация вынесена в
+  `ChatAuthorization`. In-memory кэши — `Core/Cache/MemoryCaches.swift`.
+- **Features** — View + `@MainActor ObservableObject` ViewModel с единым immutable
+  `*UiState`; зависимости — только протоколы. Навигация — через `Router`
+  (`NavigationPath` + `Route`), аналог Android `Navigator`.
+- **DI** — `AppContainer` собирает клиенты, репозитории, кэши и use-cases и раздаёт
+  их во `environmentObject`; в тестах подменяется ручными дублями.
+
 ## Структура
 
 ```
 Muzea/
-├── App/            точка входа, DI-контейнер, таб-бар
+├── App/            точка входа, DI-контейнер, Router, таб-бар
+├── Domain/
+│   ├── Repositories/ протоколы репозиториев
+│   ├── Chat/         ChatMessageReducer
+│   ├── UseCase/      OpenPrivateChatUseCase
+│   └── ViewState/    ChatListUiState/ChatListViewState
 ├── Core/
-│   ├── Models/     Codable-модели (совпадают с Android/Gson)
+│   ├── Models/     Codable-модели (совпадают с Android/Gson) + UploadFile
 │   ├── Networking/ HTTPClient, API, ошибки
-│   ├── Repositories/ auth/news/video/chat
+│   ├── Cache/      in-memory кэши чатов, сообщений, приватных чатов, видео
+│   ├── Repositories/ реализации репозиториев (SRP) + ChatAuthManager
 │   ├── Push/       FCM
 │   └── Util/       AvatarView, JWT, DateTimeFormat, LastSeenFormatter, ConsentManager, PasswordStore
 ├── Features/
-│   ├── Auth/       согласие (ФЗ-152), вход и регистрация
+│   ├── Auth/       согласие (ФЗ-152), вход и регистрация (+ AuthViewModel)
 │   ├── News/       лента, детали, создание, фильтр
 │   ├── Video/      список, детали (удаление), загрузка с превью
 │   ├── Chat/       список чатов, переписка, группы, настройки группы

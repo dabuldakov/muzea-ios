@@ -4,24 +4,24 @@ import PhotosUI
 /// Настройки чата/группы: аватар, список участников и добавление новых.
 struct GroupSettingsView: View {
     let chat: ChatResponse
-    let repository: ChatRepository
-    let myUserUuid: String?
+    let container: AppContainer
 
-    @State private var participants: [ChatParticipantResponse] = []
-    @State private var contacts: [ContactResponse] = []
-    @State private var avatarUrl: String?
+    @StateObject private var viewModel: GroupSettingsViewModel
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedMembers: Set<String> = []
     @State private var showMemberPicker = false
-    @State private var isLoading = false
-    @State private var isUploading = false
-    @State private var error: String?
 
-    init(chat: ChatResponse, repository: ChatRepository, myUserUuid: String?) {
+    init(chat: ChatResponse, container: AppContainer) {
         self.chat = chat
-        self.repository = repository
-        self.myUserUuid = myUserUuid
-        _avatarUrl = State(initialValue: chat.avatarUrl)
+        self.container = container
+        _viewModel = StateObject(wrappedValue: GroupSettingsViewModel(
+            chatUuid: chat.chatUuid,
+            myUserUuid: container.myUserUuid,
+            initialAvatarUrl: chat.avatarUrl,
+            chatRepository: container.chatRepository,
+            contactRepository: container.contactRepository,
+            avatarRepository: container.avatarRepository
+        ))
     }
 
     var body: some View {
@@ -30,34 +30,37 @@ struct GroupSettingsView: View {
                 HStack {
                     Spacer()
                     VStack(spacing: 10) {
-                        AvatarView(url: ImageURL.chat(avatarUrl), size: 96)
+                        AvatarView(url: ImageURL.chat(viewModel.avatarUrl), size: 96)
 
                         PhotosPicker(selection: $selectedPhoto, matching: .images) {
                             Text("Сменить аватар")
                         }
-                        .disabled(isUploading)
+                        .disabled(viewModel.state.isUploading)
 
-                        if isUploading { ProgressView() }
+                        if viewModel.state.isUploading { ProgressView() }
                     }
                     Spacer()
                 }
             }
 
-            Section("Участники (\(participants.count))") {
-                if participants.isEmpty {
-                    if isLoading {
+            Section("Участники (\(viewModel.state.participants.count))") {
+                if viewModel.state.participants.isEmpty {
+                    if viewModel.state.isLoading {
                         HStack { Spacer(); ProgressView(); Spacer() }
                     } else {
                         Text("Нет участников").foregroundColor(.secondary)
                     }
                 } else {
-                    ForEach(participants) { participant in
-                        ParticipantRow(participant: participant, isMe: participant.userUuid == myUserUuid)
+                    ForEach(viewModel.state.participants) { participant in
+                        ParticipantRow(
+                            participant: participant,
+                            isMe: participant.userUuid == viewModel.myUserUuid
+                        )
                     }
                 }
             }
 
-            if let error {
+            if let error = viewModel.state.error {
                 Section { Text(error).foregroundColor(.red) }
             }
 
@@ -67,18 +70,18 @@ struct GroupSettingsView: View {
                 } label: {
                     Label("Добавить участников", systemImage: "person.badge.plus")
                 }
-                .disabled(contacts.isEmpty)
+                .disabled(viewModel.contacts.isEmpty)
             }
         }
         .navigationTitle(chat.title ?? "Чат")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .task { await viewModel.load() }
         .onChange(of: selectedPhoto) { newValue in
             Task { await uploadAvatar(newValue) }
         }
         .sheet(isPresented: $showMemberPicker) {
             NavigationStack {
-                MemberPickerView(contacts: contacts, selected: $selectedMembers)
+                MemberPickerView(contacts: viewModel.contacts, selected: $selectedMembers)
                     .navigationTitle("Добавить участников")
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
@@ -93,50 +96,24 @@ struct GroupSettingsView: View {
         }
     }
 
-    private func load() async {
-        isLoading = true
-        participants = (try? await repository.loadChatParticipants(chatUuid: chat.chatUuid)) ?? []
-        contacts = (try? await repository.loadContacts()) ?? []
-        isLoading = false
-    }
-
     private func addMembers() {
         let uuids = Array(selectedMembers)
         selectedMembers = []
         showMemberPicker = false
-        Task {
-            do {
-                try await repository.addGroupParticipants(chatUuid: chat.chatUuid, memberUuids: uuids)
-                await load()
-                error = nil
-            } catch {
-                self.error = error.localizedDescription
-            }
-        }
+        Task { _ = await viewModel.addMembers(uuids) }
     }
 
     private func uploadAvatar(_ item: PhotosPickerItem?) async {
         guard let item, let data = try? await item.loadTransferable(type: Data.self) else { return }
         guard data.count <= Config.maxAvatarBytes else {
-            error = "Выберите изображение размером до 5 МБ"
+            viewModel.reportValidationError("Выберите изображение размером до 5 МБ")
             return
         }
-        isUploading = true
-        do {
-            let path = try await repository.uploadChatAvatar(
-                chatUuid: chat.chatUuid,
-                data: data,
-                fileName: "chat_avatar_\(Int(Date().timeIntervalSince1970)).jpg",
-                mimeType: "image/jpeg"
-            )
-            if let path, !path.isEmpty {
-                avatarUrl = path
-            }
-            error = nil
-        } catch {
-            self.error = error.localizedDescription
-        }
-        isUploading = false
+        await viewModel.uploadAvatar(
+            data: data,
+            fileName: "chat_avatar_\(Int(Date().timeIntervalSince1970)).jpg",
+            mimeType: "image/jpeg"
+        )
     }
 }
 

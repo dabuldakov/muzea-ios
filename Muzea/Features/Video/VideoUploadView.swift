@@ -4,10 +4,10 @@ import AVFoundation
 import UIKit
 
 struct VideoUploadView: View {
-    let videoRepository: VideoRepository
-    let ownUsername: String?
+    let container: AppContainer
 
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel: VideoUploadViewModel
     @State private var title = ""
     @State private var videoDescription = ""
     @State private var selectedItem: PhotosPickerItem?
@@ -15,8 +15,11 @@ struct VideoUploadView: View {
     @State private var thumbnail: UploadFile?
     @State private var previewImage: UIImage?
     @State private var fileName = "video.mp4"
-    @State private var isUploading = false
-    @State private var error: String?
+
+    init(container: AppContainer) {
+        self.container = container
+        _viewModel = StateObject(wrappedValue: VideoUploadViewModel(repository: container.videoRepository))
+    }
 
     var body: some View {
         NavigationStack {
@@ -45,19 +48,19 @@ struct VideoUploadView: View {
                     }
                 }
 
-                if let error {
+                if let error = viewModel.error {
                     Section { Text(error).foregroundColor(.red) }
                 }
 
                 Section {
                     Button(action: upload) {
-                        if isUploading {
+                        if viewModel.isUploading {
                             ProgressView().frame(maxWidth: .infinity)
                         } else {
                             Text("Загрузить").frame(maxWidth: .infinity)
                         }
                     }
-                    .disabled(title.isEmpty || videoData == nil || isUploading)
+                    .disabled(title.isEmpty || videoData == nil || viewModel.isUploading)
                 }
             }
             .navigationTitle("Загрузка видео")
@@ -106,23 +109,18 @@ struct VideoUploadView: View {
 
     private func upload() {
         guard let data = videoData else { return }
-        isUploading = true
-        error = nil
         Task {
-            do {
-                _ = try await videoRepository.uploadVideo(
-                    title: title,
-                    description: videoDescription.isEmpty ? nil : videoDescription,
-                    data: data,
-                    fileName: fileName,
-                    mimeType: "video/mp4",
-                    thumbnail: thumbnail
-                )
+            let success = await viewModel.upload(
+                title: title,
+                description: videoDescription.isEmpty ? nil : videoDescription,
+                data: data,
+                fileName: fileName,
+                mimeType: "video/mp4",
+                thumbnail: thumbnail
+            )
+            if success {
                 dismiss()
-            } catch {
-                self.error = error.localizedDescription
             }
-            isUploading = false
         }
     }
 }

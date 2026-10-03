@@ -2,13 +2,18 @@ import SwiftUI
 import UIKit
 
 struct LoginView: View {
-    @EnvironmentObject private var container: AppContainer
+    let container: AppContainer
+
     @Environment(\.openURL) private var openURL
+    @StateObject private var viewModel: AuthViewModel
     @State private var username = ""
     @State private var password = ""
-    @State private var isLoading = false
-    @State private var error: String?
     @State private var showRegister = false
+
+    init(container: AppContainer) {
+        self.container = container
+        _viewModel = StateObject(wrappedValue: AuthViewModel(repository: container.authRepository))
+    }
 
     var body: some View {
         NavigationStack {
@@ -29,29 +34,29 @@ struct LoginView: View {
                     SecureField("Пароль", text: $password)
                         .textFieldStyle(.roundedBorder)
 
-                    if let error {
+                    if let error = viewModel.state.error {
                         Text(error).foregroundColor(.red).font(.footnote)
                     }
 
                     Button(action: login) {
-                        if isLoading {
+                        if viewModel.state.isLoading {
                             ProgressView().frame(maxWidth: .infinity)
                         } else {
                             Text("Войти").frame(maxWidth: .infinity)
                         }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(username.isEmpty || password.isEmpty || isLoading)
+                    .disabled(username.isEmpty || password.isEmpty || viewModel.state.isLoading)
 
                     Button("Регистрация") { showRegister = true }
-                        .disabled(isLoading)
+                        .disabled(viewModel.state.isLoading)
 
                     legalNote
                 }
                 .padding()
             }
             .sheet(isPresented: $showRegister) {
-                RegisterView()
+                RegisterView(container: container)
             }
         }
     }
@@ -77,16 +82,10 @@ struct LoginView: View {
     }
 
     private func login() {
-        isLoading = true
-        error = nil
         Task {
-            do {
-                _ = try await container.authRepository.login(username: username, password: password)
+            if await viewModel.login(username: username, password: password) {
                 container.didLogin()
-            } catch {
-                self.error = error.localizedDescription
             }
-            isLoading = false
         }
     }
 }

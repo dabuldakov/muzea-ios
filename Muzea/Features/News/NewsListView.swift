@@ -1,74 +1,59 @@
 import SwiftUI
 
 struct NewsListView: View {
+    @EnvironmentObject private var container: AppContainer
     @StateObject private var viewModel: NewsListViewModel
+    @StateObject private var router = Router()
     @State private var showCreate = false
 
-    private let newsRepository: NewsRepository
-    private let videoRepository: VideoRepository
-    private let ownUsername: String?
-    private let authToken: String?
-
     init(container: AppContainer) {
-        let store = container.tokenStore
         _viewModel = StateObject(wrappedValue: NewsListViewModel(
             newsRepository: container.newsRepository,
-            chatRepository: container.chatRepository,
-            ownUsername: store.username
+            contactRepository: container.contactRepository,
+            ownUsername: container.tokenStore.username
         ))
-        newsRepository = container.newsRepository
-        videoRepository = container.videoRepository
-        ownUsername = store.username
-        authToken = store.token
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if viewModel.news.isEmpty {
-                    if viewModel.isLoading {
-                        ProgressView()
-                    } else {
-                        VStack(spacing: 8) {
-                            Image(systemName: "newspaper").font(.largeTitle).foregroundColor(.secondary)
-                            Text(viewModel.error ?? "Нет новостей").foregroundColor(.secondary)
-                        }
+        NavigationStack(path: $router.path) {
+            content
+                .navigationTitle("Новости")
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button { showCreate = true } label: { Image(systemName: "plus") }
                     }
-                } else {
-                    List(viewModel.news) { item in
-                        NavigationLink(value: item) {
-                            NewsRow(item: item)
-                        }
-                        .task { await viewModel.loadMoreIfNeeded(currentItem: item) }
-                    }
-                    .listStyle(.plain)
                 }
-            }
-            .navigationTitle("Новости")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { showCreate = true } label: { Image(systemName: "plus") }
+                .refreshable { await viewModel.load() }
+                .navigationDestination(for: Route.self) { RouteDestinationView(route: $0) }
+                .sheet(isPresented: $showCreate) {
+                    CreateNewsView(container: container)
                 }
-            }
-            .refreshable { await viewModel.load() }
-            .navigationDestination(for: NewsResponse.self) { item in
-                NewsDetailView(
-                    newsId: item.id,
-                    newsRepository: newsRepository,
-                    ownUsername: ownUsername,
-                    authToken: authToken
-                )
-            }
-            .sheet(isPresented: $showCreate) {
-                CreateNewsView(
-                    newsRepository: newsRepository,
-                    videoRepository: videoRepository,
-                    ownUsername: ownUsername
-                )
-            }
         }
+        .environmentObject(router)
         .task {
-            if viewModel.news.isEmpty { await viewModel.load() }
+            if viewModel.state.news.isEmpty { await viewModel.load() }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if viewModel.state.news.isEmpty {
+            if viewModel.state.isLoading {
+                ProgressView()
+            } else {
+                VStack(spacing: 8) {
+                    Image(systemName: "newspaper").font(.largeTitle).foregroundColor(.secondary)
+                    Text(viewModel.state.error ?? "Нет новостей").foregroundColor(.secondary)
+                }
+            }
+        } else {
+            List(viewModel.state.news) { item in
+                NavigationLink(value: Route.newsDetail(item.id)) {
+                    NewsRow(item: item)
+                }
+                .task { await viewModel.loadMoreIfNeeded(currentItem: item) }
+            }
+            .listStyle(.plain)
         }
     }
 }

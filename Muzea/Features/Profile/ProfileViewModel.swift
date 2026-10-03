@@ -10,95 +10,123 @@ enum DeleteAccountOutcome: Equatable {
     case failed(String)
 }
 
+/// Единое состояние экрана профиля.
+struct ProfileUiState {
+    var user: UserResponse?
+    var avatarUrl: String?
+    var isLoading = false
+    var isBusy = false
+    var error: String?
+}
+
 @MainActor
 final class ProfileViewModel: ObservableObject {
-    @Published var user: UserResponse?
-    @Published var avatarUrl: String?
-    @Published var error: String?
-    @Published var isBusy = false
+    @Published private(set) var state = ProfileUiState()
 
-    private let authRepository: AuthRepository
-    private let chatRepository: ChatRepository
+    private let userRepository: UserRepository
+    private let avatarRepository: AvatarRepository
+    private let chatSessionRepository: ChatSessionRepository
 
-    init(authRepository: AuthRepository, chatRepository: ChatRepository) {
-        self.authRepository = authRepository
-        self.chatRepository = chatRepository
+    init(
+        userRepository: UserRepository,
+        avatarRepository: AvatarRepository,
+        chatSessionRepository: ChatSessionRepository,
+        initialUser: UserResponse? = nil
+    ) {
+        self.userRepository = userRepository
+        self.avatarRepository = avatarRepository
+        self.chatSessionRepository = chatSessionRepository
+        state.user = initialUser
     }
 
     func load() async {
+        state.isLoading = true
         do {
-            user = try await authRepository.currentUser()
-            error = nil
+            state.user = try await userRepository.currentUser()
+            state.error = nil
         } catch {
-            self.error = error.localizedDescription
+            state.error = error.localizedDescription
         }
-        if let chatUser = try? await chatRepository.currentChatUser() {
-            avatarUrl = chatUser.avatarUrl
+        state.isLoading = false
+        if let avatar = try? await avatarRepository.loadAvatar() {
+            state.avatarUrl = avatar
         }
     }
 
     func update(fullName: String, email: String) async -> Bool {
-        guard let id = user?.id else { return false }
+        guard let id = state.user?.id else { return false }
         do {
-            user = try await authRepository.updateUser(id: id, fullName: fullName, email: email)
+            state.user = try await userRepository.updateUser(id: id, fullName: fullName, email: email)
             return true
         } catch {
-            self.error = error.localizedDescription
+            state.error = error.localizedDescription
             return false
         }
     }
 
     func uploadAvatar(data: Data, fileName: String, mimeType: String) async {
-        isBusy = true
+        state.isBusy = true
         do {
-            avatarUrl = try await chatRepository.uploadAvatar(data: data, fileName: fileName, mimeType: mimeType)
-            error = nil
+            state.avatarUrl = try await avatarRepository.uploadAvatar(
+                data: data,
+                fileName: fileName,
+                mimeType: mimeType
+            )
+            state.error = nil
         } catch {
-            self.error = error.localizedDescription
+            state.error = error.localizedDescription
         }
-        isBusy = false
+        state.isBusy = false
     }
 
     func deleteAvatar() async {
-        isBusy = true
+        state.isBusy = true
         do {
-            try await chatRepository.deleteAvatar()
-            avatarUrl = nil
-            error = nil
+            try await avatarRepository.deleteAvatar()
+            state.avatarUrl = nil
+            state.error = nil
         } catch {
-            self.error = error.localizedDescription
+            state.error = error.localizedDescription
         }
-        isBusy = false
+        state.isBusy = false
     }
 
     /// Удаление аккаунта: сначала чат-сервер (сообщения, контакты, вложения,
     /// FCM-токены), затем основной (новости, видео, профиль).
     ///
-    /// Локальное хранилище и согласие на обработку персональных данных чистим
-    /// только когда оба сервера подтвердили удаление — иначе пользователь потерял
-    /// бы пароль и не смог повторить попытку.
+    /// Локальное хранилище и согласие на обработку персональных данных чистит
+    /// вызывающая сторона только когда оба сервера подтвердили удаление — иначе
+    /// пользователь потерял бы пароль и не смог повторить попытку.
     func deleteAccount() async -> DeleteAccountOutcome {
-        isBusy = true
-        defer { isBusy = false }
+        state.isBusy = true
+        defer { state.isBusy = false }
 
         let chatErased: Bool
         do {
-            try await chatRepository.deleteAccount()
+            try await chatSessionRepository.deleteAccount()
             chatErased = true
         } catch {
             chatErased = false
         }
 
-        guard let id = user?.id else {
+        guard let id = state.user?.id else {
             return chatErased ? .chatFailed : .failed("Не удалось загрузить профиль. Попробуйте позже.")
         }
 
         do {
-            try await authRepository.deleteAccount(id: id)
+            try await userRepository.deleteAccount(id: id)
         } catch {
             return .failed(Legal.deleteFailedMessage())
         }
 
         return chatErased ? .deleted : .chatFailed
+    }
+
+    func reportValidationError(_ message: String) {
+        state.error = message
+    }
+
+    func consumeError() {
+        state.error = nil
     }
 }

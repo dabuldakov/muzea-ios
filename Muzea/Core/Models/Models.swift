@@ -229,6 +229,28 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
     let isPinned: Bool?
     let createdAt: String?
     let updatedAt: String?
+
+    /// Копия сообщения с другим идентификатором. Нужна, чтобы подменить
+    /// оптимистичный локальный пузырь серверным эхом, сохранив локальный UUID
+    /// (иначе список перерисовывается и мигает) — аналог Kotlin `copy`.
+    func withMessageUuid(_ uuid: String) -> MessageResponse {
+        MessageResponse(
+            messageUuid: uuid,
+            chatUuid: chatUuid,
+            senderId: senderId,
+            senderUuid: senderUuid,
+            senderName: senderName,
+            senderAvatar: senderAvatar,
+            text: text,
+            messageType: messageType,
+            replyToMessageUuid: replyToMessageUuid,
+            isEdited: isEdited,
+            isDeleted: isDeleted,
+            isPinned: isPinned,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
 }
 
 struct UnreadCountResponse: Decodable {

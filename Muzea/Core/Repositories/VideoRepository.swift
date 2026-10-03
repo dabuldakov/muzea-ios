@@ -1,14 +1,23 @@
 import Foundation
 
-final class VideoRepository {
+/// Реализация `VideoRepository` на основном бэкенде с in-memory кэшем списка.
+final class VideoRepositoryImpl: VideoRepository {
     private let client: HTTPClient
+    private let cache: VideoListCache
 
-    init(client: HTTPClient) {
+    init(client: HTTPClient, cache: VideoListCache) {
         self.client = client
+        self.cache = cache
     }
 
     func getVideos() async throws -> [VideoResponse] {
-        try await client.request("GET", "/api/videos")
+        let videos: [VideoResponse] = try await client.request("GET", "/api/videos")
+        cache.put(videos)
+        return videos
+    }
+
+    func cachedVideos() -> [VideoResponse] {
+        cache.get()
     }
 
     func getVideoById(_ id: Int64) async throws -> VideoResponse {
@@ -21,7 +30,7 @@ final class VideoRepository {
         data: Data,
         fileName: String,
         mimeType: String,
-        thumbnail: UploadFile? = nil
+        thumbnail: UploadFile?
     ) async throws -> VideoResponse {
         var fields = ["title": title]
         if let description, !description.isEmpty { fields["description"] = description }
@@ -39,11 +48,7 @@ final class VideoRepository {
                 )
             )
         }
-        return try await client.upload(
-            "/api/videos/upload",
-            fields: fields,
-            files: files
-        )
+        return try await client.upload("/api/videos/upload", fields: fields, files: files)
     }
 
     func deleteVideo(_ id: Int64) async throws {

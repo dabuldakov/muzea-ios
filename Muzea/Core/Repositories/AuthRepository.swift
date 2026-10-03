@@ -1,6 +1,8 @@
 import Foundation
 
-final class AuthRepository {
+/// Реализация `AuthRepositoryProtocol` на основном бэкенде: вход/регистрация и
+/// сохранение сессии. Профиль пользователя вынесен в `UserRepositoryImpl`.
+final class AuthRepositoryImpl: AuthRepositoryProtocol {
     private let client: HTTPClient
     private let store: TokenStore
 
@@ -34,30 +36,6 @@ final class AuthRepository {
         store.email = email
         store.password = password
         return response
-    }
-
-    func currentUser() async throws -> UserResponse {
-        try await client.request("GET", "/api/users/me")
-    }
-
-    func updateUser(id: Int64, fullName: String, email: String) async throws -> UserResponse {
-        try await client.request(
-            "PUT",
-            "/api/users/\(id)",
-            body: UpdateUserRequest(fullName: fullName, email: email, enabled: true)
-        )
-    }
-
-    /// Удаление новостей, видео и профиля на основном бэкенде.
-    ///
-    /// 404 считается успехом: аккаунт мог быть удалён при предыдущей попытке,
-    /// где чат-сервер отвечает раньше основного.
-    func deleteAccount(id: Int64) async throws {
-        do {
-            try await client.requestVoid("DELETE", "/api/users/\(id)")
-        } catch APIError.server(let code, _) where code == 404 {
-            return
-        }
     }
 
     func logout() {
