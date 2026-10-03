@@ -21,14 +21,16 @@ final class ChatMessageReducerTests: XCTestCase {
     func testMergeKeepsCurrentAndDropsServerEcho() {
         let reducer = ChatMessageReducer()
         let local = TestData.message("local-1", text: "hi", createdAt: nil)
-        reducer.applyServerEcho(
+        // Берём результат подмены эхом: локальный пузырь получает серверное
+        // время, иначе он остался бы «без даты» и сортировался бы в конец.
+        let afterEcho = reducer.applyServerEcho(
             current: [local],
             localUuid: "local-1",
             serverMessage: TestData.message("server-1", text: "hi", createdAt: "2026-01-01T00:00:01")
         )
 
         let merged = reducer.merge(
-            current: [local],
+            current: afterEcho,
             incoming: [
                 TestData.message("server-1", text: "hi", createdAt: "2026-01-01T00:00:01"),
                 TestData.message("server-2", text: "other", createdAt: "2026-01-01T00:00:02")
