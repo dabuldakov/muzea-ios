@@ -85,7 +85,7 @@ the iOS backlog: update the status as work lands. Status values:
 | — | Video feed/upload/delete/playback | partial | verify live contract; report/block missing |
 | — | News report (UGC) | missing | `/api/reports` |
 | — | Profile edit/avatar | done | |
-| — | Account delete/deactivation | partial | hard delete now; SEC.06 semantics TBD |
+| — | Account delete/deactivation | done | deactivation in chat + auth + makeup (SEC.06) |
 | — | Cache clear | missing | |
 | — | App update check | n/a | no self-update on iOS; link to TestFlight/App Store |
 
@@ -111,7 +111,7 @@ the iOS backlog: update the status as work lands. Status values:
 | SEC.03 | Message cache | partial | in-memory; no encryption |
 | SEC.04 | Anti-abuse (report/block) | missing | UGC requirement |
 | SEC.05 | Admin panel | n/a | web product |
-| SEC.06 | Account deletion | partial | chat **deactivates** (data kept, private chats read-only, names hidden); auth/makeup still hard-delete — remaining backend work |
+| SEC.06 | Account deletion | done | deactivation in all three services: data kept, login closed, names hidden, private chats read-only, support restore via `X-Support-Token` |
 
 ## QA / DIST / OBS
 
@@ -154,11 +154,11 @@ the iOS backlog: update the status as work lands. Status values:
 1. **Upload limit**: `chat/deploy/nginx.conf` had `client_max_body_size 8m` while
    the app accepts 220 MB. Raised locally to `220m`; **not deployed**. The outer
    host nginx (outside these repos) must also allow ≥220 MB.
-2. **SEC.06 semantics**: chat is done and deployed — deactivation keeps all data,
-   removes the user from groups, blocks private sends and hides names via
-   `peerDeleted`/`senderDeleted`. Still to do: auth-service and makeup must
-   soft-delete (keep the row/news/videos, block login, allow support restore)
-   instead of hard delete.
+2. **SEC.06 semantics**: done and deployed in all three services (chat
+   `5c1a83c`, auth `30b789a`, makeup `27092bd`). Deletion is deactivation: rows,
+   messages, news, videos, likes and files stay; login is blocked; names are
+   hidden («Удалённый пользователь», `peerDeleted`/`senderDeleted`); private chats
+   become read-only; support restores accounts with `X-Support-Token`.
 
 **P1 — makes the port cheaper/safer**
 

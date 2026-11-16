@@ -43,7 +43,8 @@ opaque 43-char base64url string, **30 days, rotating**.
 | POST | `/auth/logout` | – | `{refreshToken}` → 200 |
 | POST | `/auth/logout-all` | Bearer | 200 |
 | GET | `/auth/me` | Bearer | 200 `{id,email,username,displayName,emailVerified}` |
-| DELETE | `/auth/me` | Bearer | 200 **hard delete** |
+| DELETE | `/auth/me` | Bearer | 200 deactivates the account (soft delete, SEC.06) |
+| POST | `/support/accounts/{uuid}/reactivate` | `X-Support-Token` | 204; 403 bad/missing token, 400 `user_not_found` |
 | GET | `/auth/sessions` | Bearer | 200 `SessionResponse[]` |
 | DELETE | `/auth/sessions/{id}` | Bearer | 200 |
 | GET | `/.well-known/jwks.json` | – | JWKS |
@@ -86,17 +87,18 @@ Access-token claims: `iss=https://auth.muzea.su`, `sub=<user UUID>`,
 - `deviceId` is free-form (≤128), stored per refresh session, not in the JWT.
   `deviceName` is accepted but ignored.
 - OpenAPI is exposed at `/api-docs` in dev only; **disabled in prod**.
-- `DELETE /auth/me` currently **hard-deletes** the auth user row and revokes its
-  refresh sessions. The target behavior (SEC.06) is soft-delete: keep the row,
-  mark it deleted, block login, allow support to restore. This is still an open
-  backend item for auth-service.
-- ⚠ Account deletion spans three services. **chat is already deactivated**
-  (commit `5c1a83c`, deployed): the user is marked `is_deleted`, messages/private
-  chats/attachments/contacts/blocks/avatar are kept, groups lose the member,
-  private chats become read-only, names are hidden via `peerDeleted` /
-  `senderDeleted`. auth-service still hard-deletes and makeup still hard-deletes
-  profile/news/videos — those are the remaining SEC.06 work. On iOS call chat →
-  makeup → auth last and only clear local data after all three confirm.
+- `DELETE /auth/me` **deactivates** the account (soft delete, SEC.06): the row,
+  email and username stay, `is_deleted` / `deleted_at` are set, refresh sessions
+  are revoked, and `login`, `refresh` and `GET /auth/me` return 401 until support
+  restores the account. Old access JWTs are also rejected while deleted.
+- Support restore: `POST /support/accounts/{uuid}/reactivate` with the service
+  header `X-Support-Token` (constant-time compare) → 204. The endpoint is public
+  at the security layer because the service token is the credential.
+- ⚠ Account deletion spans three services and now uses the same deactivation
+  semantics everywhere (SEC.06, all deployed): chat `5c1a83c`, auth `30b789a`,
+  makeup `27092bd`. Data is retained, the account is closed, and the author name
+  is hidden («Удалённый пользователь»). On iOS call chat → makeup → auth last and
+  only clear local data after all three confirm.
 
 ---
 
@@ -328,9 +330,14 @@ views,likes,likedByMe,uploadedBy,uploadedAt`. ⚠ `durationSeconds` is always nu
   ⚠ key is `userName` (capital N); email is not part of the makeup model — take it
   from auth-service `/auth/me`.
 - `PUT /api/users/{id}` → `{fullName?,avatarUrl?}`; self only.
-- `DELETE /api/users/{id}` → 204; **hard delete** (also deletes news/videos/likes).
-  ⚠ Same “deactivation vs hard delete” discrepancy as auth-service; see the note
-  in §1 — the backend currently hard-deletes.
+- `DELETE /api/users/{id}` → 204; **deactivates** the account (soft delete,
+  SEC.06): profile row, news, videos, likes and MinIO objects stay; `is_deleted` /
+  `deleted_at` are set, `isEnabled=false`, and the author name is rendered as
+  «Удалённый пользователь» in both entity and feed projections. Same semantics as
+  chat and auth.
+- Support restore: `POST /api/support/accounts/{id}/reactivate` with
+  `X-Support-Token` → 204 (403 bad/missing token, 404 unknown id). Public at the
+  security layer; the token is the credential.
 - `POST /api/reports` →
   `{contentType:"NEWS|VIDEO", contentId, reason:"SPAM|ABUSE|VIOLENCE|ADULT|ILLEGAL|OTHER", comment?}`
   → **201** `{reportUuid,contentType,status,createdAt}`. Repeated report returns the
