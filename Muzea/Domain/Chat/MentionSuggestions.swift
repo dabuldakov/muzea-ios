@@ -39,7 +39,8 @@ enum MentionSuggestions {
 
         var seen = Set<String>()
         var candidates: [String] = []
-        for username in usernames where username.range(of: query, options: .caseInsensitive) != nil {
+        for username in usernames where query.isEmpty
+            || username.range(of: query, options: .caseInsensitive) != nil {
             let key = username.lowercased()
             if seen.insert(key).inserted {
                 candidates.append(username)
