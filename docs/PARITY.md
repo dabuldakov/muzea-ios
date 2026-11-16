@@ -17,15 +17,15 @@ the iOS backlog: update the status as work lands. Status values:
 |---|---|---|---|
 | UI.01 | Theme components | partial | SwiftUI native; need a shared theme/design tokens layer |
 | UI.02 | Fonts | partial | system fonts; custom sizes not unified |
-| UI.03 | Chat screen, bubbles | partial | text only; no attachments/replies/reactions |
+| UI.03 | Chat screen, bubbles | partial | text + replies, forwarding, reactions, pins; attachments/media missing |
 | UI.04 | Animations | missing | charge button, delete, transitions |
 | UI.05 | Haptics | missing | |
 | UI.06 | Dark theme | partial | follows system; explicit palette needed |
 | UI.07 | Accessibility | missing | labels, dynamic type, contrast |
 | UI.08 | Adaptivity | partial | iPhone portrait only |
 | UI.09 | Localization | partial | RU strings; EN + pluralization missing |
-| UI.10 | 6-line composer | partial | currently `1...4` |
-| UI.11 | Hide tab bar in chat | missing | |
+| UI.10 | 6-line composer | partial | `1...6` implemented; device check pending |
+| UI.11 | Hide tab bar in chat | partial | `.toolbar(.hidden, for: .tabBar)`; device check pending |
 | UI.12 | Emoji + GIF button | missing | |
 | UI.13 | Composer layout | partial | attach button/width |
 | UI.14 | Settings screen | missing | |
@@ -40,19 +40,19 @@ the iOS backlog: update the status as work lands. Status values:
 | MSG.02 | Send-button charge | missing | power 0..100, haptics |
 | MSG.03 | Cancel mechanics | missing | |
 | MSG.04 | Local cache + outbox | missing | disk outbox, retry, persistence |
-| MSG.05 | Replies / edits / forward | missing | |
-| MSG.06 | @mentions | missing | |
-| MSG.07 | Multi-select | missing | |
-| MSG.08 | Pinned messages | missing | |
-| MSG.09 | Read receipts | missing | watermarks, details screen |
+| MSG.05 | Replies / edits / forward | partial | reply/edit/delete/forward + comment; tests in `ChatTextParityTests`; device smoke pending |
+| MSG.06 | @mentions | partial | composer suggestions from group participants; tests in `ChatTextParityTests` |
+| MSG.07 | Multi-select | partial | select, forward, delete; tests in `ChatTextParityTests` |
+| MSG.08 | Pinned messages | partial | top bar, pin/unpin, jump; tests in `ChatTextParityTests` |
+| MSG.09 | Read receipts | partial | ticks from receipts + group status sheet; tests in `ChatTextParityTests` |
 | MSG.10 | Message search | missing | backend has endpoints |
-| MSG.11 | Drafts | missing | |
+| MSG.11 | Drafts | partial | `UserDefaultsChatDraftStore`; tests in `ChatTextParityTests` |
 | MSG.12 | Scroll anchor | partial | verify on device |
 | MSG.13 | Group rename | missing | API exists (`PUT /api/chats/{uuid}`) |
 | MSG.14 | Remove participant | missing | API exists |
 | MSG.15 | Remove contact | missing | API exists |
-| MSG.16 | Reactions | missing | API exists; not in `/updated` |
-| MSG.17 | Unread in chat list | partial | server count shown; no immediate refresh on return |
+| MSG.16 | Reactions | partial | toggle + inline chips + menu; full refresh every 15 s (not in `/updated`); tests in `ChatTextParityTests` |
+| MSG.17 | Unread in chat list | partial | reload on return from conversation; tests/device check pending |
 
 ## MEDIA — chat attachments
 

@@ -52,7 +52,7 @@ struct MessageStatusSheet: View {
     }
 
     private func statusText(_ row: ParticipantDeliveryStatus) -> String {
-        let time: String?
+        let time: String
         switch row.status {
         case .read:
             time = DateTimeFormat.time(row.receipt.lastReadAt)

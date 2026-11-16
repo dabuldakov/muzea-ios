@@ -384,7 +384,9 @@ final class ChatConversationTextViewModelTests: XCTestCase {
 
         await viewModel.togglePin(original)
 
-        XCTAssertEqual(actions.pinned, [("c-1", "m1")])
+        XCTAssertEqual(actions.pinned.count, 1)
+        XCTAssertEqual(actions.pinned.first?.0, "c-1")
+        XCTAssertEqual(actions.pinned.first?.1, "m1")
         XCTAssertEqual(viewModel.state.messages.first?.isPinned, true)
         XCTAssertEqual(viewModel.state.pinned.count, 1)
     }
