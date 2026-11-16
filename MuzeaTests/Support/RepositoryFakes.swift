@@ -187,6 +187,44 @@ final class FakeMessageReceiptRepository: MessageReceiptRepository {
     }
 }
 
+final class FakeMessageStatusRepository: MessageStatusRepository {
+    var statuses: [String: [MessageStatusResponse]] = [:]
+    var loads: [(String, String)] = []
+
+    func loadMessageStatuses(
+        chatUuid: String,
+        messageUuid: String
+    ) async throws -> [MessageStatusResponse] {
+        loads.append((chatUuid, messageUuid))
+        return statuses[messageUuid] ?? []
+    }
+}
+
+final class FakeModerationRepository: ModerationRepository {
+    var reports: [(String, String, String?)] = []
+    var blocks: [(String, String?)] = []
+
+    func report(messageUuid: String, reason: String, comment: String?) async throws {
+        reports.append((messageUuid, reason, comment))
+    }
+
+    func block(userUuid: String, reason: String?) async throws {
+        blocks.append((userUuid, reason))
+    }
+}
+
+final class FakeReactionHistoryStore: ReactionHistoryStore {
+    var emojis: [String] = []
+
+    func recent() -> [String] {
+        emojis.isEmpty ? Array(ReactionCatalog.all.prefix(ReactionCatalog.recentLimit)) : emojis
+    }
+
+    func record(_ emoji: String) {
+        emojis = [emoji] + emojis.filter { $0 != emoji }
+    }
+}
+
 final class FakeChatDraftStore: ChatDraftStore {
     var storage: [String: String] = [:]
 
@@ -211,7 +249,10 @@ extension ChatConversationServices {
         actions: FakeMessageActionsRepository = FakeMessageActionsRepository(),
         reactions: FakeMessageReactionRepository = FakeMessageReactionRepository(),
         receipts: FakeMessageReceiptRepository = FakeMessageReceiptRepository(),
+        statuses: FakeMessageStatusRepository = FakeMessageStatusRepository(),
+        moderation: FakeModerationRepository = FakeModerationRepository(),
         drafts: FakeChatDraftStore = FakeChatDraftStore(),
+        reactionHistory: FakeReactionHistoryStore = FakeReactionHistoryStore(),
         chats: FakeChatRepository = FakeChatRepository()
     ) -> ChatConversationServices {
         ChatConversationServices(
@@ -219,7 +260,10 @@ extension ChatConversationServices {
             actions: actions,
             reactions: reactions,
             receipts: receipts,
+            statuses: statuses,
+            moderation: moderation,
             drafts: drafts,
+            reactionHistory: reactionHistory,
             chats: chats
         )
     }

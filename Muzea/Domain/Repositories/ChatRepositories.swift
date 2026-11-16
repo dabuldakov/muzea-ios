@@ -57,6 +57,18 @@ protocol MessageReceiptRepository {
     func loadReceipts(chatUuid: String) async throws -> [ChatReceiptResponse]
 }
 
+/// Точные отметки доставки/прочтения конкретного сообщения. В отличие от
+/// watermark-квитанций, для старых сообщений не дают ложную дату.
+protocol MessageStatusRepository {
+    func loadMessageStatuses(chatUuid: String, messageUuid: String) async throws -> [MessageStatusResponse]
+}
+
+/// Жалобы и блокировки в чате.
+protocol ModerationRepository {
+    func report(messageUuid: String, reason: String, comment: String?) async throws
+    func block(userUuid: String, reason: String?) async throws
+}
+
 /// Черновики по чатам. Хранятся локально и не отправляются автоматически.
 protocol ChatDraftStore {
     func draft(chatUuid: String) -> String?

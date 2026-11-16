@@ -301,6 +301,28 @@ struct ChatReceiptResponse: Decodable, Hashable {
     var displayName: String { fullName ?? username ?? "Участник" }
 }
 
+/// Точный статус участника для конкретного сообщения
+/// (`GET /api/messages/{chatUuid}/status/{messageUuid}`).
+struct MessageStatusResponse: Decodable, Hashable {
+    let userId: Int64?
+    let userUuid: String?
+    let status: String?
+    let deliveredAt: String?
+    let readAt: String?
+}
+
+struct CreateReportRequest: Encodable {
+    let contentType: String
+    let contentUuid: String
+    let reason: String
+    let comment: String?
+}
+
+struct BlockUserRequest: Encodable {
+    let blockUserUuid: String
+    let reason: String?
+}
+
 /// Статус собственного сообщения. Отправляется в UI как галочки.
 enum MessageDeliveryStatus: String, Hashable {
     case sending

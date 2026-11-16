@@ -191,6 +191,28 @@ extension ChatTextParityTests {
         XCTAssertFalse(result.actions.contains(.status))
         XCTAssertTrue(result.actions.contains(.reply))
         XCTAssertTrue(result.actions.contains(.forward))
+        XCTAssertTrue(result.actions.contains(.report))
+        XCTAssertTrue(result.actions.contains(.block))
+    }
+
+    func testForeignMessageWithReactionsOffersDetails() {
+        let reaction = MessageReactionResponse(
+            emoji: "👍",
+            count: 1,
+            mine: false,
+            users: [ReactionUserResponse(userUuid: "u2", at: "2026-01-01T00:00:03")]
+        )
+        let message = TestData.message("m1", text: "hi", sender: "other")
+            .replacing(messageId: 5, reactions: [reaction])
+
+        let result = MessageActionsBuilder.build(
+            message: message,
+            myUserUuid: "me",
+            isGroupChat: false
+        )
+
+        XCTAssertTrue(result.actions.contains(.status))
+        XCTAssertFalse(result.showStatus)
     }
 
     func testPinnedMessageOffersUnpin() {
@@ -286,6 +308,18 @@ extension ChatTextParityTests {
         XCTAssertNil(store.draft(chatUuid: "c1"))
     }
 
+    func testReactionHistoryKeepsRecentFirstAndCaps() {
+        let defaults = UserDefaults(suiteName: "muzea-reactions-\(UUID().uuidString)")!
+        let store = UserDefaultsReactionHistoryStore(defaults: defaults)
+
+        XCTAssertEqual(store.recent().count, ReactionCatalog.recentLimit)
+        store.record("🚀")
+        store.record("🔥")
+        store.record("🚀")
+
+        XCTAssertEqual(store.recent().prefix(2), ["🚀", "🔥"])
+    }
+
     func testReplyPreviewUsesYouAndDeletedNames() {
         let mine = TestData.message("m1", text: "hi", sender: "me")
         let deleted = TestData.message("m2", text: "hi", sender: "other")
@@ -308,16 +342,18 @@ extension ChatTextParityTests {
 
     func testChargePowerGrowsToHundredAndClamps() {
         XCTAssertEqual(ChargeCalculator.power(elapsed: -1), 0)
-        XCTAssertEqual(ChargeCalculator.power(elapsed: 0), 0)
-        XCTAssertEqual(ChargeCalculator.power(elapsed: 30), 50)
+        XCTAssertEqual(ChargeCalculator.power(elapsed: 0.5), 0)
+        XCTAssertEqual(ChargeCalculator.power(elapsed: 1), 0)
+        // sqrt(29/59) ≈ 0.70 -> 70
+        XCTAssertEqual(ChargeCalculator.power(elapsed: 30), 70)
         XCTAssertEqual(ChargeCalculator.power(elapsed: 60), 100)
         XCTAssertEqual(ChargeCalculator.power(elapsed: 120), 100)
     }
 
-    func testChargeCancelsOnSwipeUpOrLeft() {
-        XCTAssertTrue(ChargeCalculator.isCancelled(translationX: 0, translationY: -70))
-        XCTAssertTrue(ChargeCalculator.isCancelled(translationX: -70, translationY: 0))
-        XCTAssertFalse(ChargeCalculator.isCancelled(translationX: -10, translationY: 10))
+    func testChargeCancelsOnlyOnSwipeUp() {
+        XCTAssertTrue(ChargeCalculator.isCancelled(translationY: -80))
+        XCTAssertFalse(ChargeCalculator.isCancelled(translationY: -10))
+        XCTAssertFalse(ChargeCalculator.isCancelled(translationY: 80))
     }
 
     func testHapticLevelSteps() {
@@ -337,7 +373,10 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         messages: [MessageResponse] = [],
         actions: FakeMessageActionsRepository = FakeMessageActionsRepository(),
         reactions: FakeMessageReactionRepository = FakeMessageReactionRepository(),
-        drafts: FakeChatDraftStore = FakeChatDraftStore()
+        statuses: FakeMessageStatusRepository = FakeMessageStatusRepository(),
+        moderation: FakeModerationRepository = FakeModerationRepository(),
+        drafts: FakeChatDraftStore = FakeChatDraftStore(),
+        reactionHistory: FakeReactionHistoryStore = FakeReactionHistoryStore()
     ) -> (ChatConversationViewModel, FakeMessageRepository) {
         let repository = FakeMessageRepository()
         repository.cached = messages
@@ -346,7 +385,10 @@ final class ChatConversationTextViewModelTests: XCTestCase {
             messages: repository,
             actions: actions,
             reactions: reactions,
-            drafts: drafts
+            statuses: statuses,
+            moderation: moderation,
+            drafts: drafts,
+            reactionHistory: reactionHistory
         )
         return (
             ChatConversationViewModel(
@@ -455,12 +497,54 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         reactions.reactions["m1"] = [
             MessageReactionResponse(emoji: "👍", count: 1, mine: true, users: [])
         ]
-        let (viewModel, _) = makeViewModel(messages: [original], reactions: reactions)
+        let history = FakeReactionHistoryStore()
+        let (viewModel, _) = makeViewModel(
+            messages: [original],
+            reactions: reactions,
+            reactionHistory: history
+        )
 
         await viewModel.toggleReaction(original, emoji: "👍")
 
         XCTAssertEqual(reactions.toggles.first?.0, "m1")
         XCTAssertEqual(viewModel.state.messages.first?.reactions?.first?.emoji, "👍")
+        XCTAssertEqual(history.emojis.first, "👍")
+    }
+
+    func testLoadMessageStatusesStoresExactTimes() async {
+        let original = TestData.message("m1", text: "status")
+            .replacing(messageId: 5)
+        let statuses = FakeMessageStatusRepository()
+        statuses.statuses["m1"] = [
+            MessageStatusResponse(
+                userId: 7,
+                userUuid: "u1",
+                status: "READ",
+                deliveredAt: "2026-01-01T00:00:05",
+                readAt: "2026-01-01T00:00:06"
+            )
+        ]
+        let (viewModel, _) = makeViewModel(messages: [original], statuses: statuses)
+
+        await viewModel.loadMessageStatuses(for: original)
+
+        XCTAssertEqual(statuses.loads.first?.1, "m1")
+        XCTAssertEqual(viewModel.state.messageStatuses["m1"]?.first?.readAt, "2026-01-01T00:00:06")
+    }
+
+    func testReportAndBlockCallModeration() async {
+        let foreign = TestData.message("m1", text: "spam", sender: "other")
+            .replacing(messageId: 5)
+        let moderation = FakeModerationRepository()
+        let (viewModel, _) = makeViewModel(messages: [foreign], moderation: moderation)
+
+        await viewModel.report(foreign, reason: "SPAM")
+        await viewModel.block(userUuid: "other")
+
+        XCTAssertEqual(moderation.reports.first?.0, "m1")
+        XCTAssertEqual(moderation.reports.first?.1, "SPAM")
+        XCTAssertEqual(moderation.blocks.first?.0, "other")
+        XCTAssertEqual(viewModel.state.notice, "Пользователь заблокирован")
     }
 
     func testForwardSendsMessageAndCommentToTargetChat() async {

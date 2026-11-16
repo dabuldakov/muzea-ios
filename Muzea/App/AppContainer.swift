@@ -19,7 +19,10 @@ final class AppContainer: ObservableObject {
     let messageActionsRepository: MessageActionsRepository
     let messageReactionRepository: MessageReactionRepository
     let messageReceiptRepository: MessageReceiptRepository
+    let messageStatusRepository: MessageStatusRepository
+    let moderationRepository: ModerationRepository
     let chatDraftStore: ChatDraftStore
+    let reactionHistoryStore: ReactionHistoryStore
     let chatConversationServices: ChatConversationServices
     let contactRepository: ContactRepository
     let avatarRepository: AvatarRepository
@@ -74,14 +77,23 @@ final class AppContainer: ObservableObject {
         messageReactionRepository = reactions
         let receipts = MessageReceiptRepositoryImpl(auth: authorization)
         messageReceiptRepository = receipts
+        let statuses = MessageStatusRepositoryImpl(auth: authorization)
+        messageStatusRepository = statuses
+        let moderation = ModerationRepositoryImpl(auth: authorization)
+        moderationRepository = moderation
         let drafts = UserDefaultsChatDraftStore()
         chatDraftStore = drafts
+        let reactionHistory = UserDefaultsReactionHistoryStore()
+        reactionHistoryStore = reactionHistory
         chatConversationServices = ChatConversationServices(
             messages: messages,
             actions: actions,
             reactions: reactions,
             receipts: receipts,
+            statuses: statuses,
+            moderation: moderation,
             drafts: drafts,
+            reactionHistory: reactionHistory,
             chats: chats
         )
         contactRepository = ContactRepositoryImpl(auth: authorization)

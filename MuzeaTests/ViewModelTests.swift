@@ -46,7 +46,7 @@ final class ChatConversationViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.state.messages.first?.messageUuid, localUuid)
     }
 
-    func testRefreshMarksLatestServerMessageRead() async {
+    func testRefreshDoesNotMarkUnseenMessagesRead() async {
         let repository = FakeMessageRepository()
         repository.messages = [
             TestData.message("s1", createdAt: "2026-01-01T00:00:01"),
@@ -61,8 +61,29 @@ final class ChatConversationViewModelTests: XCTestCase {
 
         await viewModel.refresh()
 
-        XCTAssertEqual(repository.markedRead.last?.0, "c-1")
-        XCTAssertEqual(repository.markedRead.last?.1, "s2")
+        XCTAssertTrue(repository.markedRead.isEmpty)
+    }
+
+    func testMarkReadUpToMovesOnlyForward() async {
+        let repository = FakeMessageRepository()
+        let first = TestData.message("s1", createdAt: "2026-01-01T00:00:01")
+            .replacing(messageId: 10)
+        let second = TestData.message("s2", createdAt: "2026-01-01T00:00:02")
+            .replacing(messageId: 11)
+        repository.messages = [first, second]
+        let viewModel = ChatConversationViewModel(
+            chatUuid: "c-1",
+            myUserUuid: "me",
+            isGroupChat: false,
+            services: .fake(messages: repository)
+        )
+        await viewModel.refresh()
+
+        await viewModel.markReadUpTo(second)
+        await viewModel.markReadUpTo(first)
+
+        XCTAssertEqual(repository.markedRead.count, 1)
+        XCTAssertEqual(repository.markedRead.first?.1, "s2")
     }
 
     func testSendIgnoresBlankText() async {

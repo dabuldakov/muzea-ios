@@ -114,6 +114,47 @@ final class MessageRepositoryTests: XCTestCase {
         XCTAssertNotNil(request("/api/chats/c1/receipts", method: "GET"))
     }
 
+    func testMessageStatusesUsePerMessageEndpoint() async throws {
+        stub { _ in
+            (200, #"[{"userId":7,"userUuid":"u1","status":"READ","deliveredAt":"2026-01-01T00:00:05","readAt":"2026-01-01T00:00:06"}]"#)
+        }
+
+        let statuses = try await MessageStatusRepositoryImpl(auth: authorization())
+            .loadMessageStatuses(chatUuid: "c1", messageUuid: "m1")
+
+        XCTAssertEqual(statuses.first?.userUuid, "u1")
+        XCTAssertEqual(statuses.first?.readAt, "2026-01-01T00:00:06")
+        XCTAssertNotNil(request("/api/messages/c1/status/m1", method: "GET"))
+    }
+
+    func testReportPostsMessageReason() async throws {
+        stub { _ in (201, "{}") }
+
+        try await ModerationRepositoryImpl(auth: authorization())
+            .report(messageUuid: "m1", reason: "SPAM", comment: nil)
+
+        let req = request("/api/reports", method: "POST")
+        let json = req?.capturedBody.flatMap {
+            try? JSONSerialization.jsonObject(with: $0) as? [String: Any]
+        }
+        XCTAssertEqual(json?["contentType"] as? String, "MESSAGE")
+        XCTAssertEqual(json?["contentUuid"] as? String, "m1")
+        XCTAssertEqual(json?["reason"] as? String, "SPAM")
+    }
+
+    func testBlockPostsUserUuid() async throws {
+        stub { _ in (200, "{}") }
+
+        try await ModerationRepositoryImpl(auth: authorization())
+            .block(userUuid: "u2", reason: nil)
+
+        let req = request("/api/blocked", method: "POST")
+        let json = req?.capturedBody.flatMap {
+            try? JSONSerialization.jsonObject(with: $0) as? [String: Any]
+        }
+        XCTAssertEqual(json?["blockUserUuid"] as? String, "u2")
+    }
+
     func testIncrementalLoadsUseTimestampPath() async throws {
         stub { _ in (200, "[]") }
         let repository = MessageRepositoryImpl(

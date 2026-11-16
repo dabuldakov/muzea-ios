@@ -44,7 +44,6 @@ struct ChargeSendButton: View {
                 .onChanged { value in
                     startIfNeeded()
                     cancelled = ChargeCalculator.isCancelled(
-                        translationX: value.translation.width,
                         translationY: value.translation.height
                     )
                 }
@@ -87,7 +86,7 @@ struct ChargeSendButton: View {
         power = 0
         cancelled = false
         guard !wasCancelled else { return }
-        // Короткое касание — обычное сообщение без заряда.
-        onSend(elapsed < 0.25 ? 0 : finalPower)
+        // До секунды удержания — обычное сообщение без заряда, как на Android.
+        onSend(ChargeCalculator.isCharged(elapsed: elapsed) ? finalPower : 0)
     }
 }

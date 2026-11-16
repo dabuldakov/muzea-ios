@@ -12,10 +12,8 @@ struct ChatConversationView: View {
     @State private var jumpTarget: String?
     @State private var activeAlert: ActiveAlert?
     @State private var forwardTargets: [MessageResponse] = []
-    @State private var statusMessage: MessageResponse?
-    @State private var showForwardPicker = false
-
-    private static let reactionEmojis = ["👍", "❤️", "😂", "😮", "😢", "🔥"]
+    @State private var activeSheet: ActiveSheet?
+    @State private var forwardTargets: [MessageResponse] = []
 
     init(chat: ChatResponse, myUserUuid: String?, services: ChatConversationServices) {
         self.chat = chat
@@ -144,23 +142,48 @@ struct ChatConversationView: View {
                     },
                     secondaryButton: .cancel()
                 )
+            case .block(let message):
+                return Alert(
+                    title: Text("Заблокировать пользователя?"),
+                    message: Text("Он больше не сможет писать вам, а контакт будет удалён."),
+                    primaryButton: .destructive(Text("Заблокировать")) {
+                        if let uuid = message.senderUuid {
+                            Task { await viewModel.block(userUuid: uuid) }
+                        }
+                    },
+                    secondaryButton: .cancel()
+                )
             }
         }
-        .sheet(isPresented: $showForwardPicker) {
-            ForwardChatPickerView(chats: viewModel.state.forwardChats) { chatUuid, comment in
-                let targets = forwardTargets
-                forwardTargets = []
-                Task {
-                    await viewModel.forward(messages: targets, toChatUuid: chatUuid, comment: comment)
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .forward:
+                ForwardChatPickerView(chats: viewModel.state.forwardChats) { chatUuid, comment in
+                    let targets = forwardTargets
+                    forwardTargets = []
+                    Task {
+                        await viewModel.forward(messages: targets, toChatUuid: chatUuid, comment: comment)
+                    }
+                }
+            case .details(let message):
+                MessageStatusSheet(
+                    message: message,
+                    receipts: viewModel.state.receipts,
+                    statuses: viewModel.state.messageStatuses[message.messageUuid] ?? [],
+                    myUserUuid: viewModel.myUserUuid
+                )
+            case .reaction(let message):
+                ReactionPickerSheet(
+                    recent: viewModel.recentReactions,
+                    all: ReactionCatalog.all
+                ) { emoji in
+                    Task { await viewModel.toggleReaction(message, emoji: emoji) }
+                }
+            case .report(let message):
+                ReportReasonSheet { reason in
+                    Task { await viewModel.report(message, reason: reason) }
                 }
             }
-        }
-        .sheet(item: $statusMessage) { message in
-            MessageStatusSheet(
-                message: message,
-                receipts: viewModel.state.receipts,
-                myUserUuid: viewModel.myUserUuid
-            )
         }
     }
 
@@ -195,6 +218,9 @@ struct ChatConversationView: View {
                 viewModel.toggleSelection(message)
             }
         }
+        .onAppear {
+            Task { await viewModel.markReadUpTo(message) }
+        }
         .contextMenu {
             contextMenu(for: message, isMine: isMine)
         }
@@ -211,12 +237,8 @@ struct ChatConversationView: View {
         ForEach(result.actions, id: \.self) { action in
             switch action {
             case .react:
-                Menu {
-                    ForEach(Self.reactionEmojis, id: \.self) { emoji in
-                        Button(emoji) {
-                            Task { await viewModel.toggleReaction(message, emoji: emoji) }
-                        }
-                    }
+                Button {
+                    activeSheet = .reaction(message)
                 } label: {
                     Label("Реакция", systemImage: "face.smiling")
                 }
@@ -272,9 +294,22 @@ struct ChatConversationView: View {
                 }
             case .status:
                 Button {
-                    statusMessage = message
+                    activeSheet = .details(message)
+                    Task { await viewModel.loadMessageStatuses(for: message) }
                 } label: {
-                    Label("Статус", systemImage: "checkmark.circle")
+                    Label("Детали", systemImage: "info.circle")
+                }
+            case .report:
+                Button {
+                    activeSheet = .report(message)
+                } label: {
+                    Label("Пожаловаться", systemImage: "exclamationmark.bubble")
+                }
+            case .block:
+                Button(role: .destructive) {
+                    activeAlert = .block(message)
+                } label: {
+                    Label("Заблокировать", systemImage: "hand.raised")
                 }
             }
         }
@@ -350,7 +385,7 @@ struct ChatConversationView: View {
     private func openForward(_ messages: [MessageResponse]) {
         guard !messages.isEmpty else { return }
         forwardTargets = messages
-        showForwardPicker = true
+        activeSheet = .forward
         Task { await viewModel.loadForwardChats() }
     }
 
@@ -375,11 +410,28 @@ struct ChatConversationView: View {
     }
 }
 
+private enum ActiveSheet: Identifiable {
+    case forward
+    case details(MessageResponse)
+    case reaction(MessageResponse)
+    case report(MessageResponse)
+
+    var id: String {
+        switch self {
+        case .forward: return "forward"
+        case .details(let message): return "details-\(message.messageUuid)"
+        case .reaction(let message): return "reaction-\(message.messageUuid)"
+        case .report(let message): return "report-\(message.messageUuid)"
+        }
+    }
+}
+
 private enum ActiveAlert: Identifiable {
     case error(String)
     case notice(String)
     case delete(MessageResponse)
     case deleteSelected
+    case block(MessageResponse)
 
     var id: String {
         switch self {
@@ -387,6 +439,7 @@ private enum ActiveAlert: Identifiable {
         case .notice(let message): return "notice-\(message)"
         case .delete(let message): return "delete-\(message.messageUuid)"
         case .deleteSelected: return "delete-selected"
+        case .block(let message): return "block-\(message.messageUuid)"
         }
     }
 }

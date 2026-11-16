@@ -8,6 +8,9 @@ struct ChatConversationServices {
     let actions: MessageActionsRepository
     let reactions: MessageReactionRepository
     let receipts: MessageReceiptRepository
+    let statuses: MessageStatusRepository
+    let moderation: ModerationRepository
     let drafts: ChatDraftStore
+    let reactionHistory: ReactionHistoryStore
     let chats: ChatRepository
 }

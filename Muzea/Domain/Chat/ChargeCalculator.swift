@@ -1,21 +1,27 @@
 import Foundation
 
-/// Расчёт «заряда» кнопки отправки и порога отмены свайпом. Чистая логика,
-/// чтобы поведение покрывалось тестами без UIKit.
+/// Расчёт «заряда» кнопки отправки и порога отмены свайпом — как на Android.
+/// До 1 секунды удержание считается обычной отправкой; дальше сила растёт по
+/// `sqrt`, иначе первые секунды почти не видны, а к концу шкала прыгает.
 enum ChargeCalculator {
-    /// Полная шкала — минута удержания, как на Android.
-    static let maxDuration: TimeInterval = 60
-    /// Сдвиг пальца, после которого отправка отменяется.
-    static let cancelThreshold: Double = 60
+    static let minHold: TimeInterval = 1
+    static let maxHold: TimeInterval = 60
+    /// Свайп вверх, после которого отправка отменяется (72dp на Android).
+    static let cancelThreshold: Double = 72
 
     static func power(elapsed: TimeInterval) -> Int {
-        guard elapsed > 0 else { return 0 }
-        let value = Int((elapsed / maxDuration * 100).rounded(.down))
-        return min(max(value, 0), 100)
+        guard elapsed > minHold else { return 0 }
+        if elapsed >= maxHold { return 100 }
+        let level = (elapsed - minHold) / (maxHold - minHold)
+        return min(max(Int((level.squareRoot() * 100).rounded()), 0), 100)
     }
 
-    static func isCancelled(translationX: Double, translationY: Double) -> Bool {
-        translationX < -cancelThreshold || translationY < -cancelThreshold
+    static func isCharged(elapsed: TimeInterval) -> Bool {
+        elapsed >= minHold
+    }
+
+    static func isCancelled(translationY: Double) -> Bool {
+        translationY < -cancelThreshold
     }
 
     /// Ближайшая ступень вибрации: 25/50/75/100.

@@ -16,6 +16,8 @@ struct ChatConversationUiState: Equatable {
     var pinned: [MessageResponse] = []
     var receipts: [ChatReceiptResponse] = []
     var receiptsLoaded = false
+    /// Точные статусы по сообщению, загруженные при открытии «Деталей».
+    var messageStatuses: [String: [MessageStatusResponse]] = [:]
     /// Статусы собственных сообщений: uuid -> галочка.
     var statuses: [String: MessageDeliveryStatus] = [:]
     var failedMessages: Set<String> = []
@@ -37,7 +39,7 @@ final class ChatConversationViewModel: ObservableObject {
 
     private let services: ChatConversationServices
     private let reducer = ChatMessageReducer()
-    private var lastMarkedReadUuid: String?
+    private var lastMarkedReadMessageId: Int64 = 0
     private var lastMarkedDeliveredUuid: String?
     private var lastReceiptsRefreshAt: Date?
     private var pollTick = 0
@@ -68,6 +70,10 @@ final class ChatConversationViewModel: ObservableObject {
             guard let name, !name.isEmpty else { return nil }
             return name
         }
+    }
+
+    var recentReactions: [String] {
+        services.reactionHistory.recent()
     }
 
     /// Опрос: первый запрос уходит сразу, поэтому отдельный refresh() при входе
@@ -150,7 +156,6 @@ final class ChatConversationViewModel: ObservableObject {
                 serverMessage: sent
             )
             recomputeStatuses()
-            await markRead()
             await markDelivered()
             await refreshReceipts(force: true)
             return true
@@ -230,8 +235,46 @@ final class ChatConversationViewModel: ObservableObject {
                 current: state.messages,
                 updated: message.replacing(reactions: reactions)
             )
+            services.reactionHistory.record(emoji)
         } catch {
             state.error = error.localizedDescription
+        }
+    }
+
+    /// Жалоба на сообщение. Причина — одна из значений Android (`SPAM` и т.д.).
+    func report(_ message: MessageResponse, reason: String) async {
+        do {
+            try await services.moderation.report(
+                messageUuid: reducer.serverUuid(message.messageUuid),
+                reason: reason,
+                comment: nil
+            )
+            state.notice = "Жалоба отправлена"
+        } catch {
+            state.error = error.localizedDescription
+        }
+    }
+
+    func block(userUuid: String) async {
+        do {
+            try await services.moderation.block(userUuid: userUuid, reason: nil)
+            state.notice = "Пользователь заблокирован"
+        } catch {
+            state.error = error.localizedDescription
+        }
+    }
+
+    /// Точные отметки времени по сообщению для «Деталей».
+    func loadMessageStatuses(for message: MessageResponse) async {
+        guard message.messageId != nil else { return }
+        do {
+            state.messageStatuses[message.messageUuid] = try await services.statuses
+                .loadMessageStatuses(
+                    chatUuid: chatUuid,
+                    messageUuid: reducer.serverUuid(message.messageUuid)
+                )
+        } catch {
+            // Время просто не появится — остальные данные «Деталей» остаются.
         }
     }
 
@@ -353,7 +396,6 @@ final class ChatConversationViewModel: ObservableObject {
             state.isLoading = false
             state.error = nil
             merge(loaded)
-            await markRead()
             await markDelivered()
         } catch {
             state.isLoading = false
@@ -373,7 +415,6 @@ final class ChatConversationViewModel: ObservableObject {
             )
             guard !loaded.isEmpty else { return }
             merge(loaded)
-            await markRead()
             await refreshReceipts()
         } catch {
             // Инкрементальный опрос не должен затирать уже показанную переписку.
@@ -464,15 +505,17 @@ final class ChatConversationViewModel: ObservableObject {
             .max()
     }
 
-    private func markRead() async {
-        let latest = state.messages.last {
-            !$0.messageUuid.isEmpty && !$0.messageUuid.hasPrefix("local-")
-        }
-        guard let latest, latest.messageUuid != lastMarkedReadUuid else { return }
-        lastMarkedReadUuid = latest.messageUuid
+    /// Отмечает прочитанным всё до указанного сообщения. Вызывается, когда
+    /// строка реально показана, — как `markReadUpTo` на Android. Watermark
+    /// двигается только вперёд, повторные вызовы безопасны.
+    func markReadUpTo(_ message: MessageResponse) async {
+        guard let messageId = message.messageId,
+              messageId > lastMarkedReadMessageId,
+              !message.messageUuid.hasPrefix("local-") else { return }
+        lastMarkedReadMessageId = messageId
         await services.messages.markMessagesAsRead(
             chatUuid: chatUuid,
-            upToMessageUuid: reducer.serverUuid(latest.messageUuid)
+            upToMessageUuid: reducer.serverUuid(message.messageUuid)
         )
     }
 

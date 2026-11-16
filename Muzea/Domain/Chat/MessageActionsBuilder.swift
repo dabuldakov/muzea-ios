@@ -11,6 +11,8 @@ enum MessageAction: Hashable {
     case forward
     case pin
     case unpin
+    case report
+    case block
     case status
 }
 
@@ -59,9 +61,18 @@ enum MessageActionsBuilder {
             actions.append(message.isPinned == true ? .unpin : .pin)
         }
 
+        if !isMine, isServerMessage {
+            actions.append(.report)
+            if message.senderUuid != nil {
+                actions.append(.block)
+            }
+        }
+
         // В личных чатах статус виден по галочкам; список участников — в группах.
+        // Авторов реакций показываем в «Деталях» для любого сообщения.
         let showStatus = isMine && isServerMessage && isGroupChat
-        if showStatus {
+        let hasReactions = !(message.reactions ?? []).isEmpty
+        if showStatus || hasReactions {
             actions.append(.status)
         }
 
