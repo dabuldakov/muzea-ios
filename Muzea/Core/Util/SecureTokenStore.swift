@@ -84,16 +84,16 @@ final class KeychainTokenStore: SecureTokenStoring {
         }
         guard let data = value.data(using: .utf8) else { return }
         let query = baseQuery(account)
-        let attributes: [String: Any] = [
-            kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        ]
+        let valueAttributes: [String: Any] = [kSecValueData as String: data]
 
-        let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        // `kSecAttrAccessible` нельзя менять через SecItemUpdate (iOS вернёт
+        // errSecParam), поэтому он передаётся только при вставке.
+        let status = SecItemUpdate(query as CFDictionary, valueAttributes as CFDictionary)
         guard status == errSecItemNotFound else { return }
 
         var insert = query
-        insert.merge(attributes) { _, new in new }
+        insert[kSecValueData as String] = data
+        insert[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         SecItemAdd(insert as CFDictionary, nil)
     }
 

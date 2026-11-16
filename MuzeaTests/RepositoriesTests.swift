@@ -212,6 +212,9 @@ final class ChatRepositoryTests: XCTestCase {
         store = TestSupport.makeStore()
         store.username = "me"
         store.token = "chat-token"
+        // chat-профиль уже получен: ChatAuthManager не должен ходить в
+        // /api/users/me перед каждым запросом.
+        store.chatUserUuid = "u-me"
     }
 
     override func tearDown() {
