@@ -327,8 +327,11 @@ struct ChatConversationView: View {
                 draftBeforeEdit = ""
                 viewModel.saveDraft("")
             } else {
-                input = text
-                viewModel.saveDraft(text)
+                // Не затираем текст, если пользователь уже начал печатать новое.
+                if input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    input = text
+                    viewModel.saveDraft(text)
+                }
             }
             if !wasEditing {
                 viewModel.cancelComposer()

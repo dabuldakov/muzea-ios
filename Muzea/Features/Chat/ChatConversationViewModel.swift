@@ -295,7 +295,14 @@ final class ChatConversationViewModel: ObservableObject {
     }
 
     func deleteSelected() async {
-        let targets = selectedMessages
+        let targets = selectedMessages.filter {
+            $0.messageId != nil && $0.senderUuid != nil && $0.senderUuid == myUserUuid
+        }
+        guard !targets.isEmpty else {
+            state.error = "Можно удалить только свои сообщения"
+            exitSelection()
+            return
+        }
         for message in targets {
             await deleteMessage(message)
         }

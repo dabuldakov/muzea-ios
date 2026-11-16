@@ -455,8 +455,23 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.state.notice, "Переслано")
     }
 
-    func testSelectionTracksMessages() {
-        let first = TestData.message("m1", createdAt: "2026-01-01T00:00:01")
+    func testDeleteSelectedSkipsForeignMessages() async {
+        let mine = TestData.message("m1", text: "mine")
+            .replacing(messageId: 1)
+        let foreign = TestData.message("m2", text: "foreign", sender: "other")
+            .replacing(messageId: 2)
+        let actions = FakeMessageActionsRepository()
+        let (viewModel, _) = makeViewModel(messages: [mine, foreign], actions: actions)
+
+        viewModel.enterSelection(with: mine)
+        viewModel.toggleSelection(foreign)
+        await viewModel.deleteSelected()
+
+        XCTAssertEqual(actions.deleted, ["m1"])
+        XCTAssertFalse(viewModel.state.isSelecting)
+    }
+
+    func testSelectionTracksMessages() {        let first = TestData.message("m1", createdAt: "2026-01-01T00:00:01")
         let second = TestData.message("m2", createdAt: "2026-01-01T00:00:02")
         let (viewModel, _) = makeViewModel(messages: [first, second])
 

@@ -16,28 +16,26 @@ struct ChargeSendButton: View {
 
     var body: some View {
         ZStack {
+            Circle()
+                .stroke(Color.secondary.opacity(0.25), lineWidth: 3)
+            Circle()
+                .trim(from: 0, to: CGFloat(power) / 100)
+                .stroke(
+                    cancelled ? Color.red : Color.accentColor,
+                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
             if power > 0 {
-                Text(cancelled ? "Отмена" : "\(power)%")
+                Text(cancelled ? "×" : "\(power)")
                     .font(.caption2).bold()
                     .foregroundColor(cancelled ? .red : .accentColor)
-                    .offset(y: -34)
-            }
-
-            ZStack {
-                Circle()
-                    .stroke(Color.secondary.opacity(0.25), lineWidth: 3)
-                Circle()
-                    .trim(from: 0, to: CGFloat(power) / 100)
-                    .stroke(
-                        cancelled ? Color.red : Color.accentColor,
-                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
+            } else {
                 Image(systemName: icon)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.accentColor)
             }
-            .frame(width: 38, height: 38)
+        }
+        .frame(width: 38, height: 38)
         }
         .frame(width: 44, height: 44)
         .opacity(isEnabled ? 1 : 0.35)
