@@ -217,8 +217,9 @@ Upload (orphan first, bind later):
 
 Allowed types/limits (extension + magic bytes): images jpg/png/webp 50 MB; video
 mp4/mov 200 MB; audio mp3/m4a/aac/ogg/opus/wav 50 MB; docs pdf/txt/csv/doc(x)/
-xls(x)/ppt(x)/apk 100 MB; thumbnail 5 MB. ⚠ bundled nginx caps the request at 8 MB
-— large media needs a server/nginx limit increase.
+xls(x)/ppt(x)/apk 100 MB; thumbnail 5 MB. ⚠ bundled nginx used to cap the request
+at **8 MB**; the local `chat/deploy/nginx.conf` is raised to `220m` (not deployed
+yet), and the outer host nginx must allow the same.
 
 Download: `GET /api/attachments/{uuid}` streams bytes through the app (no redirect),
 supports `Range` (206/416), requires chat membership. Use it for AVPlayer. Preview:
