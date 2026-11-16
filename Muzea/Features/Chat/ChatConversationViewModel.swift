@@ -100,13 +100,14 @@ final class ChatConversationViewModel: ObservableObject {
     }
 
     @discardableResult
-    func send(_ text: String) async -> Bool {
+    func send(_ text: String, power: Int = 0) async -> Bool {
         if let editing = state.editing {
             return await submitEdit(editing, text: text)
         }
 
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
+        let clampedPower = min(max(power, 0), 100)
 
         let replyToUuid = state.replyTo.map { reducer.serverUuid($0.messageUuid) }
         let optimistic = MessageResponse(
@@ -127,7 +128,8 @@ final class ChatConversationViewModel: ObservableObject {
             isPinned: false,
             createdAt: nil,
             updatedAt: nil,
-            reactions: []
+            reactions: [],
+            power: clampedPower
         )
         merge([optimistic])
         state.replyTo = nil
@@ -138,7 +140,8 @@ final class ChatConversationViewModel: ObservableObject {
                 chatUuid: chatUuid,
                 text: trimmed,
                 replyToMessageUuid: replyToUuid,
-                clientMessageId: UUID().uuidString
+                clientMessageId: UUID().uuidString,
+                power: clampedPower
             )
             state.messages = reducer.applyServerEcho(
                 current: state.messages,
@@ -258,7 +261,8 @@ final class ChatConversationViewModel: ObservableObject {
                     chatUuid: target,
                     text: comment,
                     replyToMessageUuid: nil,
-                    clientMessageId: UUID().uuidString
+                    clientMessageId: UUID().uuidString,
+                    power: 0
                 )
             } catch {
                 state.error = error.localizedDescription

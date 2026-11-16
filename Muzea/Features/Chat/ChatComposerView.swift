@@ -8,7 +8,7 @@ struct ChatComposerView: View {
     let editing: MessageResponse?
     let myUserUuid: String?
     let usernames: [String]
-    let onSend: () -> Void
+    let onSend: (Int) -> Void
     let onCancel: () -> Void
 
     private var mentionQuery: MentionSuggestions.Query? {
@@ -53,11 +53,12 @@ struct ChatComposerView: View {
                     .lineLimit(1...6)
                     .textFieldStyle(.roundedBorder)
 
-                Button(action: onSend) {
-                    Image(systemName: editing == nil ? "paperplane.fill" : "checkmark.circle.fill")
-                        .font(.title3)
+                ChargeSendButton(
+                    isEnabled: !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    icon: editing == nil ? "paperplane.fill" : "checkmark"
+                ) { power in
+                    onSend(power)
                 }
-                .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             .padding(8)
         }

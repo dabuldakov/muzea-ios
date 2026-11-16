@@ -81,7 +81,7 @@ struct ChatConversationView: View {
                     editing: viewModel.state.editing,
                     myUserUuid: viewModel.myUserUuid,
                     usernames: viewModel.mentionCandidates,
-                    onSend: send,
+                    onSend: { power in send(power: power) },
                     onCancel: cancelComposer
                 )
             }
@@ -316,13 +316,13 @@ struct ChatConversationView: View {
 
     // MARK: - Actions
 
-    private func send() {
+    private func send(power: Int) {
         let text = input
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let wasEditing = viewModel.state.editing != nil
         input = ""
         Task {
-            let ok = await viewModel.send(text)
+            let ok = await viewModel.send(text, power: power)
             if ok {
                 draftBeforeEdit = ""
                 viewModel.saveDraft("")

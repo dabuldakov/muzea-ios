@@ -37,8 +37,8 @@ the iOS backlog: update the status as work lands. Status values:
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
 | MSG.01 | Text engine | done | optimistic send + reducer |
-| MSG.02 | Send-button charge | missing | power 0..100, haptics |
-| MSG.03 | Cancel mechanics | missing | |
+| MSG.02 | Send-button charge | partial | hold-to-charge 0..100, `power` in send body, haptics; tests in `ChatTextParityTests`; device check pending |
+| MSG.03 | Cancel mechanics | partial | swipe up/left cancels, red indicator; tests in `ChatTextParityTests`; device check pending |
 | MSG.04 | Local cache + outbox | missing | disk outbox, retry, persistence |
 | MSG.05 | Replies / edits / forward | partial | reply/edit/delete/forward + comment; tests in `ChatTextParityTests`; device smoke pending |
 | MSG.06 | @mentions | partial | composer suggestions from group participants; tests in `ChatTextParityTests` |

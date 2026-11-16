@@ -221,6 +221,8 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
     let updatedAt: String?
     /// Сводка реакций. Сервер всегда отдаёт массив, но в старых ответах его нет.
     var reactions: [MessageReactionResponse]? = nil
+    /// Сила «заряда» отправителя, 0...100 (0 — обычное сообщение).
+    var power: Int? = nil
     /// Автор удалён: имя/аватар скрываются, показываем «Удалённый пользователь».
     var senderDeleted: Bool? = nil
 
@@ -243,6 +245,7 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
         isDeleted: Bool? = nil,
         isPinned: Bool? = nil,
         reactions: [MessageReactionResponse]? = nil,
+        power: Int? = nil,
         senderDeleted: Bool? = nil
     ) -> MessageResponse {
         MessageResponse(
@@ -264,6 +267,7 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
             createdAt: createdAt,
             updatedAt: updatedAt,
             reactions: reactions ?? self.reactions,
+            power: power ?? self.power,
             senderDeleted: senderDeleted ?? self.senderDeleted
         )
     }
@@ -357,6 +361,8 @@ struct SendMessageRequest: Encodable {
     var replyToMessageUuid: String? = nil
     /// Идемпотентность текстовых отправок: повтор с тем же id не создаёт дубль.
     var clientMessageId: String? = nil
+    /// Сила заряда кнопки отправки, 0...100.
+    var power: Int? = nil
 }
 
 struct EditMessageRequest: Encodable {

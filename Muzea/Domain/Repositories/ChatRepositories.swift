@@ -21,12 +21,13 @@ protocol MessageRepository {
     func loadMessages(chatUuid: String) async throws -> [MessageResponse]
     func cachedMessages(chatUuid: String) -> [MessageResponse]
     func sendMessage(chatUuid: String, text: String) async throws -> MessageResponse
-    /// Отправка с ответом и ключом идемпотентности.
+    /// Отправка с ответом, ключом идемпотентности и зарядом.
     func sendMessage(
         chatUuid: String,
         text: String,
         replyToMessageUuid: String?,
-        clientMessageId: String?
+        clientMessageId: String?,
+        power: Int
     ) async throws -> MessageResponse
     /// Инкрементальная синхронизация: только новые сообщения после timestamp.
     func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [MessageResponse]
@@ -70,7 +71,8 @@ extension MessageRepository {
         chatUuid: String,
         text: String,
         replyToMessageUuid: String?,
-        clientMessageId: String?
+        clientMessageId: String?,
+        power: Int
     ) async throws -> MessageResponse {
         try await sendMessage(chatUuid: chatUuid, text: text)
     }

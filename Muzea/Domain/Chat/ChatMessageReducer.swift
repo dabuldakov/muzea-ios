@@ -80,9 +80,15 @@ final class ChatMessageReducer {
                 let reply = serverMessage.replyToMessageUuid
                     .map { serverToLocal[$0] ?? $0 }
                     ?? existing.replyToMessageUuid
-                return serverMessage
+                var echoed = serverMessage
                     .withMessageUuid(localUuid)
                     .replacing(replyToMessageUuid: reply)
+                // Сервер может не вернуть power — не теряем заряд, накопленный
+                // при удержании кнопки.
+                if (echoed.power ?? 0) == 0, let localPower = existing.power, localPower > 0 {
+                    echoed = echoed.replacing(power: localPower)
+                }
+                return echoed
             }
             .sorted(by: Self.areInIncreasingOrder)
     }

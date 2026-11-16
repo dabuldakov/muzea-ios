@@ -68,7 +68,7 @@ final class FakeMessageRepository: MessageRepository {
     var messages: [MessageResponse] = []
     var cached: [MessageResponse] = []
     var sentTexts: [String] = []
-    var sentRequests: [(text: String, replyTo: String?, clientId: String?)] = []
+    var sentRequests: [(text: String, replyTo: String?, clientId: String?, power: Int)] = []
     var sendResult: MessageResponse?
     var loadError: Error?
     var markedRead: [(String, String)] = []
@@ -86,7 +86,8 @@ final class FakeMessageRepository: MessageRepository {
             chatUuid: chatUuid,
             text: text,
             replyToMessageUuid: nil,
-            clientMessageId: nil
+            clientMessageId: nil,
+            power: 0
         )
     }
 
@@ -94,10 +95,11 @@ final class FakeMessageRepository: MessageRepository {
         chatUuid: String,
         text: String,
         replyToMessageUuid: String?,
-        clientMessageId: String?
+        clientMessageId: String?,
+        power: Int
     ) async throws -> MessageResponse {
         sentTexts.append(text)
-        sentRequests.append((text, replyToMessageUuid, clientMessageId))
+        sentRequests.append((text, replyToMessageUuid, clientMessageId, power))
         return sendResult ?? MessageResponse(
             messageUuid: "server-1",
             chatUuid: chatUuid,
@@ -112,7 +114,8 @@ final class FakeMessageRepository: MessageRepository {
             isDeleted: false,
             isPinned: false,
             createdAt: "2026-01-01T00:00:01",
-            updatedAt: nil
+            updatedAt: nil,
+            power: power
         )
     }
 

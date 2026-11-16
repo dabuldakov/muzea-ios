@@ -145,7 +145,8 @@ final class MessageRepositoryTests: XCTestCase {
             chatUuid: "c1",
             text: "hi",
             replyToMessageUuid: "m1",
-            clientMessageId: "client-1"
+            clientMessageId: "client-1",
+            power: 42
         )
 
         let req = request("/api/messages/c1", method: "POST")
@@ -155,5 +156,6 @@ final class MessageRepositoryTests: XCTestCase {
         XCTAssertEqual(json?["replyToMessageUuid"] as? String, "m1")
         XCTAssertEqual(json?["clientMessageId"] as? String, "client-1")
         XCTAssertEqual(json?["messageType"] as? String, "TEXT")
+        XCTAssertEqual(json?["power"] as? Int, 42)
     }
 }

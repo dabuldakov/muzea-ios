@@ -34,7 +34,8 @@ final class MessageRepositoryImpl: MessageRepository {
             chatUuid: chatUuid,
             text: text,
             replyToMessageUuid: nil,
-            clientMessageId: nil
+            clientMessageId: nil,
+            power: 0
         )
     }
 
@@ -42,7 +43,8 @@ final class MessageRepositoryImpl: MessageRepository {
         chatUuid: String,
         text: String,
         replyToMessageUuid: String?,
-        clientMessageId: String?
+        clientMessageId: String?,
+        power: Int
     ) async throws -> MessageResponse {
         try await auth.authorized {
             try await auth.client.request(
@@ -52,7 +54,8 @@ final class MessageRepositoryImpl: MessageRepository {
                     text: text,
                     messageType: "TEXT",
                     replyToMessageUuid: replyToMessageUuid,
-                    clientMessageId: clientMessageId
+                    clientMessageId: clientMessageId,
+                    power: power > 0 ? min(power, 100) : nil
                 )
             )
         }

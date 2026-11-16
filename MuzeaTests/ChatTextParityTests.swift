@@ -302,6 +302,32 @@ extension ChatTextParityTests {
     }
 }
 
+// MARK: - Charge
+
+extension ChatTextParityTests {
+
+    func testChargePowerGrowsToHundredAndClamps() {
+        XCTAssertEqual(ChargeCalculator.power(elapsed: -1), 0)
+        XCTAssertEqual(ChargeCalculator.power(elapsed: 0), 0)
+        XCTAssertEqual(ChargeCalculator.power(elapsed: 30), 50)
+        XCTAssertEqual(ChargeCalculator.power(elapsed: 60), 100)
+        XCTAssertEqual(ChargeCalculator.power(elapsed: 120), 100)
+    }
+
+    func testChargeCancelsOnSwipeUpOrLeft() {
+        XCTAssertTrue(ChargeCalculator.isCancelled(translationX: 0, translationY: -70))
+        XCTAssertTrue(ChargeCalculator.isCancelled(translationX: -70, translationY: 0))
+        XCTAssertFalse(ChargeCalculator.isCancelled(translationX: -10, translationY: 10))
+    }
+
+    func testHapticLevelSteps() {
+        XCTAssertEqual(ChargeCalculator.hapticLevel(power: 0), 0)
+        XCTAssertEqual(ChargeCalculator.hapticLevel(power: 24), 0)
+        XCTAssertEqual(ChargeCalculator.hapticLevel(power: 25), 1)
+        XCTAssertEqual(ChargeCalculator.hapticLevel(power: 100), 4)
+    }
+}
+
 // MARK: - ViewModel scenarios
 
 @MainActor
@@ -343,6 +369,15 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         XCTAssertEqual(repository.sentRequests.last?.replyTo, "orig")
         XCTAssertNotNil(repository.sentRequests.last?.clientId)
         XCTAssertNil(viewModel.state.replyTo)
+    }
+
+    func testSendPassesChargePower() async {
+        let (viewModel, repository) = makeViewModel()
+
+        await viewModel.send("charged", power: 55)
+
+        XCTAssertEqual(repository.sentRequests.last?.power, 55)
+        XCTAssertEqual(viewModel.state.messages.first?.power, 55)
     }
 
     func testEditUpdatesExistingMessage() async {

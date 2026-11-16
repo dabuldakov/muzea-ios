@@ -57,6 +57,11 @@ struct MessageRow: View {
                 }
 
                 HStack(spacing: 4) {
+                    if let power = message.power, power > 0 {
+                        Label("\(power)%", systemImage: "bolt.fill")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
                     if message.isEdited == true {
                         Text("изм.")
                             .font(.caption2)
