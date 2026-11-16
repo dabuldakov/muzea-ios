@@ -8,6 +8,19 @@
 с отзывом согласия. Время с сервера (UTC без зоны) приводится к локальному поясу
 устройства.
 
+## Статус и план
+
+Текущая iOS-сборка (1.1) — **legacy**: она ещё использует старый вход по
+username/password, а бэкенд уже перешёл на единый IdP `auth.muzea.su`
+(passwordless email-код + access/refresh). Поэтому первый этап порта — миграция
+авторизации; без него приложение не войдёт в аккаунт.
+
+- Контракт бэкенда: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md).
+- Матрица паритета с Android (по ID из `FEATURE_CATALOG.md`):
+  [`docs/PARITY.md`](docs/PARITY.md).
+- Порядок работ: auth → текст чата → медиа → push/share → лента/профиль.
+- Распространение: **TestFlight** (не Sideloadly и не ссылка с сайта).
+
 ## Стек
 
 - Swift 5.9, SwiftUI, iOS 16+
@@ -23,8 +36,12 @@
 
 | Сервис | Адрес | Назначение |
 |--------|-------|------------|
-| makeup | `https://api-muzea.su` | авторизация, новости, видео, профиль |
-| chat | `https://chat-muzea.su` | контакты, чаты, сообщения, аватары, присутствие, FCM |
+| IdP (auth-service) | `https://auth.muzea.su` | регистрация, вход по email-коду, access/refresh, сессии, удаление аккаунта |
+| makeup | `https://api-muzea.su` | новости, видео, профиль, жалобы |
+| chat | `https://chat-muzea.su` | контакты, чаты, сообщения, вложения, аватары, присутствие, FCM |
+
+Один access-токен IdP принимается и `api-muzea.su`, и `chat-muzea.su` (через
+JWKS). Отдельного логина в чат по паролю больше нет.
 
 Адреса задаются в `Muzea/Core/Config.swift`, правовые реквизиты и ссылки —
 в `Muzea/Core/Legal.swift`.
@@ -96,40 +113,30 @@ Workflow `.github/workflows/ios.yml` на каждый push/PR:
    сборки и всех тестов (`needs: [build, test]`), поэтому релизный артефакт не
    собирается из красного состояния. Триггерится на push в `main`, PR и теги `v*`.
 
-Подпись/TestFlight не настроены — для них нужен Apple Developer аккаунт и секреты.
+## Распространение: TestFlight
 
-## Установка на iPhone (бесплатный Apple ID)
+Целевой способ установки — **TestFlight** (тестовый релиз в App Store Connect), а не
+Sideloadly и не ссылка с сайта. Для этого нужен Apple Developer Program (есть).
 
-CI собирает неподписанный device-`.ipa` (job **Release .ipa**). Установить можно
-с macOS или Windows:
+Что настроить один раз:
 
-1. Скачай `.ipa`:
-   - **проще** — из [Releases](https://github.com/dabuldakov/muzea-ios/releases)
-     возьми `Muzea-unsigned.ipa` из последнего релиза (вход в GitHub не нужен);
-   - если релиза ещё нет — Actions → последний **успешный** run → блок **Artifacts** →
-     `Muzea-unsigned-ipa` (это zip) → распакуй, внутри `Muzea-unsigned.ipa` (скачивание
-     артефактов требует входа в GitHub).
-2. Установи Sideloadly:
-   [macOS](https://sideloadly.io/SideloadlySetup.dmg) ·
-   [Windows 64-bit](https://sideloadly.io/SideloadlySetup64.exe).
-   На **Windows** дополнительно нужны «веб-версии» iTunes и iCloud (не из Microsoft
-   Store). **На macOS iTunes не нужен.**
-3. Подключи iPhone кабелем и на устройстве нажми «Доверять этому компьютеру».
-4. Перетащи `.ipa` в Sideloadly, укажи свой Apple ID и нажми **Start**.
-5. На iPhone: Настройки → Основные → VPN и управление устройством → доверься профилю
-   разработчика.
-6. Включи режим разработчика (обязательно на iOS 16+): Настройки → Конфиденциальность и
-   безопасность → Режим разработчика → включить и перезагрузить iPhone. Пункт появляется
-   после установки приложения.
+1. Bundle ID в App Store Connect. Сейчас в `project.yml` —
+   `com.example.muzea`; для TestFlight лучше задать нормальный (например
+   `su.muzea.app`) в `project.yml` и в repository variable `IOS_BUNDLE_ID`.
+2. GitHub Secrets:
+   - `APPLE_TEAM_ID` — Team ID;
+   - `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_KEY_ID`,
+     `APP_STORE_CONNECT_PRIVATE_KEY` — App Store Connect API key (`.p8` целиком).
+3. Workflow **TestFlight** (`.github/workflows/testflight.yml`) запускается вручную:
+   Actions → TestFlight → Run workflow. Он делает archive с автоматической
+   подписью (`-allowProvisioningUpdates`), export и загрузку через `altool`.
+4. Подпись/сертификаты создаются Xcode автоматически по API-ключу; для push нужен
+   paid-профиль с `aps-environment`.
 
-Ограничения бесплатной подписи:
-
-- подпись живёт **7 дней**, затем повторить установку;
-- до 3 приложений на аккаунт;
-- **push-уведомления не работают** (нет entitlement `aps-environment` у бесплатного профиля);
-- при включённой 2FA Sideloadly попросит код подтверждения.
-
-Альтернативы Sideloadly: AltStore (авто-подпись) или сборка проекта из исходников в Xcode.
+Пока CI собирает **неподписанный** `.ipa` (job **Release .ipa**) — он годится для
+локальной отладки: [Releases](https://github.com/dabuldakov/muzea-ios/releases) или
+артефакт Actions. Локально на Mac: открыть `Muzea.xcodeproj`, выбрать свою команду и
+собрать на iPhone; для push нужен paid-профиль с `aps-environment`.
 
 ## Push-уведомления
 
@@ -199,6 +206,10 @@ Muzea/
 │   ├── Contact/    контакты
 │   └── Profile/    профиль, аватар, оператор ПДн, удаление аккаунта
 └── Resources/      Info.plist, Assets
+
+docs/
+├── API_CONTRACT.md контракт бэкенда (auth/chat/makeup) для iOS
+└── PARITY.md       матрица паритета Android → iOS
 ```
 
 ## Присутствие «в сети»
@@ -227,8 +238,11 @@ Muzea/
 - **Сведения об операторе (ч. 1 ст. 19 ФЗ-152)** — экран `OperatorInfoView`,
   доступен из профиля: ФИО, ИНН, адрес, почта, телефон, ссылки на политику и
   пользовательское соглашение.
-- **Удаление аккаунта (ст. 14 ФЗ-152)** — профиль → «Удалить аккаунт». Сначала
-  удаляется чат-сервер, затем основной; локальные данные и согласие очищаются
-  только когда оба подтвердили удаление.
-- **Пароль** хранится в Keychain (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`),
-  а не в `UserDefaults`; устаревший открытый пароль мигрируется при первом запуске.
+- **Удаление аккаунта (ст. 14 ФЗ-152)** — профиль → «Удалить аккаунт». Целевой
+  порядок: chat → makeup → IdP (`DELETE /auth/me`); локальные данные и согласие
+  очищаются только после подтверждения. ⚠ Семантику (деактивация vs полное
+  удаление) сверить с бэкендом — см. `docs/API_CONTRACT.md`.
+- **Секреты (целевая схема)**: access + refresh токены в Keychain
+  (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`), пароль не хранится — вход
+  passwordless по email-коду. Сейчас в коде ещё legacy-Keychain-пароль; при
+  миграции auth он удаляется.
