@@ -10,15 +10,15 @@
 
 ## Статус и план
 
-Текущая iOS-сборка (1.1) — **legacy**: она ещё использует старый вход по
-username/password, а бэкенд уже перешёл на единый IdP `auth.muzea.su`
-(passwordless email-код + access/refresh). Поэтому первый этап порта — миграция
-авторизации; без него приложение не войдёт в аккаунт.
+Авторизация переведена на единый IdP `auth.muzea.su`: passwordless email-код,
+access/refresh в Keychain, single-flight refresh, удаление legacy-пароля и
+chat-логина. Следующий шаг — проверка входа на реальном iPhone через TestFlight,
+затем текст чата (sync/квитанции/правки/реакции).
 
 - Контракт бэкенда: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md).
 - Матрица паритета с Android (по ID из `FEATURE_CATALOG.md`):
   [`docs/PARITY.md`](docs/PARITY.md).
-- Порядок работ: auth → текст чата → медиа → push/share → лента/профиль.
+- Порядок работ: auth ✅ → текст чата → медиа → push/share → лента/профиль.
 - Распространение: **TestFlight** (не Sideloadly и не ссылка с сайта).
 
 ## Стек
@@ -74,7 +74,9 @@ xcodebuild \
   `lastSeenAt`, клампинг будущих меток;
 - `FeedFilterTests` — фильтры новостей и видео (аналоги Android-тестов);
 - `JWTTests` — извлечение `sub` из chat-токена;
-- `TokenStoreTests` — ключи сессии, deviceId, Keychain-пароль, миграция, `clearAll`;
+- `TokenStoreTests` — access/refresh в Keychain, миграция legacy-токена, `clearAll`;
+- `AuthServiceTests`, `TokenRefresherTests` — контракт IdP (OTP, токены, logout,
+  delete) и single-flight refresh без повторного использования refresh-токена;
 - `ConsentManagerTests` — версионное согласие на обработку ПДн (ст. 9 ФЗ-152);
 - `ConfigurationTests` — HTTPS-адреса бэкендов и правовые реквизиты;
 - `DeleteAccountTests` — удаление аккаунта чат → основной сервер, трактовка 401/404;
@@ -121,7 +123,7 @@ Sideloadly и не ссылка с сайта. Для этого нужен Appl
 Что настроить один раз:
 
 1. Bundle ID в App Store Connect. Сейчас в `project.yml` —
-   `com.example.muzea`; для TestFlight лучше задать нормальный (например
+   `com.cyber.muzea`; для TestFlight лучше задать нормальный (например
    `su.muzea.app`) в `project.yml` и в repository variable `IOS_BUNDLE_ID`.
 2. GitHub Secrets:
    - `APPLE_TEAM_ID` — Team ID;
@@ -143,7 +145,9 @@ Sideloadly и не ссылка с сайта. Для этого нужен Appl
 Чтобы пуши заработали:
 
 1. В Firebase Console проекта `muzea-chat` добавь iOS-приложение с bundle id
-   `com.example.muzea` и скачай `GoogleService-Info.plist`.
+   `com.cyber.muzea` и скачай `GoogleService-Info.plist`. Старый plist от
+   `com.example.muzea` нужно заменить — иначе FCM не инициализируется (сборка
+   при этом проходит).
 2. Положи файл в `Muzea/Resources/GoogleService-Info.plist` (он в `.gitignore`,
    в репозиторий не коммитится).
 3. Включи APNs-ключ в Firebase (Project settings → Cloud Messaging).
@@ -242,7 +246,7 @@ docs/
   порядок: chat → makeup → IdP (`DELETE /auth/me`); локальные данные и согласие
   очищаются только после подтверждения. ⚠ Семантику (деактивация vs полное
   удаление) сверить с бэкендом — см. `docs/API_CONTRACT.md`.
-- **Секреты (целевая схема)**: access + refresh токены в Keychain
+- **Секреты**: access + refresh токены в Keychain
   (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`), пароль не хранится — вход
-  passwordless по email-коду. Сейчас в коде ещё legacy-Keychain-пароль; при
-  миграции auth он удаляется.
+  passwordless по email-коду. Legacy-пароль и отдельный chat-токен вычищаются при
+  первом запуске.

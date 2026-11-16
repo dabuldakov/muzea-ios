@@ -154,7 +154,6 @@ final class FakeChatSessionRepository: ChatSessionRepository {
     var deleteError: Error?
     var deleted = false
     var heartbeatResult = true
-    var logoutResult = true
     var unread: Int64 = 0
 
     func deleteAccount() async throws {
@@ -162,7 +161,6 @@ final class FakeChatSessionRepository: ChatSessionRepository {
         deleted = true
     }
     func sendHeartbeat() async -> Bool { heartbeatResult }
-    func logout() async -> Bool { logoutResult }
     func totalUnreadCount() async throws -> Int64 { unread }
 }
 
@@ -221,25 +219,77 @@ final class FakeVideoRepository: VideoRepository {
 }
 
 final class FakeAuthRepository: AuthRepositoryProtocol {
-    var loginError: Error?
+    var isLoggedIn = false
     var registerError: Error?
-    var loggedIn: [String] = []
-    var registered: [String] = []
+    var verifyEmailError: Error?
+    var resendError: Error?
+    var requestCodeError: Error?
+    var verifyLoginError: Error?
+    var currentUserError: Error?
+    var deleteError: Error?
+    var currentUserResult = AuthServiceUser(
+        id: "u-1",
+        email: "alice@example.com",
+        username: "alice",
+        displayName: "Alice",
+        emailVerified: true
+    )
+
+    var registered: [(email: String, username: String, displayName: String?)] = []
+    var verifiedEmails: [(email: String, code: String)] = []
+    var resent: [String] = []
+    var requestedCodes: [String] = []
+    var verifiedLogins: [(email: String, code: String)] = []
+    var deleted = false
     var loggedOut = false
+    var cleared = false
 
-    func login(username: String, password: String) async throws -> AuthResponse {
-        if let loginError { throw loginError }
-        loggedIn.append(username)
-        return AuthResponse(token: "t", username: username, role: nil)
-    }
-
-    func register(username: String, email: String, password: String, fullName: String) async throws -> AuthResponse {
+    func register(email: String, username: String, displayName: String?) async throws {
         if let registerError { throw registerError }
-        registered.append(username)
-        return AuthResponse(token: "t", username: username, role: nil)
+        registered.append((email, username, displayName))
     }
 
-    func logout() { loggedOut = true }
+    func verifyEmail(email: String, code: String) async throws {
+        if let verifyEmailError { throw verifyEmailError }
+        verifiedEmails.append((email, code))
+        isLoggedIn = true
+    }
+
+    func resendVerification(email: String) async throws {
+        if let resendError { throw resendError }
+        resent.append(email)
+    }
+
+    func requestLoginCode(email: String) async throws {
+        if let requestCodeError { throw requestCodeError }
+        requestedCodes.append(email)
+    }
+
+    func verifyLoginCode(email: String, code: String) async throws {
+        if let verifyLoginError { throw verifyLoginError }
+        verifiedLogins.append((email, code))
+        isLoggedIn = true
+    }
+
+    func currentUser() async throws -> AuthServiceUser {
+        if let currentUserError { throw currentUserError }
+        return currentUserResult
+    }
+
+    func deleteAccount() async throws {
+        if let deleteError { throw deleteError }
+        deleted = true
+    }
+
+    func logout() async {
+        isLoggedIn = false
+        loggedOut = true
+    }
+
+    func clearLocalSession() {
+        isLoggedIn = false
+        cleared = true
+    }
 }
 
 // MARK: - Builders

@@ -8,10 +8,28 @@ protocol UserRepository {
     func deleteAccount(id: Int64) async throws
 }
 
-/// Авторизация на основном бэкенде. Отделена от профиля: у неё свой жизненный
-/// цикл (токены/секреты), а у профиля — только данные пользователя.
+/// Авторизация на едином IdP. Отделена от профиля: у неё свой жизненный цикл
+/// (токены/секреты), а у профиля — только данные пользователя.
 protocol AuthRepositoryProtocol {
-    func login(username: String, password: String) async throws -> AuthResponse
-    func register(username: String, email: String, password: String, fullName: String) async throws -> AuthResponse
-    func logout()
+    var isLoggedIn: Bool { get }
+
+    /// Регистрация: создаёт пользователя и отправляет код на email.
+    func register(email: String, username: String, displayName: String?) async throws
+    /// Подтверждение email кодом: активирует аккаунт и сразу логинит.
+    func verifyEmail(email: String, code: String) async throws
+    func resendVerification(email: String) async throws
+
+    /// Вход по коду (passwordless).
+    func requestLoginCode(email: String) async throws
+    func verifyLoginCode(email: String, code: String) async throws
+
+    /// Профиль IdP (email/username/displayName/emailVerified).
+    func currentUser() async throws -> AuthServiceUser
+    /// Удаление аккаунта в IdP.
+    func deleteAccount() async throws
+
+    /// Локальный выход + best-effort отзыв refresh-сессии.
+    func logout() async
+    /// Локальная очистка без обращения к серверу (после удаления аккаунта).
+    func clearLocalSession()
 }

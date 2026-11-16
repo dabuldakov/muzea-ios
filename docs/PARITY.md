@@ -93,7 +93,7 @@ the iOS backlog: update the status as work lands. Status values:
 
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
-| NET.01 | Auth | missing | **blocker**: move to `auth.muzea.su` OTP + refresh |
+| NET.01 | Auth | partial | ported to `auth.muzea.su` OTP + refresh (single-flight); device/TestFlight smoke pending |
 | NET.02 | Sync | missing | `/after` 3 s, `/updated` 15 s, `/before` |
 | NET.03 | Push (FCM/APNs) | partial | token registration only; no routing/local notification |
 | NET.04 | Offline + retry | missing | outbox, network banner |
@@ -107,7 +107,7 @@ the iOS backlog: update the status as work lands. Status values:
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
 | SEC.01 | Transport | done | ATS, HTTPS only |
-| SEC.02 | Tokens on device | partial | Keychain password today; need access+refresh, no password |
+| SEC.02 | Tokens on device | partial | access+refresh in Keychain, no password; legacy purge implemented |
 | SEC.03 | Message cache | partial | in-memory; no encryption |
 | SEC.04 | Anti-abuse (report/block) | missing | UGC requirement |
 | SEC.05 | Admin panel | n/a | web product |
@@ -117,7 +117,7 @@ the iOS backlog: update the status as work lands. Status values:
 
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
-| QA.01 | Unit tests | partial | ~200 vs 1151 on Android; port scenarios |
+| QA.01 | Unit tests | partial | ~230 vs 1151 on Android; auth/refresh contract tests added |
 | QA.02 | Robolectric | n/a | |
 | QA.03 | Integration (mock network) | partial | `MockURLProtocol`; add shared fixtures |
 | QA.04 | Device tests | missing | XCUITest for 4 critical paths |

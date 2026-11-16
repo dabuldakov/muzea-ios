@@ -1,30 +1,44 @@
 import Foundation
 import UIKit
 
-/// Локальное хранилище сессии, по ключам совпадает с Android TokenManager.
-/// Пароль хранится в Keychain, а не в UserDefaults (аналог SecurePasswordStore).
+/// Локальное хранилище сессии.
+///
+/// Секреты (access/refresh) — в Keychain. Идентификаторы и настройки — в
+/// `UserDefaults`. Пароль больше не хранится: вход passwordless по email-коду,
+/// а legacy-ключи (пароль и отдельный chat-токен) вычищаются при первом запуске.
 final class TokenStore {
-    /// Ключи, которыми владеет приложение: сессия, чат, push, устройство.
+    /// Ключи, которыми владеет приложение. `auth_token`/`password`/`chat_token`
+    /// оставлены только для миграции со старых версий.
     private static let ownedKeys = [
         "auth_token", "username", "email", "password",
-        "chat_token", "chat_token_user",
+        "chat_token", "chat_token_user", "chat_user_uuid",
         "fcm_token", "fcm_token_registered",
         "device_id"
     ]
 
     private let defaults: UserDefaults
-    private let passwordStore: PasswordStoring
+    private let tokens: SecureTokenStoring
 
-    init(defaults: UserDefaults = .standard, passwordStore: PasswordStoring = KeychainPasswordStore()) {
+    init(defaults: UserDefaults = .standard, tokens: SecureTokenStoring = KeychainTokenStore()) {
         self.defaults = defaults
-        self.passwordStore = passwordStore
-        migrateLegacyPassword()
+        self.tokens = tokens
+        KeychainTokenStore.deleteLegacyPassword()
+        migrateLegacy()
     }
+
+    // MARK: - Tokens (Keychain)
 
     var token: String? {
-        get { defaults.string(forKey: "auth_token") }
-        set { defaults.set(newValue, forKey: "auth_token") }
+        get { tokens.accessToken }
+        set { tokens.accessToken = newValue }
     }
+
+    var refreshToken: String? {
+        get { tokens.refreshToken }
+        set { tokens.refreshToken = newValue }
+    }
+
+    // MARK: - Profile
 
     var username: String? {
         get { defaults.string(forKey: "username") }
@@ -36,20 +50,14 @@ final class TokenStore {
         set { defaults.set(newValue, forKey: "email") }
     }
 
-    var password: String? {
-        get { passwordStore.password }
-        set { passwordStore.password = newValue }
+    /// Локальный UUID пользователя на chat-сервере (создаётся при первом
+    /// обращении к `/api/users/me`). Нужен для чатов/контактов.
+    var chatUserUuid: String? {
+        get { defaults.string(forKey: "chat_user_uuid") }
+        set { defaults.set(newValue, forKey: "chat_user_uuid") }
     }
 
-    var chatToken: String? {
-        get { defaults.string(forKey: "chat_token") }
-        set { defaults.set(newValue, forKey: "chat_token") }
-    }
-
-    var chatTokenUser: String? {
-        get { defaults.string(forKey: "chat_token_user") }
-        set { defaults.set(newValue, forKey: "chat_token_user") }
-    }
+    // MARK: - Push / device
 
     var fcmToken: String? {
         get { defaults.string(forKey: "fcm_token") }
@@ -69,17 +77,29 @@ final class TokenStore {
     }
 
     var deviceName: String { UIDevice.current.name }
+    /// Больше не отправляется на сервер (у `/fcm-token` нет поля platform),
+    /// оставлено для диагностики/логов.
     var deviceType: String { "IOS" }
 
     var isLoggedIn: Bool {
-        !(token ?? "").isEmpty && !(username ?? "").isEmpty
+        !(token ?? "").isEmpty
     }
 
-    func clear() {
-        ["auth_token", "username", "chat_token", "chat_token_user"].forEach {
+    // MARK: - Clearing
+
+    /// Локальный выход: токены и профиль удаляются, deviceId и FCM-токен
+    /// остаются (их можно переиспользовать после повторного входа).
+    func clearSession() {
+        tokens.clear()
+        ["username", "email", "chat_user_uuid", "fcm_token_registered", "password",
+         "chat_token", "chat_token_user"].forEach {
             defaults.removeObject(forKey: $0)
         }
-        passwordStore.clear()
+    }
+
+    /// Совместимое имя для существующего кода.
+    func clear() {
+        clearSession()
     }
 
     /// Полная очистка локальных данных пользователя — при удалении аккаунта
@@ -90,17 +110,21 @@ final class TokenStore {
         for key in defaults.dictionaryRepresentation().keys {
             defaults.removeObject(forKey: key)
         }
-        passwordStore.clear()
+        tokens.clear()
     }
 
-    /// Ранее пароль лежал в UserDefaults открытым текстом. Переносим его в Keychain
-    /// и удаляем из обычных настроек.
-    private func migrateLegacyPassword() {
-        let legacy = defaults.string(forKey: "password")
-        guard let legacy, !legacy.isEmpty else { return }
-        if passwordStore.password == nil {
-            passwordStore.password = legacy
+    // MARK: - Migration
+
+    /// Переход со старой схемы: `auth_token` из UserDefaults → Keychain;
+    /// пароль и отдельный chat-токен больше не используются.
+    private func migrateLegacy() {
+        if (tokens.accessToken ?? "").isEmpty,
+           let legacy = defaults.string(forKey: "auth_token"),
+           !legacy.isEmpty {
+            tokens.accessToken = legacy
         }
-        defaults.removeObject(forKey: "password")
+        ["auth_token", "password", "chat_token", "chat_token_user"].forEach {
+            defaults.removeObject(forKey: $0)
+        }
     }
 }

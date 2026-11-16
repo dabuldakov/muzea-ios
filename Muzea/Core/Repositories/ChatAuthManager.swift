@@ -1,12 +1,16 @@
 import Foundation
 
-/// Аутентификация на chat-сервере: проверяет владельца сохранённого токена,
-/// при необходимости логинится/регистрируется и регистрирует FCM-токен.
+/// Готовность к работе с chat-сервером на едином access-токене IdP.
+///
+/// Раньше здесь был отдельный логин/регистрация на chat-сервере по паролю.
+/// Теперь chat принимает тот же JWT (через JWKS), поэтому остаётся только
+/// однократно получить локальный chat-профиль (нужен `userUuid`) и
+/// зарегистрировать FCM-токен.
 final class ChatAuthManager {
     private let client: HTTPClient
     private let store: TokenStore
 
-    /// Причина последней неудачной аутентификации (nil — успех).
+    /// Причина последней неудачной проверки (nil — успех).
     private(set) var lastFailureMessage: String?
 
     init(client: HTTPClient, store: TokenStore) {
@@ -17,105 +21,35 @@ final class ChatAuthManager {
     @discardableResult
     func ensureAuthenticated() async -> Bool {
         lastFailureMessage = nil
-        if let token = store.chatToken, !token.isEmpty {
-            if let current = store.username,
-               store.chatTokenUser != current {
-                invalidate()
-            } else {
-                await registerFcmTokenIfNeeded()
-                return true
-            }
-        }
-
-        guard let username = store.username, !username.isEmpty,
-              let password = store.password, !password.isEmpty else {
-            lastFailureMessage = "No saved credentials. Please log in to the app first."
+        guard let token = store.token, !token.isEmpty else {
+            lastFailureMessage = "No active session. Please log in."
             return false
         }
-
-        if await tryLogin(username: username, password: password) {
-            await registerFcmTokenIfNeeded()
-            return true
-        }
-        if await tryRegister(username: username, password: password) {
-            await registerFcmTokenIfNeeded()
-            return true
-        }
-        return false
+        await ensureChatProfile()
+        await registerFcmTokenIfAny()
+        return true
     }
 
+    /// Токен единый; 401 обрабатывает `TokenRefresher` через `HTTPClient`.
     func invalidate() {
-        store.chatToken = nil
-        store.chatTokenUser = nil
+        // no-op
     }
 
-    private func tryLogin(username: String, password: String) async -> Bool {
+    /// Однократно тянет профиль на chat-сервере: это провижинит локального
+    /// пользователя и даёт его `userUuid` (нужен для чатов/контактов).
+    private func ensureChatProfile() async {
+        if let uuid = store.chatUserUuid, !uuid.isEmpty { return }
         do {
-            let response: ChatAuthResponse = try await client.request(
-                "POST",
-                "/api/auth/login",
-                body: ChatLoginRequest(
-                    username: username,
-                    password: password,
-                    deviceId: store.deviceId,
-                    deviceName: store.deviceName,
-                    deviceType: store.deviceType
-                ),
-                authorized: false
-            )
-            store.chatToken = response.token
-            store.chatTokenUser = username
-            return true
-        } catch let error as APIError {
-            if case .server(let code, _) = error {
-                lastFailureMessage = "Login rejected by the chat server (HTTP \(code))."
-            } else {
-                lastFailureMessage = "Cannot reach the chat server."
+            let user: ChatUserResponse = try await client.request("GET", "/api/users/me")
+            if !user.userUuid.isEmpty {
+                store.chatUserUuid = user.userUuid
             }
-            return false
         } catch {
-            lastFailureMessage = "Cannot reach the chat server."
-            return false
+            // Попробуем при следующем обращении.
         }
     }
 
-    private func tryRegister(username: String, password: String) async -> Bool {
-        let email = store.email ?? "\(username)@example.com"
-        do {
-            let response: ChatAuthResponse = try await client.request(
-                "POST",
-                "/api/auth/register",
-                body: ChatRegisterRequest(
-                    username: username,
-                    email: email,
-                    password: password,
-                    deviceId: store.deviceId,
-                    deviceName: store.deviceName,
-                    deviceType: store.deviceType
-                ),
-                authorized: false
-            )
-            store.chatToken = response.token
-            store.chatTokenUser = username
-            return true
-        } catch let error as APIError {
-            if case .server(let code, _) = error, code == 409 {
-                lastFailureMessage = "Chat account \"\(username)\" already exists on the chat server " +
-                    "with another password (likely from an older install). Log in with that password, " +
-                    "or use a different username."
-            } else if case .server(let code, _) = error {
-                lastFailureMessage = "Registration rejected by the chat server (HTTP \(code))."
-            } else {
-                lastFailureMessage = "Cannot reach the chat server."
-            }
-            return false
-        } catch {
-            lastFailureMessage = "Cannot reach the chat server."
-            return false
-        }
-    }
-
-    private func registerFcmTokenIfNeeded() async {
+    private func registerFcmTokenIfAny() async {
         guard let token = store.fcmToken, !token.isEmpty else { return }
         guard token != store.registeredFcmToken else { return }
         do {

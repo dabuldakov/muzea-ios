@@ -9,7 +9,7 @@ name: TestFlight
 #   APP_STORE_CONNECT_KEY_ID      — Key ID
 #   APP_STORE_CONNECT_PRIVATE_KEY — содержимое .p8 (целиком)
 #
-# Опционально (repository variable): IOS_BUNDLE_ID, по умолчанию com.example.muzea.
+# Опционально (repository variable): IOS_BUNDLE_ID, по умолчанию com.cyber.muzea.
 # Bundlе ID должен быть создан в App Store Connect.
 
 on:
@@ -81,7 +81,7 @@ jobs:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'com.example.muzea' }}
+          BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'com.cyber.muzea' }}
         run: |
           set -o pipefail
           xcodebuild archive \

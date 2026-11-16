@@ -8,11 +8,10 @@ struct RegisterView: View {
     @Environment(\.openURL) private var openURL
     @StateObject private var viewModel: AuthViewModel
 
-    @State private var username = ""
-    @State private var fullName = ""
     @State private var email = ""
-    @State private var password = ""
-    @State private var confirmPassword = ""
+    @State private var username = ""
+    @State private var displayName = ""
+    @State private var code = ""
     @State private var consentAccepted = false
 
     init(container: AppContainer) {
@@ -23,47 +22,13 @@ struct RegisterView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Аккаунт") {
-                    TextField("Имя пользователя", text: $username)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("Полное имя", text: $fullName)
-                    TextField("Email", text: $email)
-                        .keyboardType(.emailAddress)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    SecureField("Пароль", text: $password)
-                    SecureField("Подтвердите пароль", text: $confirmPassword)
-                }
-
-                Section {
-                    Toggle("Я принимаю Пользовательское соглашение и Политику обработки персональных данных", isOn: $consentAccepted)
-                        .font(.footnote)
-                    HStack(spacing: 16) {
-                        Button("Пользовательское соглашение") { open(Legal.termsURL) }
-                        Button("Политика обработки ПДн") { open(Legal.policyURL) }
-                    }
-                    .font(.caption)
-                }
-
-                if let error = viewModel.state.error {
-                    Section {
-                        Text(error).foregroundColor(.red)
-                    }
-                }
-
-                Section {
-                    Button(action: register) {
-                        if viewModel.state.isLoading {
-                            ProgressView().frame(maxWidth: .infinity)
-                        } else {
-                            Text("Зарегистрироваться").frame(maxWidth: .infinity)
-                        }
-                    }
-                    .disabled(!isValid || viewModel.state.isLoading)
+                if viewModel.state.phase == .email {
+                    registrationForm
+                } else {
+                    confirmationForm
                 }
             }
-            .navigationTitle("Регистрация")
+            .navigationTitle(viewModel.state.phase == .email ? "Регистрация" : "Подтверждение")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Отмена") { dismiss() }
@@ -72,12 +37,95 @@ struct RegisterView: View {
         }
     }
 
+    @ViewBuilder
+    private var registrationForm: some View {
+        Section("Аккаунт") {
+            TextField("Email", text: $email)
+                .keyboardType(.emailAddress)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .textContentType(.emailAddress)
+            TextField("Имя пользователя", text: $username)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .textContentType(.username)
+            TextField("Отображаемое имя (необязательно)", text: $displayName)
+        }
+
+        Section {
+            Toggle("Я принимаю Пользовательское соглашение и Политику обработки персональных данных", isOn: $consentAccepted)
+                .font(.footnote)
+            HStack(spacing: 16) {
+                Button("Пользовательское соглашение") { open(Legal.termsURL) }
+                Button("Политика обработки ПДн") { open(Legal.policyURL) }
+            }
+            .font(.caption)
+        }
+
+        errorSection
+
+        Section {
+            Button(action: register) {
+                if viewModel.state.isLoading {
+                    ProgressView().frame(maxWidth: .infinity)
+                } else {
+                    Text("Зарегистрироваться").frame(maxWidth: .infinity)
+                }
+            }
+            .disabled(!isValid || viewModel.state.isLoading)
+        }
+    }
+
+    @ViewBuilder
+    private var confirmationForm: some View {
+        Section("Подтверждение email") {
+            if let info = viewModel.state.info {
+                Text(info).font(.footnote).foregroundColor(.secondary)
+            }
+            TextField("Код из письма", text: $code)
+                .keyboardType(.numberPad)
+                .textContentType(.oneTimeCode)
+        }
+
+        errorSection
+
+        Section {
+            Button(action: verify) {
+                if viewModel.state.isLoading {
+                    ProgressView().frame(maxWidth: .infinity)
+                } else {
+                    Text("Подтвердить").frame(maxWidth: .infinity)
+                }
+            }
+            .disabled(code.isEmpty || viewModel.state.isLoading)
+
+            Button("Отправить ещё раз") {
+                Task { _ = await viewModel.resend() }
+            }
+            .disabled(viewModel.state.isLoading)
+
+            Button("Изменить данные") {
+                code = ""
+                viewModel.backToEmail()
+            }
+            .foregroundColor(.secondary)
+            .disabled(viewModel.state.isLoading)
+        }
+    }
+
+    @ViewBuilder
+    private var errorSection: some View {
+        if let error = viewModel.state.error {
+            Section {
+                Text(error).foregroundColor(.red)
+            }
+        }
+    }
+
     private var isValid: Bool {
-        !username.isEmpty
-            && !fullName.isEmpty
-            && email.contains("@")
-            && password.count >= 6
-            && password == confirmPassword
+        let mail = AuthViewModel.normalizeEmail(email)
+        return AuthViewModel.isValidEmail(mail)
+            && AuthViewModel.isValidUsername(username.trimmingCharacters(in: .whitespacesAndNewlines))
             && consentAccepted
     }
 
@@ -88,13 +136,15 @@ struct RegisterView: View {
 
     private func register() {
         Task {
-            let success = await viewModel.register(
-                username: username,
-                email: email,
-                password: password,
-                fullName: fullName
-            )
-            if success {
+            if await viewModel.register(email: email, username: username, displayName: displayName) {
+                code = ""
+            }
+        }
+    }
+
+    private func verify() {
+        Task {
+            if await viewModel.verify(code: code) {
                 container.didLogin()
                 dismiss()
             }

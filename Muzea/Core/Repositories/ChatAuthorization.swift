@@ -1,10 +1,9 @@
 import Foundation
 
-/// Общая для чат-репозиториев обёртка авторизации: гарантирует аутентификацию
-/// на chat-сервере и один раз повторяет запрос после инвалидации токена на 401.
-///
-/// Вынесена из бывшего god-репозитория, чтобы каждый SRP-репозиторий не дублировал
-/// логику повторного входа.
+/// Общая для чат-репозиториев обёртка авторизации: гарантирует, что сессия IdP
+/// жива и chat-профиль получен. Обновление токена и повтор запроса после 401
+/// выполняет `HTTPClient` через `TokenRefresher` — здесь дублировать нельзя,
+/// иначе получится второй refresh и отзыв family.
 final class ChatAuthorization {
     let client: HTTPClient
     let auth: ChatAuthManager
@@ -16,22 +15,12 @@ final class ChatAuthorization {
 
     func authorized<T>(_ operation: () async throws -> T) async throws -> T {
         guard await auth.ensureAuthenticated() else { throw APIError.unauthorized }
-        do {
-            return try await operation()
-        } catch APIError.unauthorized {
-            auth.invalidate()
-            guard await auth.ensureAuthenticated() else { throw APIError.unauthorized }
-            return try await operation()
-        }
+        return try await operation()
     }
 
-    /// Аутентификация без повтора: нужна там, где 401 — ожидаемый ответ
-    /// (например, удаление аккаунта, после которого сессия уже уничтожена).
+    /// Аутентификация без выполнения запроса (например, перед удалением
+    /// аккаунта, где 401 — ожидаемый ответ).
     func ensureAuthenticated() async -> Bool {
         await auth.ensureAuthenticated()
-    }
-
-    func invalidate() {
-        auth.invalidate()
     }
 }

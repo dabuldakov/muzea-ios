@@ -38,19 +38,6 @@ final class ChatSessionRepositoryImpl: ChatSessionRepository {
         }
     }
 
-    /// Серверный разлогин обязателен до очистки локального токена: пока сессия
-    /// жива, сервер считает пользователя онлайн. Сбою сети разлогин не мешает —
-    /// TTL догасит сессию.
-    func logout() async -> Bool {
-        guard await auth.ensureAuthenticated() else { return true }
-        do {
-            try await auth.client.requestVoid("POST", "/api/auth/logout")
-            return true
-        } catch {
-            return true
-        }
-    }
-
     func totalUnreadCount() async throws -> Int64 {
         let response: UnreadCountResponse = try await auth.authorized {
             try await auth.client.request("GET", "/api/chats/unread-count/all")

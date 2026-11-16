@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 @testable import Muzea
 
 enum TestSupport {
@@ -20,20 +23,31 @@ enum TestSupport {
     static func chatClient(tokenStore: TokenStore) -> HTTPClient {
         HTTPClient(
             baseURL: Config.chatBaseURL,
-            tokenProvider: { tokenStore.chatToken },
+            tokenProvider: { tokenStore.token },
+            session: session()
+        )
+    }
+
+    static func authClient(tokenStore: TokenStore) -> HTTPClient {
+        HTTPClient(
+            baseURL: Config.authBaseURL,
+            tokenProvider: { tokenStore.token },
             session: session()
         )
     }
 
     /// Изолированный UserDefaults, чтобы тесты не влияли друг на друга.
-    /// Пароль — в памяти, чтобы не трогать Keychain симулятора.
+    /// Токены — в памяти, чтобы не трогать Keychain симулятора.
     static func makeStore() -> TokenStore {
         let defaults = UserDefaults(suiteName: "muzea-tests-\(UUID().uuidString)")!
-        return TokenStore(defaults: defaults, passwordStore: InMemoryPasswordStore())
+        return TokenStore(defaults: defaults, tokens: InMemoryTokenStore())
     }
 
-    static func makeStore(defaults: UserDefaults, passwords: PasswordStoring = InMemoryPasswordStore()) -> TokenStore {
-        TokenStore(defaults: defaults, passwordStore: passwords)
+    static func makeStore(
+        defaults: UserDefaults,
+        tokens: SecureTokenStoring = InMemoryTokenStore()
+    ) -> TokenStore {
+        TokenStore(defaults: defaults, tokens: tokens)
     }
 
     static func data(_ json: String) -> Data { Data(json.utf8) }

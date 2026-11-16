@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Перехватывает все запросы URLSession с этим протоколом, чтобы тестировать
 /// сетевой слой без реальной сети. Аналог MockWebServer на Android.

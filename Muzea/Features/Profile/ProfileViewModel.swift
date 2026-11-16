@@ -2,17 +2,19 @@ import Foundation
 
 /// Результат удаления аккаунта: разные сообщения требуют разных действий в UI.
 enum DeleteAccountOutcome: Equatable {
-    /// Оба сервера подтвердили удаление, локальные данные и согласие очищены.
+    /// Все серверы подтвердили удаление, локальные данные и согласие очищены.
     case deleted
-    /// Основной сервер удалён, чат-сервер ответил ошибкой — повторить позже.
+    /// Профиль и IdP удалены, chat-сервер ответил ошибкой — повторить позже.
     case chatFailed
-    /// Основной сервер не подтвердил удаление.
+    /// Основной сервер или IdP не подтвердили удаление.
     case failed(String)
 }
 
 /// Единое состояние экрана профиля.
 struct ProfileUiState {
     var user: UserResponse?
+    /// Email живёт в auth-service, а не в makeup.
+    var email: String?
     var avatarUrl: String?
     var isLoading = false
     var isBusy = false
@@ -26,17 +28,22 @@ final class ProfileViewModel: ObservableObject {
     private let userRepository: UserRepository
     private let avatarRepository: AvatarRepository
     private let chatSessionRepository: ChatSessionRepository
+    private let authRepository: AuthRepositoryProtocol
 
     init(
         userRepository: UserRepository,
         avatarRepository: AvatarRepository,
         chatSessionRepository: ChatSessionRepository,
-        initialUser: UserResponse? = nil
+        authRepository: AuthRepositoryProtocol,
+        initialUser: UserResponse? = nil,
+        initialEmail: String? = nil
     ) {
         self.userRepository = userRepository
         self.avatarRepository = avatarRepository
         self.chatSessionRepository = chatSessionRepository
+        self.authRepository = authRepository
         state.user = initialUser
+        state.email = initialEmail
     }
 
     func load() async {
@@ -46,6 +53,9 @@ final class ProfileViewModel: ObservableObject {
             state.error = nil
         } catch {
             state.error = error.localizedDescription
+        }
+        if let authUser = try? await authRepository.currentUser() {
+            state.email = authUser.email
         }
         state.isLoading = false
         if let avatar = try? await avatarRepository.loadAvatar() {
@@ -91,12 +101,12 @@ final class ProfileViewModel: ObservableObject {
         state.isBusy = false
     }
 
-    /// Удаление аккаунта: сначала чат-сервер (сообщения, контакты, вложения,
-    /// FCM-токены), затем основной (новости, видео, профиль).
+    /// Удаление аккаунта: chat (сообщения/вложения/контакты) → makeup
+    /// (новости/видео/профиль) → IdP (`/auth/me`).
     ///
-    /// Локальное хранилище и согласие на обработку персональных данных чистит
-    /// вызывающая сторона только когда оба сервера подтвердили удаление — иначе
-    /// пользователь потерял бы пароль и не смог повторить попытку.
+    /// Локальное хранилище и согласие чистит вызывающая сторона только когда
+    /// все серверы подтвердили удаление — иначе пользователь потерял бы сессию
+    /// и не смог повторить попытку.
     func deleteAccount() async -> DeleteAccountOutcome {
         state.isBusy = true
         defer { state.isBusy = false }
@@ -115,6 +125,12 @@ final class ProfileViewModel: ObservableObject {
 
         do {
             try await userRepository.deleteAccount(id: id)
+        } catch {
+            return .failed(Legal.deleteFailedMessage())
+        }
+
+        do {
+            try await authRepository.deleteAccount()
         } catch {
             return .failed(Legal.deleteFailedMessage())
         }

@@ -18,6 +18,14 @@ final class HTTPClient {
     private let session: URLSession
     private let tokenProvider: () -> String?
 
+    /// Вызывается при 401 (и при 403, если `treatsForbiddenAsUnauthorized`):
+    /// должен обновить токен и вернуть `true`, чтобы запрос повторился один раз.
+    /// `failedToken` позволяет не обновлять токен повторно, если его уже
+    /// обновил другой параллельный запрос.
+    var unauthorizedHandler: ((_ failedToken: String?) async -> Bool)?
+    /// makeup отдаёт 403 вместо 401 для невалидного/просроченного токена.
+    var treatsForbiddenAsUnauthorized = false
+
     init(baseURL: URL, tokenProvider: @escaping () -> String?, session: URLSession? = nil) {
         self.baseURL = baseURL
         self.tokenProvider = tokenProvider
@@ -153,25 +161,65 @@ final class HTTPClient {
     }
 
     private func execute(_ request: URLRequest) async throws -> Data {
-        do {
-            let (data, response) = try await session.data(for: request)
-            guard let http = response as? HTTPURLResponse else {
-                throw APIError.server(-1, "Пустой ответ")
+        var current = request
+        var attempt = 0
+
+        while true {
+            do {
+                let (data, response) = try await session.data(for: current)
+                guard let http = response as? HTTPURLResponse else {
+                    throw APIError.server(-1, "Пустой ответ")
+                }
+                switch http.statusCode {
+                case 200..<300:
+                    return data
+
+                case 401:
+                    if attempt == 0, await refreshIfPossible(sentToken: Self.bearerToken(in: current)) {
+                        attempt += 1
+                        applyLatestToken(to: &current)
+                        continue
+                    }
+                    throw APIError.unauthorized
+
+                case 403 where treatsForbiddenAsUnauthorized && attempt == 0:
+                    if await refreshIfPossible(sentToken: Self.bearerToken(in: current)) {
+                        attempt += 1
+                        applyLatestToken(to: &current)
+                        continue
+                    }
+                    let message = String(data: data, encoding: .utf8) ?? "HTTP 403"
+                    throw APIError.server(403, message)
+
+                default:
+                    let message = String(data: data, encoding: .utf8) ?? "HTTP \(http.statusCode)"
+                    throw APIError.server(http.statusCode, message)
+                }
+            } catch let error as APIError {
+                throw error
+            } catch {
+                throw APIError.transport(error)
             }
-            switch http.statusCode {
-            case 200..<300:
-                return data
-            case 401:
-                throw APIError.unauthorized
-            default:
-                let message = String(data: data, encoding: .utf8) ?? "HTTP \(http.statusCode)"
-                throw APIError.server(http.statusCode, message)
-            }
-        } catch let error as APIError {
-            throw error
-        } catch {
-            throw APIError.transport(error)
         }
+    }
+
+    private func refreshIfPossible(sentToken: String?) async -> Bool {
+        guard let handler = unauthorizedHandler else { return false }
+        return await handler(sentToken)
+    }
+
+    private func applyLatestToken(to request: inout URLRequest) {
+        if let token = tokenProvider(), !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } else {
+            request.setValue(nil, forHTTPHeaderField: "Authorization")
+        }
+    }
+
+    private static func bearerToken(in request: URLRequest) -> String? {
+        guard let value = request.value(forHTTPHeaderField: "Authorization") else { return nil }
+        let prefix = "Bearer "
+        return value.hasPrefix(prefix) ? String(value.dropFirst(prefix.count)) : value
     }
 
     private func makeURL(_ path: String, query: [URLQueryItem]) throws -> URL {

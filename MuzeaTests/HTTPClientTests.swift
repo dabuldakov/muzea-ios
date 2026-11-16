@@ -33,13 +33,13 @@ final class HTTPClientTests: XCTestCase {
     func testOmitsAuthorizationWhenUnauthorized() async throws {
         store.token = "abc"
         MockURLProtocol.handler = { request in
-            (MockURLProtocol.response(for: request), TestSupport.data(#"{"token":"t","username":"u","role":"USER"}"#))
+            (MockURLProtocol.response(for: request), TestSupport.data(#"{"message":"ok"}"#))
         }
 
-        let _: AuthResponse = try await client().request(
+        let _: AuthServiceMessage = try await client().request(
             "POST",
-            "/auth/login",
-            body: LoginRequest(username: "u", password: "p"),
+            "/auth/otp/request",
+            body: AuthEmailRequest(email: "a@b.c"),
             authorized: false
         )
 
@@ -48,20 +48,19 @@ final class HTTPClientTests: XCTestCase {
 
     func testEncodesJSONBody() async throws {
         MockURLProtocol.handler = { request in
-            (MockURLProtocol.response(for: request), TestSupport.data(#"{"token":"t","username":"u"}"#))
+            (MockURLProtocol.response(for: request), TestSupport.data(#"{"message":"ok"}"#))
         }
 
-        let _: AuthResponse = try await client().request(
+        let _: AuthServiceMessage = try await client().request(
             "POST",
-            "/auth/login",
-            body: LoginRequest(username: "alice", password: "secret"),
+            "/auth/otp/request",
+            body: AuthEmailRequest(email: "alice@example.com"),
             authorized: false
         )
 
         let body = try XCTUnwrap(MockURLProtocol.requests.first?.capturedBody)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: String])
-        XCTAssertEqual(json["username"], "alice")
-        XCTAssertEqual(json["password"], "secret")
+        XCTAssertEqual(json["email"], "alice@example.com")
     }
 
     func testAppendsQueryItems() async throws {
@@ -163,6 +162,99 @@ final class HTTPClientTests: XCTestCase {
         )
 
         XCTAssertEqual(String(data: raw, encoding: .utf8), "api/avatars/x.png")
+    }
+
+    // MARK: - Unauthorized handler (token refresh)
+
+    func testRetriesOnceAfterUnauthorizedWithNewToken() async throws {
+        store.token = "old"
+        var calls = 0
+        let http = client()
+        http.unauthorizedHandler = { failedToken in
+            XCTAssertEqual(failedToken, "old")
+            self.store.token = "new"
+            return true
+        }
+        MockURLProtocol.handler = { request in
+            calls += 1
+            if calls == 1 {
+                return (MockURLProtocol.response(for: request, status: 401), Data())
+            }
+            return (MockURLProtocol.response(for: request), TestSupport.data("[]"))
+        }
+
+        let _: [String] = try await http.request("GET", "/api/chats")
+
+        XCTAssertEqual(calls, 2)
+        XCTAssertEqual(MockURLProtocol.requests[1].value(forHTTPHeaderField: "Authorization"), "Bearer new")
+    }
+
+    func testDoesNotRetryMoreThanOnce() async {
+        store.token = "old"
+        var calls = 0
+        let http = client()
+        http.unauthorizedHandler = { _ in true }
+        MockURLProtocol.handler = { request in
+            calls += 1
+            return (MockURLProtocol.response(for: request, status: 401), Data())
+        }
+
+        do {
+            let _: [String] = try await http.request("GET", "/api/chats")
+            XCTFail("Ожидалась ошибка авторизации")
+        } catch let error as APIError {
+            guard case .unauthorized = error else {
+                return XCTFail("Ожидался .unauthorized, получено \(error)")
+            }
+        } catch {
+            XCTFail("Неожиданная ошибка \(error)")
+        }
+        XCTAssertEqual(calls, 2)
+    }
+
+    func testForbiddenIsRetriedWhenEnabled() async throws {
+        store.token = "old"
+        var calls = 0
+        let http = client()
+        http.treatsForbiddenAsUnauthorized = true
+        http.unauthorizedHandler = { _ in
+            self.store.token = "new"
+            return true
+        }
+        MockURLProtocol.handler = { request in
+            calls += 1
+            if calls == 1 {
+                return (MockURLProtocol.response(for: request, status: 403), Data())
+            }
+            return (MockURLProtocol.response(for: request), TestSupport.data("[]"))
+        }
+
+        let _: [String] = try await http.request("GET", "/api/users/me")
+
+        XCTAssertEqual(calls, 2)
+        XCTAssertEqual(MockURLProtocol.requests[1].value(forHTTPHeaderField: "Authorization"), "Bearer new")
+    }
+
+    func testForbiddenIsNotRetriedByDefault() async {
+        store.token = "old"
+        var calls = 0
+        let http = client()
+        MockURLProtocol.handler = { request in
+            calls += 1
+            return (MockURLProtocol.response(for: request, status: 403), Data())
+        }
+
+        do {
+            let _: [String] = try await http.request("GET", "/api/users/me")
+            XCTFail("Ожидалась ошибка сервера")
+        } catch let error as APIError {
+            guard case .server(let code, _) = error, code == 403 else {
+                return XCTFail("Ожидался .server(403), получено \(error)")
+            }
+        } catch {
+            XCTFail("Неожиданная ошибка \(error)")
+        }
+        XCTAssertEqual(calls, 1)
     }
 
     func testUploadBuildsMultipartWithFieldsAndFiles() async throws {

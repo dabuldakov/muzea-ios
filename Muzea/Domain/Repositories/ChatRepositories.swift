@@ -41,6 +41,5 @@ protocol AvatarRepository {
 protocol ChatSessionRepository {
     func deleteAccount() async throws
     func sendHeartbeat() async -> Bool
-    func logout() async -> Bool
     func totalUnreadCount() async throws -> Int64
 }

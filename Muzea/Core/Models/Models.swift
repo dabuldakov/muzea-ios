@@ -2,24 +2,6 @@ import Foundation
 
 // MARK: - Makeup (main backend, :8085)
 
-struct LoginRequest: Encodable {
-    let username: String
-    let password: String
-}
-
-struct RegisterRequest: Encodable {
-    let username: String
-    let email: String
-    let password: String
-    let fullName: String
-}
-
-struct AuthResponse: Decodable {
-    let token: String
-    let username: String
-    let role: String?
-}
-
 struct UpdateUserRequest: Encodable {
     let fullName: String?
     let email: String?
@@ -29,7 +11,8 @@ struct UpdateUserRequest: Encodable {
 struct UserResponse: Decodable {
     let id: Int64
     let userName: String
-    let email: String
+    /// В makeup email больше не хранится — он живёт в auth-service.
+    let email: String?
     let fullName: String?
     let avatarUrl: String?
     let role: String

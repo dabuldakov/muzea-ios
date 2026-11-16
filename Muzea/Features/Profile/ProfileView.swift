@@ -6,7 +6,6 @@ struct ProfileView: View {
 
     @StateObject private var viewModel: ProfileViewModel
     @State private var fullName = ""
-    @State private var email = ""
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var deleteDialog: DeleteDialog?
 
@@ -20,7 +19,8 @@ struct ProfileView: View {
         _viewModel = StateObject(wrappedValue: ProfileViewModel(
             userRepository: container.userRepository,
             avatarRepository: container.avatarRepository,
-            chatSessionRepository: container.chatSessionRepository
+            chatSessionRepository: container.chatSessionRepository,
+            authRepository: container.authRepository
         ))
     }
 
@@ -54,10 +54,8 @@ struct ProfileView: View {
                 Section("Профиль") {
                     LabeledContent("Логин", value: viewModel.state.user?.userName ?? container.tokenStore.username ?? "")
                     TextField("Полное имя", text: $fullName)
-                    TextField("Email", text: $email)
-                        .keyboardType(.emailAddress)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    // Email — идентичность IdP; отдельного endpoint для смены нет.
+                    LabeledContent("Email", value: viewModel.state.email ?? "")
                     LabeledContent("Роль", value: viewModel.state.user?.role ?? "")
                 }
 
@@ -73,7 +71,12 @@ struct ProfileView: View {
 
                 Section {
                     Button("Сохранить") {
-                        Task { _ = await viewModel.update(fullName: fullName, email: email) }
+                        Task {
+                            _ = await viewModel.update(
+                                fullName: fullName,
+                                email: viewModel.state.email ?? ""
+                            )
+                        }
                     }
                     Button("Удалить аккаунт", role: .destructive) {
                         deleteDialog = .confirm
@@ -89,7 +92,6 @@ struct ProfileView: View {
             .task {
                 await viewModel.load()
                 fullName = viewModel.state.user?.fullName ?? viewModel.state.user?.userName ?? ""
-                email = viewModel.state.user?.email ?? ""
             }
             .onChange(of: selectedPhoto) { newValue in
                 Task { await loadPhoto(newValue) }

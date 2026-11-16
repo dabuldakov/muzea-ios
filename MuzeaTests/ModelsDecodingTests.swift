@@ -79,13 +79,6 @@ final class ModelsDecodingTests: XCTestCase {
         XCTAssertEqual(auth.userUuid, "u-1")
     }
 
-    func testDecodesAuthResponseWithoutRole() throws {
-        let json = #"{"token":"t","username":"alice"}"#
-        let auth = try TestSupport.decode(AuthResponse.self, json)
-        XCTAssertEqual(auth.username, "alice")
-        XCTAssertNil(auth.role)
-    }
-
     func testDecodesChatResponse() throws {
         let json = """
         {"chatUuid":"c-1","chatType":"GROUP","title":"Team","avatarUrl":null,
@@ -183,5 +176,39 @@ final class ModelsDecodingTests: XCTestCase {
         let user = try TestSupport.decode(UserResponse.self, json)
         XCTAssertEqual(user.id, 7)
         XCTAssertEqual(user.userName, "alice")
+    }
+
+    func testDecodesUserResponseWithoutEmail() throws {
+        // makeup больше не хранит email — он приходит из auth-service.
+        let json = """
+        {"id":7,"userName":"alice","fullName":"Alice",
+         "avatarUrl":null,"role":"USER","createdAt":null,"enabled":true}
+        """
+        let user = try TestSupport.decode(UserResponse.self, json)
+        XCTAssertEqual(user.userName, "alice")
+        XCTAssertNil(user.email)
+    }
+
+    func testDecodesAuthTokenResponse() throws {
+        let json = """
+        {"accessToken":"a","refreshToken":"r","tokenType":"Bearer","expiresIn":900,
+         "user":{"id":"u-1","email":"a@b.c","username":"alice",
+                 "displayName":"Alice","emailVerified":true}}
+        """
+        let token = try TestSupport.decode(AuthTokenResponse.self, json)
+        XCTAssertEqual(token.accessToken, "a")
+        XCTAssertEqual(token.refreshToken, "r")
+        XCTAssertEqual(token.expiresIn, 900)
+        XCTAssertEqual(token.user?.username, "alice")
+        XCTAssertEqual(token.user?.emailVerified, true)
+    }
+
+    func testDecodesAuthErrorBody() throws {
+        let error = try TestSupport.decode(
+            AuthServiceErrorBody.self,
+            #"{"code":"otp_invalid","message":"Invalid code"}"#
+        )
+        XCTAssertEqual(error.code, "otp_invalid")
+        XCTAssertEqual(error.message, "Invalid code")
     }
 }

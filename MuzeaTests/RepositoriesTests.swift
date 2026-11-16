@@ -1,4 +1,8 @@
 import XCTest
+import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 @testable import Muzea
 
 final class NewsRepositoryTests: XCTestCase {
@@ -207,8 +211,7 @@ final class ChatRepositoryTests: XCTestCase {
         MockURLProtocol.reset()
         store = TestSupport.makeStore()
         store.username = "me"
-        store.chatToken = "chat-token"
-        store.chatTokenUser = "me"
+        store.token = "chat-token"
     }
 
     override func tearDown() {
@@ -422,30 +425,6 @@ final class ChatRepositoryTests: XCTestCase {
         XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/chats/c-1/avatar")
     }
 
-    func testReauthenticatesAfter401() async throws {
-        var chatsCalls = 0
-        MockURLProtocol.handler = { request in
-            if request.url?.path == "/api/auth/login" {
-                return (MockURLProtocol.response(for: request), TestSupport.data(#"{"token":"new-token"}"#))
-            }
-            if request.url?.path == "/api/chats" {
-                chatsCalls += 1
-                if chatsCalls == 1 {
-                    return (MockURLProtocol.response(for: request, status: 401), Data())
-                }
-                return (MockURLProtocol.response(for: request), TestSupport.data("[]"))
-            }
-            return (MockURLProtocol.response(for: request, status: 404), Data())
-        }
-        store.password = "pass"
-
-        _ = try await kit().chats.loadChats()
-
-        XCTAssertEqual(chatsCalls, 2)
-        XCTAssertEqual(store.chatToken, "new-token")
-        XCTAssertTrue(MockURLProtocol.requests.contains { $0.url?.path == "/api/auth/login" })
-    }
-
     func testSendHeartbeatPostsWhenAuthenticated() async {
         MockURLProtocol.handler = { request in
             (MockURLProtocol.response(for: request, status: 204), Data())
@@ -499,25 +478,6 @@ final class ChatRepositoryTests: XCTestCase {
 
         XCTAssertTrue(presence.isEmpty)
         XCTAssertTrue(MockURLProtocol.requests.isEmpty)
-    }
-
-    func testLogoutPostsToAuthLogout() async {
-        MockURLProtocol.handler = { request in
-            (MockURLProtocol.response(for: request, status: 204), Data())
-        }
-
-        let ok = await kit().session.logout()
-
-        XCTAssertTrue(ok)
-        XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/auth/logout")
-    }
-
-    func testLogoutStillSucceedsOnNetworkFailure() async {
-        MockURLProtocol.handler = { _ in throw URLError(.cannotConnectToHost) }
-
-        let ok = await kit().session.logout()
-
-        XCTAssertTrue(ok)
     }
 
     // MARK: - Private chat dedup (OpenPrivateChatUseCase)

@@ -175,37 +175,113 @@ final class VideoListViewModelTests: XCTestCase {
 @MainActor
 final class AuthViewModelTests: XCTestCase {
 
-    func testLoginSuccessClearsError() async {
+    func testRequestLoginCodeMovesToCodePhase() async {
         let repository = FakeAuthRepository()
         let viewModel = AuthViewModel(repository: repository)
 
-        let ok = await viewModel.login(username: "alice", password: "secret")
+        let ok = await viewModel.requestLoginCode(email: " Alice@Example.com ")
 
         XCTAssertTrue(ok)
-        XCTAssertEqual(repository.loggedIn, ["alice"])
+        XCTAssertEqual(repository.requestedCodes, ["alice@example.com"])
+        XCTAssertEqual(viewModel.state.phase, .code)
+        XCTAssertEqual(viewModel.state.flow, .login)
         XCTAssertNil(viewModel.state.error)
         XCTAssertFalse(viewModel.state.isLoading)
     }
 
-    func testLoginFailureExposesError() async {
+    func testInvalidEmailDoesNotCallRepository() async {
         let repository = FakeAuthRepository()
-        repository.loginError = APIError.unauthorized
         let viewModel = AuthViewModel(repository: repository)
 
-        let ok = await viewModel.login(username: "alice", password: "secret")
+        let ok = await viewModel.requestLoginCode(email: "not-an-email")
 
         XCTAssertFalse(ok)
+        XCTAssertTrue(repository.requestedCodes.isEmpty)
+        XCTAssertEqual(viewModel.state.phase, .email)
         XCTAssertNotNil(viewModel.state.error)
     }
 
-    func testRegisterSuccess() async {
+    func testVerifyLoginCodeSuccess() async {
+        let repository = FakeAuthRepository()
+        let viewModel = AuthViewModel(repository: repository)
+        _ = await viewModel.requestLoginCode(email: "alice@example.com")
+
+        let ok = await viewModel.verify(code: " 123456 ")
+
+        XCTAssertTrue(ok)
+        XCTAssertEqual(repository.verifiedLogins.count, 1)
+        XCTAssertEqual(repository.verifiedLogins.first?.0, "alice@example.com")
+        XCTAssertEqual(repository.verifiedLogins.first?.1, "123456")
+    }
+
+    func testRegisterSuccessMovesToCodePhase() async {
         let repository = FakeAuthRepository()
         let viewModel = AuthViewModel(repository: repository)
 
-        let ok = await viewModel.register(username: "a", email: "a@b.c", password: "secret", fullName: "A")
+        let ok = await viewModel.register(
+            email: "a@b.c",
+            username: "alice",
+            displayName: "Alice"
+        )
 
         XCTAssertTrue(ok)
-        XCTAssertEqual(repository.registered, ["a"])
+        XCTAssertEqual(viewModel.state.phase, .code)
+        XCTAssertEqual(viewModel.state.flow, .register)
+        XCTAssertEqual(repository.registered.first?.0, "a@b.c")
+        XCTAssertEqual(repository.registered.first?.1, "alice")
+        XCTAssertEqual(repository.registered.first?.2, "Alice")
+    }
+
+    func testRegisterValidation() async {
+        let repository = FakeAuthRepository()
+        let viewModel = AuthViewModel(repository: repository)
+
+        let ok = await viewModel.register(email: "a@b.c", username: "a", displayName: "")
+
+        XCTAssertFalse(ok)
+        XCTAssertTrue(repository.registered.isEmpty)
+        XCTAssertNotNil(viewModel.state.error)
+    }
+
+    func testVerifyRegisterUsesEmailEndpoint() async {
+        let repository = FakeAuthRepository()
+        let viewModel = AuthViewModel(repository: repository)
+        _ = await viewModel.register(email: "a@b.c", username: "alice", displayName: "")
+
+        let ok = await viewModel.verify(code: "000000")
+
+        XCTAssertTrue(ok)
+        XCTAssertEqual(repository.verifiedEmails.count, 1)
+        XCTAssertTrue(repository.verifiedLogins.isEmpty)
+    }
+
+    func testResendRoutesByFlow() async {
+        let repository = FakeAuthRepository()
+        let viewModel = AuthViewModel(repository: repository)
+
+        _ = await viewModel.requestLoginCode(email: "alice@example.com")
+        _ = await viewModel.resend()
+        XCTAssertEqual(repository.requestedCodes.count, 2)
+        XCTAssertTrue(repository.resent.isEmpty)
+
+        viewModel.backToEmail()
+        _ = await viewModel.register(email: "a@b.c", username: "alice", displayName: "")
+        _ = await viewModel.resend()
+        XCTAssertEqual(repository.resent, ["a@b.c"])
+    }
+
+    func testErrorIsLocalizedByCode() async {
+        let repository = FakeAuthRepository()
+        repository.requestCodeError = APIError.server(
+            429,
+            #"{"code":"otp_cooldown","message":"Please wait before requesting a new code"}"#
+        )
+        let viewModel = AuthViewModel(repository: repository)
+
+        let ok = await viewModel.requestLoginCode(email: "alice@example.com")
+
+        XCTAssertFalse(ok)
+        XCTAssertEqual(viewModel.state.error, "Подождите немного перед повторной отправкой.")
     }
 }
 
@@ -321,13 +397,15 @@ final class ProfileViewModelTests: XCTestCase {
         let viewModel = ProfileViewModel(
             userRepository: users,
             avatarRepository: avatars,
-            chatSessionRepository: FakeChatSessionRepository()
+            chatSessionRepository: FakeChatSessionRepository(),
+            authRepository: FakeAuthRepository()
         )
 
         await viewModel.load()
 
         XCTAssertEqual(viewModel.state.user?.id, 7)
         XCTAssertEqual(viewModel.state.avatarUrl, "/a.png")
+        XCTAssertEqual(viewModel.state.email, "alice@example.com")
     }
 
     func testUpdateDelegatesToRepository() async {
@@ -337,6 +415,7 @@ final class ProfileViewModelTests: XCTestCase {
             userRepository: users,
             avatarRepository: FakeAvatarRepository(),
             chatSessionRepository: FakeChatSessionRepository(),
+            authRepository: FakeAuthRepository(),
             initialUser: user
         )
 

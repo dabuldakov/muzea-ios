@@ -26,6 +26,9 @@ final class AppContainer: ObservableObject {
     private let privateChatCache: PrivateChatCache
     private let videoListCache: VideoListCache
 
+    /// Держим координатор refresh живым: обработчики 401 ссылаются на него.
+    private let tokenRefresher: TokenRefresher
+
     @Published var isLoggedIn: Bool
     @Published var isConsentAccepted: Bool
 
@@ -37,7 +40,7 @@ final class AppContainer: ObservableObject {
 
         let api = API(tokenStore: store)
 
-        let authImpl = AuthRepositoryImpl(client: api.makeup, store: store)
+        let authImpl = AuthRepositoryImpl(client: api.auth, store: store)
         authRepository = authImpl
         userRepository = UserRepositoryImpl(client: api.makeup)
         newsRepository = NewsRepositoryImpl(client: api.makeup)
@@ -64,7 +67,27 @@ final class AppContainer: ObservableObject {
         chatSessionRepository = ChatSessionRepositoryImpl(auth: authorization)
         openPrivateChat = OpenPrivateChatUseCase(repository: chats)
 
-        isLoggedIn = store.isLoggedIn
+        // Единый refresh-координатор: одноразовый refresh-токен нельзя дёргать
+        // параллельно, иначе сервер отзовёт family.
+        //
+        // Отдельный клиент без `unauthorizedHandler`: сам `/auth/token/refresh`
+        // не должен рекурсивно пытаться обновить себя.
+        let refreshClient = HTTPClient(baseURL: Config.authBaseURL) { store.token }
+        let refresher = TokenRefresher(client: refreshClient, store: store)
+        tokenRefresher = refresher
+        api.auth.unauthorizedHandler = { [weak refresher] failedToken in
+            await refresher?.refresh(failedToken: failedToken) ?? false
+        }
+        api.makeup.unauthorizedHandler = { [weak refresher] failedToken in
+            await refresher?.refresh(failedToken: failedToken) ?? false
+        }
+        api.chat.unauthorizedHandler = { [weak refresher] failedToken in
+            await refresher?.refresh(failedToken: failedToken) ?? false
+        }
+        // makeup отвечает 403 на отсутствующий/просроченный токен.
+        api.makeup.treatsForbiddenAsUnauthorized = true
+
+        isLoggedIn = authImpl.isLoggedIn
         isConsentAccepted = consent.isAccepted
 
         PushManager.shared.onToken = { token in
@@ -73,11 +96,19 @@ final class AppContainer: ObservableObject {
             Task { await chatAuth.ensureAuthenticated() }
         }
         PushManager.shared.flushIfNeeded()
+
+        Task { [weak self] in
+            await refresher.setExpiredHandler { [weak self] in
+                Task { @MainActor in
+                    self?.clearLocalSession()
+                }
+            }
+        }
     }
 
-    /// UUID текущего пользователя на chat-сервере, извлечённый из JWT.
+    /// UUID текущего пользователя на chat-сервере: `sub` access-токена IdP.
     var myUserUuid: String? {
-        JWT.subject(from: tokenStore.chatToken)
+        JWT.subject(from: tokenStore.token)
     }
 
     func didLogin() {
@@ -88,20 +119,18 @@ final class AppContainer: ObservableObject {
         isConsentAccepted = true
     }
 
-    /// Разлогин: сначала гасим сессию на чат-сервере, и только затем чистим
-    /// локальный токен. Порядок обязателен — запрос несёт access-токен, а после
-    /// локальной очистки сервер его уже не проверит, и пользователь продолжит
-    /// светиться «в сети» у контактов до истечения TTL.
+    /// Разлогин: локальные токены чистятся сразу, refresh-сессия отзывается
+    /// best-effort. Отдельного chat-логаута больше нет — сервер один.
     func logout() async {
-        _ = await chatSessionRepository.logout()
-        clearLocalSession()
+        await authRepository.logout()
+        clearCaches()
+        isLoggedIn = false
     }
 
     /// Локальный выход без обращения к серверу. Нужен после удаления аккаунта,
-    /// когда серверная сессия уже уничтожена и логин/регистрация заново создали
-    /// бы аккаунт.
+    /// когда серверная сессия уже уничтожена.
     func clearLocalSession() {
-        authRepository.logout()
+        authRepository.clearLocalSession()
         clearCaches()
         isLoggedIn = false
     }

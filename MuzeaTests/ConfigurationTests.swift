@@ -5,8 +5,10 @@ import XCTest
 final class ConfigurationTests: XCTestCase {
 
     func testBackendsUseHTTPS() {
+        XCTAssertEqual(Config.authBaseURL.scheme, "https")
         XCTAssertEqual(Config.makeupBaseURL.scheme, "https")
         XCTAssertEqual(Config.chatBaseURL.scheme, "https")
+        XCTAssertEqual(Config.authBaseURL.host, "auth.muzea.su")
         XCTAssertEqual(Config.makeupBaseURL.host, "api-muzea.su")
         XCTAssertEqual(Config.chatBaseURL.host, "chat-muzea.su")
     }
