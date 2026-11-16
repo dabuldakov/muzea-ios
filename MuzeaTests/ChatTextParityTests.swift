@@ -380,6 +380,17 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.state.messages.first?.power, 55)
     }
 
+    func testFailedSendRemovesOptimisticBubble() async {
+        let (viewModel, repository) = makeViewModel()
+        repository.sendError = APIError.server(500, "boom")
+
+        let ok = await viewModel.send("lost")
+
+        XCTAssertFalse(ok)
+        XCTAssertTrue(viewModel.state.messages.isEmpty)
+        XCTAssertNotNil(viewModel.state.error)
+    }
+
     func testEditUpdatesExistingMessage() async {
         let original = TestData.message("m1", text: "old")
             .replacing(messageId: 5)

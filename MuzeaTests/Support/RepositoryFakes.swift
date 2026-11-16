@@ -70,6 +70,7 @@ final class FakeMessageRepository: MessageRepository {
     var sentTexts: [String] = []
     var sentRequests: [(text: String, replyTo: String?, clientId: String?, power: Int)] = []
     var sendResult: MessageResponse?
+    var sendError: Error?
     var loadError: Error?
     var markedRead: [(String, String)] = []
     var markedDelivered: [(String, String)] = []
@@ -100,6 +101,7 @@ final class FakeMessageRepository: MessageRepository {
     ) async throws -> MessageResponse {
         sentTexts.append(text)
         sentRequests.append((text, replyToMessageUuid, clientMessageId, power))
+        if let sendError { throw sendError }
         return sendResult ?? MessageResponse(
             messageUuid: "server-1",
             chatUuid: chatUuid,

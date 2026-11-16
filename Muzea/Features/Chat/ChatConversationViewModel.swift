@@ -154,7 +154,13 @@ final class ChatConversationViewModel: ObservableObject {
             await refreshReceipts(force: true)
             return true
         } catch {
-            state.failedMessages.insert(optimistic.messageUuid)
+            // Текст возвращается в поле ввода (это делает View), поэтому
+            // неудачный оптимистичный пузырь убираем: иначе повтор отправки
+            // оставил бы в ленте вечный «failed»-дубль.
+            state.messages = reducer.removeMessage(
+                current: state.messages,
+                messageUuid: optimistic.messageUuid
+            )
             state.error = error.localizedDescription
             recomputeStatuses()
             return false
