@@ -36,7 +36,6 @@ struct ChargeSendButton: View {
             }
         }
         .frame(width: 38, height: 38)
-        }
         .frame(width: 44, height: 44)
         .opacity(isEnabled ? 1 : 0.35)
         .contentShape(Circle())
