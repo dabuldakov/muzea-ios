@@ -110,6 +110,7 @@ final class ChatConversationViewModel: ObservableObject {
         let clampedPower = min(max(power, 0), 100)
 
         let replyToUuid = state.replyTo.map { reducer.serverUuid($0.messageUuid) }
+        let replyToSnapshot = state.replyTo
         let optimistic = MessageResponse(
             messageUuid: "local-\(Int(Date().timeIntervalSince1970 * 1000))",
             messageId: nil,
@@ -161,6 +162,9 @@ final class ChatConversationViewModel: ObservableObject {
                 current: state.messages,
                 messageUuid: optimistic.messageUuid
             )
+            // Возвращаем и цитату: пользователь повторит отправку с тем же
+            // контекстом, если не начал новый ответ, пока шёл запрос.
+            if state.replyTo == nil { state.replyTo = replyToSnapshot }
             state.error = error.localizedDescription
             recomputeStatuses()
             return false

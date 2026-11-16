@@ -391,6 +391,17 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         XCTAssertNotNil(viewModel.state.error)
     }
 
+    func testFailedSendRestoresReplyContext() async {
+        let original = TestData.message("orig", text: "first")
+        let (viewModel, repository) = makeViewModel(messages: [original])
+        repository.sendError = APIError.server(500, "boom")
+        viewModel.beginReply(to: original)
+
+        _ = await viewModel.send("reply")
+
+        XCTAssertEqual(viewModel.state.replyTo?.messageUuid, "orig")
+    }
+
     func testEditUpdatesExistingMessage() async {
         let original = TestData.message("m1", text: "old")
             .replacing(messageId: 5)
