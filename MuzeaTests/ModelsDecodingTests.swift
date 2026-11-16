@@ -211,4 +211,25 @@ final class ModelsDecodingTests: XCTestCase {
         XCTAssertEqual(error.code, "otp_invalid")
         XCTAssertEqual(error.message, "Invalid code")
     }
+
+    func testDecodesChatPeerDeleted() throws {
+        let json = """
+        {"chatUuid":"c-1","chatType":"PRIVATE","title":null,"avatarUrl":null,
+         "createdAt":null,"updatedAt":null,"participantCount":2,"lastMessage":null,
+         "unreadCount":0,"peerDeleted":true}
+        """
+        let chat = try TestSupport.decode(ChatResponse.self, json)
+        XCTAssertEqual(chat.peerDeleted, true)
+    }
+
+    func testDecodesMessageSenderDeleted() throws {
+        let json = """
+        {"messageUuid":"m-1","chatUuid":"c-1","senderId":1,"senderUuid":null,
+         "senderName":null,"senderAvatar":null,"text":null,"messageType":"TEXT",
+         "replyToMessageUuid":null,"isEdited":false,"isDeleted":false,"isPinned":false,
+         "createdAt":"2026-01-01T00:00:00","updatedAt":null,"senderDeleted":true}
+        """
+        let message = try TestSupport.decode(MessageResponse.self, json)
+        XCTAssertEqual(message.senderDeleted, true)
+    }
 }

@@ -131,6 +131,8 @@ struct ChatResponse: Decodable, Identifiable, Hashable {
     let participantCount: Int64?
     let lastMessage: MessagePreview?
     let unreadCount: Int64?
+    /// Личный чат с удалённым пользователем: имя скрыто, отправка запрещена.
+    var peerDeleted: Bool? = nil
 }
 
 struct MessagePreview: Decodable, Hashable {
@@ -212,6 +214,8 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
     let isPinned: Bool?
     let createdAt: String?
     let updatedAt: String?
+    /// Автор удалён: имя/аватар скрываются, показываем «Удалённый пользователь».
+    var senderDeleted: Bool? = nil
 
     /// Копия сообщения с другим идентификатором. Нужна, чтобы подменить
     /// оптимистичный локальный пузырь серверным эхом, сохранив локальный UUID
@@ -231,7 +235,8 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
             isDeleted: isDeleted,
             isPinned: isPinned,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            senderDeleted: senderDeleted
         )
     }
 }

@@ -41,17 +41,27 @@ struct ChatConversationView: View {
                 .onAppear { scroll(proxy) }
             }
 
-            HStack(spacing: 8) {
-                TextField("Сообщение", text: $input, axis: .vertical)
-                    .lineLimit(1...4)
-                    .textFieldStyle(.roundedBorder)
+            if chat.peerDeleted == true {
+                // Аккаунт собеседника деактивирован: история видна, отправка нет.
+                Text("Пользователь удалён")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(12)
+                    .background(Color(.secondarySystemBackground))
+            } else {
+                HStack(spacing: 8) {
+                    TextField("Сообщение", text: $input, axis: .vertical)
+                        .lineLimit(1...4)
+                        .textFieldStyle(.roundedBorder)
 
-                Button(action: send) {
-                    Image(systemName: "paperplane.fill")
+                    Button(action: send) {
+                        Image(systemName: "paperplane.fill")
+                    }
+                    .disabled(input.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-                .disabled(input.trimmingCharacters(in: .whitespaces).isEmpty)
+                .padding(8)
             }
-            .padding(8)
         }
         .navigationTitle(chat.title ?? "Чат")
         .navigationBarTitleDisplayMode(.inline)
@@ -98,11 +108,14 @@ struct MessageRow: View {
             if isMine { Spacer(minLength: 40) }
 
             if !isMine {
-                AvatarView(url: ImageURL.chat(message.senderAvatar), size: 28)
+                AvatarView(
+                    url: message.senderDeleted == true ? nil : ImageURL.chat(message.senderAvatar),
+                    size: 28
+                )
             }
 
             VStack(alignment: isMine ? .trailing : .leading, spacing: 2) {
-                if !isMine, let name = message.senderName, !name.isEmpty {
+                if !isMine, let name = senderName {
                     Text(name).font(.caption2).foregroundColor(.secondary)
                 }
                 Text(message.text ?? "")
@@ -121,5 +134,11 @@ struct MessageRow: View {
 
             if !isMine { Spacer(minLength: 40) }
         }
+    }
+
+    private var senderName: String? {
+        if message.senderDeleted == true { return "Удалённый пользователь" }
+        guard let name = message.senderName, !name.isEmpty else { return nil }
+        return name
     }
 }

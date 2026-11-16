@@ -86,20 +86,17 @@ Access-token claims: `iss=https://auth.muzea.su`, `sub=<user UUID>`,
 - `deviceId` is free-form (≤128), stored per refresh session, not in the JWT.
   `deviceName` is accepted but ignored.
 - OpenAPI is exposed at `/api-docs` in dev only; **disabled in prod**.
-- Account delete is a **hard delete** in auth-service: `DELETE /auth/me` removes
-  refresh sessions, email codes and the user row.
-- ⚠ **Known inconsistency (SEC.06)**: Android commit `c65160c` (“деактивация”)
-  changed only the Android strings/catalog and added `peerDeleted`/`senderDeleted`
-  UI handling. The backend was **not** changed: chat’s `DELETE /api/users/me`
-  runs `AccountDeletionService.purgeAccount` (hard purge of the user, their
-  messages/attachments, empty chats; removal from remaining groups with
-  ownership transfer), and makeup hard-deletes the profile/news/videos/likes.
-  Git evidence: chat `a556e6f feat: purge account with messages, sessions and
-  files on deletion`; auth `e663022 feat: DELETE /auth/me (account deletion)`.
-  **Do not implement “deactivation” wording on iOS until the backend supports
-  it** — either implement soft-delete server-side (keep messages, mark
-  `is_deleted`, block login/sending) or align the Android UI with the real hard
-  delete. Open decision with the backend owner.
+- `DELETE /auth/me` currently **hard-deletes** the auth user row and revokes its
+  refresh sessions. The target behavior (SEC.06) is soft-delete: keep the row,
+  mark it deleted, block login, allow support to restore. This is still an open
+  backend item for auth-service.
+- ⚠ Account deletion spans three services. **chat is already deactivated**
+  (commit `5c1a83c`, deployed): the user is marked `is_deleted`, messages/private
+  chats/attachments/contacts/blocks/avatar are kept, groups lose the member,
+  private chats become read-only, names are hidden via `peerDeleted` /
+  `senderDeleted`. auth-service still hard-deletes and makeup still hard-deletes
+  profile/news/videos — those are the remaining SEC.06 work. On iOS call chat →
+  makeup → auth last and only clear local data after all three confirm.
 
 ---
 
@@ -259,6 +256,24 @@ users sharing a chat (others appear offline/null).
 - Telemetry: `POST /api/telemetry/errors`
   `{overflowed, events:[{eventId,time,level,tag,message,stack,appVersion,versionCode,buildType,device,os}]}`
   (≤100 events) → `{accepted:n}`.
+
+### Account deactivation (SEC.06, chat — deployed)
+
+`DELETE /api/users/me` on chat **deactivates** the account (commit `5c1a83c`):
+
+- `users.is_deleted=true`, `deleted_at` set; the row is hidden by
+  `@SQLRestriction`, and the JWT filter rejects its tokens
+  (`AccountDeletedException` → 401). Login is impossible until support restores.
+- Messages, private chats, attachments, contacts, blocked users and the avatar
+  **remain**; the user is removed from groups (ownership transferred) but their
+  group messages stay; FCM device tokens are deleted.
+- Private chats with the deactivated user remain, but sending returns
+  `400 {"error":"Получатель удалён"}`.
+- Chat list: `peerDeleted=true`, `title=null`, `avatarUrl=null` for that private
+  chat; `MessageDto.senderDeleted=true` when the sender is hidden. Clients must
+  render «Удалённый пользователь» and disable the composer.
+- Support restore: `SupportAccountController` under `/api/support/**` (service
+  token required).
 
 ### Push
 

@@ -70,10 +70,10 @@ struct ChatRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AvatarView(url: ImageURL.chat(chat.avatarUrl), size: 48)
+            AvatarView(url: chat.peerDeleted == true ? nil : ImageURL.chat(chat.avatarUrl), size: 48)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(chat.title ?? "Чат").font(.headline).lineLimit(1)
+                Text(titleText).font(.headline).lineLimit(1)
 
                 if let text = chat.lastMessage?.text, !text.isEmpty {
                     let prefix = chat.lastMessage?.senderName.map { "\($0): " } ?? ""
@@ -109,5 +109,9 @@ struct ChatRow: View {
                 }
             }
         }
+    }
+
+    private var titleText: String {
+        chat.peerDeleted == true ? "Удалённый пользователь" : (chat.title ?? "Чат")
     }
 }

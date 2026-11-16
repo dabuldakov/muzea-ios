@@ -111,7 +111,7 @@ the iOS backlog: update the status as work lands. Status values:
 | SEC.03 | Message cache | partial | in-memory; no encryption |
 | SEC.04 | Anti-abuse (report/block) | missing | UGC requirement |
 | SEC.05 | Admin panel | n/a | web product |
-| SEC.06 | Account deletion | partial | backend **hard-purges** (chat `purgeAccount`, auth/makeup delete); Android UI says “deactivation” — open decision |
+| SEC.06 | Account deletion | partial | chat **deactivates** (data kept, private chats read-only, names hidden); auth/makeup still hard-delete — remaining backend work |
 
 ## QA / DIST / OBS
 
@@ -154,10 +154,11 @@ the iOS backlog: update the status as work lands. Status values:
 1. **Upload limit**: `chat/deploy/nginx.conf` had `client_max_body_size 8m` while
    the app accepts 220 MB. Raised locally to `220m`; **not deployed**. The outer
    host nginx (outside these repos) must also allow ≥220 MB.
-2. **SEC.06 semantics**: Android UI/catalog says “deactivation” (keep messages,
-   block login), but the backend hard-purges (chat `AccountDeletionService`,
-   auth/makeup hard delete). Decide: implement soft-delete server-side or align
-   the Android wording. iOS will follow the actual backend until then.
+2. **SEC.06 semantics**: chat is done and deployed — deactivation keeps all data,
+   removes the user from groups, blocks private sends and hides names via
+   `peerDeleted`/`senderDeleted`. Still to do: auth-service and makeup must
+   soft-delete (keep the row/news/videos, block login, allow support restore)
+   instead of hard delete.
 
 **P1 — makes the port cheaper/safer**
 
