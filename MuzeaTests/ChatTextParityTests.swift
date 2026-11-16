@@ -49,7 +49,7 @@ extension ChatTextParityTests {
     }
 
     func testLocalMessageIsSendingOrFailed() {
-        let local = TestData.message("local-1", sender: "me", createdAt: nil)
+        let local = TestData.message("local-1", createdAt: nil, sender: "me")
         XCTAssertEqual(
             MessageStatusCalculator.statusOf(message: local, receipts: [], myUserUuid: "me"),
             MessageDeliveryStatus.sending
@@ -412,7 +412,7 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         let actions = FakeMessageActionsRepository()
         let (viewModel, repository) = makeViewModel(messages: [original], actions: actions)
 
-        await viewModel.forward([original], toChatUuid: "c-2", comment: "look")
+        await viewModel.forward(messages: [original], toChatUuid: "c-2", comment: "look")
 
         XCTAssertEqual(actions.forwarded.first?.0, "m1")
         XCTAssertEqual(actions.forwarded.first?.1, "c-2")
