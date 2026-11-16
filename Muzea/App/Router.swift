@@ -42,8 +42,8 @@ struct RouteDestinationView: View {
         case .conversation(let chat):
             ChatConversationView(
                 chat: chat,
-                repository: container.messageRepository,
-                myUserUuid: container.myUserUuid
+                myUserUuid: container.myUserUuid,
+                services: container.chatConversationServices
             )
         case .groupSettings(let chat):
             GroupSettingsView(chat: chat, container: container)

@@ -13,22 +13,54 @@ final class ChatMessageReducer {
 
     /// serverUuid -> localUuid для отправленных нами сообщений.
     private var serverToLocal: [String: String] = [:]
+    /// localUuid -> serverUuid: действия уходят на сервер с реальным id.
+    private var localToServer: [String: String] = [:]
 
-    /// Стартовый список из кэша: сервер отдаёт «сначала новые», показываем по возрастанию.
-    func seed(_ cached: [MessageResponse]) -> [MessageResponse] {
-        cached.sorted(by: Self.areInIncreasingOrder)
+    /// Реальный серверный uuid для локального (или тот же, если уже серверный).
+    func serverUuid(_ localOrServer: String) -> String {
+        localToServer[localOrServer] ?? localOrServer
     }
 
-    /// Сливает серверную пачку с текущим списком. Существующие элементы имеют
-    /// приоритет, а серверное эхо уже отправленных нами сообщений пропускается —
-    /// оно показано локальным пузырём.
+    /// Локальный uuid для серверного (если это наше отправленное сообщение).
+    func localUuidFor(_ serverUuid: String) -> String? {
+        serverToLocal[serverUuid]
+    }
+
+    /// Версия для кэша: локальные uuid не должны «всплывать» после перезахода.
+    func toServerIdentities(_ messages: [MessageResponse]) -> [MessageResponse] {
+        messages.map { message in
+            message.replacing(
+                messageUuid: serverUuid(message.messageUuid),
+                replyToMessageUuid: message.replyToMessageUuid.map(serverUuid)
+            )
+        }
+    }
+
+    /// Стартовый список из кэша: сервер отдаёт «сначала новые», показываем по
+    /// возрастанию. Удалённые сообщения не показываем вовсе.
+    func seed(_ cached: [MessageResponse]) -> [MessageResponse] {
+        cached
+            .filter { $0.isDeleted != true }
+            .sorted(by: Self.areInIncreasingOrder)
+    }
+
+    /// Сливает серверную пачку с текущим списком. Входящие серверные данные
+    /// важнее локальной копии (приходят правки и снятые реакции), серверное эхо
+    /// наших отправок пропускается — оно показано локальным пузырём.
     func merge(current: [MessageResponse], incoming: [MessageResponse]) -> [MessageResponse] {
         var merged: [String: MessageResponse] = [:]
-        for message in incoming where serverToLocal[message.messageUuid] == nil {
+        let deleted = Set(incoming.filter { $0.isDeleted == true }.map { $0.messageUuid })
+
+        for message in incoming {
+            if message.isDeleted == true { continue }
+            if serverToLocal[message.messageUuid] != nil { continue }
             merged[message.messageUuid] = message
         }
         for message in current {
-            merged[message.messageUuid] = message
+            if message.isDeleted == true || deleted.contains(message.messageUuid) { continue }
+            if merged[message.messageUuid] == nil {
+                merged[message.messageUuid] = message
+            }
         }
         return merged.values.sorted(by: Self.areInIncreasingOrder)
     }
@@ -41,11 +73,28 @@ final class ChatMessageReducer {
         serverMessage: MessageResponse
     ) -> [MessageResponse] {
         serverToLocal[serverMessage.messageUuid] = localUuid
+        localToServer[localUuid] = serverMessage.messageUuid
         return current
             .map { existing in
-                existing.messageUuid == localUuid ? serverMessage.withMessageUuid(localUuid) : existing
+                guard existing.messageUuid == localUuid else { return existing }
+                let reply = serverMessage.replyToMessageUuid
+                    .map { serverToLocal[$0] ?? $0 }
+                    ?? existing.replyToMessageUuid
+                return serverMessage
+                    .withMessageUuid(localUuid)
+                    .replacing(replyToMessageUuid: reply)
             }
             .sorted(by: Self.areInIncreasingOrder)
+    }
+
+    /// Заменяет сообщение с тем же uuid (правка/закреп/реакции), не меняя порядок.
+    func updateMessage(current: [MessageResponse], updated: MessageResponse) -> [MessageResponse] {
+        current.map { $0.messageUuid == updated.messageUuid ? updated : $0 }
+    }
+
+    /// Убирает сообщение локально (после мягкого удаления).
+    func removeMessage(current: [MessageResponse], messageUuid: String) -> [MessageResponse] {
+        current.filter { $0.messageUuid != messageUuid }
     }
 
     /// Порядок по `createdAt` по возрастанию. Сообщения без времени («пузырь»

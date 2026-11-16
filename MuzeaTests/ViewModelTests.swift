@@ -11,7 +11,12 @@ final class ChatConversationViewModelTests: XCTestCase {
             TestData.message("m1", createdAt: "2026-01-01T00:00:01")
         ]
 
-        let viewModel = ChatConversationViewModel(chatUuid: "c-1", repository: repository, myUserUuid: "me")
+        let viewModel = ChatConversationViewModel(
+            chatUuid: "c-1",
+            myUserUuid: "me",
+            isGroupChat: false,
+            services: .fake(messages: repository)
+        )
 
         XCTAssertEqual(viewModel.state.messages.map(\.messageUuid), ["m1", "m2"])
     }
@@ -19,7 +24,12 @@ final class ChatConversationViewModelTests: XCTestCase {
     func testSendKeepsLocalBubbleAndDedupesServerEcho() async {
         let repository = FakeMessageRepository()
         repository.sendResult = TestData.message("server-1", text: "hi", createdAt: "2026-01-01T00:00:02")
-        let viewModel = ChatConversationViewModel(chatUuid: "c-1", repository: repository, myUserUuid: "me")
+        let viewModel = ChatConversationViewModel(
+            chatUuid: "c-1",
+            myUserUuid: "me",
+            isGroupChat: false,
+            services: .fake(messages: repository)
+        )
 
         await viewModel.send("hi")
 
@@ -42,7 +52,12 @@ final class ChatConversationViewModelTests: XCTestCase {
             TestData.message("s1", createdAt: "2026-01-01T00:00:01"),
             TestData.message("s2", createdAt: "2026-01-01T00:00:02")
         ]
-        let viewModel = ChatConversationViewModel(chatUuid: "c-1", repository: repository, myUserUuid: "me")
+        let viewModel = ChatConversationViewModel(
+            chatUuid: "c-1",
+            myUserUuid: "me",
+            isGroupChat: false,
+            services: .fake(messages: repository)
+        )
 
         await viewModel.refresh()
 
@@ -52,7 +67,12 @@ final class ChatConversationViewModelTests: XCTestCase {
 
     func testSendIgnoresBlankText() async {
         let repository = FakeMessageRepository()
-        let viewModel = ChatConversationViewModel(chatUuid: "c-1", repository: repository, myUserUuid: "me")
+        let viewModel = ChatConversationViewModel(
+            chatUuid: "c-1",
+            myUserUuid: "me",
+            isGroupChat: false,
+            services: .fake(messages: repository)
+        )
 
         await viewModel.send("   ")
 

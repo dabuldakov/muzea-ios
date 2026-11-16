@@ -21,7 +21,69 @@ protocol MessageRepository {
     func loadMessages(chatUuid: String) async throws -> [MessageResponse]
     func cachedMessages(chatUuid: String) -> [MessageResponse]
     func sendMessage(chatUuid: String, text: String) async throws -> MessageResponse
+    /// Отправка с ответом и ключом идемпотентности.
+    func sendMessage(
+        chatUuid: String,
+        text: String,
+        replyToMessageUuid: String?,
+        clientMessageId: String?
+    ) async throws -> MessageResponse
+    /// Инкрементальная синхронизация: только новые сообщения после timestamp.
+    func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [MessageResponse]
+    /// Окно правок/закрепов. Удаления сюда не попадают — нужен полный refresh.
+    func loadMessagesUpdated(chatUuid: String, timestamp: String) async throws -> [MessageResponse]
     func markMessagesAsRead(chatUuid: String, upToMessageUuid: String) async
+    func markMessagesAsDelivered(chatUuid: String, upToMessageUuid: String) async
+}
+
+/// Действия над уже отправленными сообщениями. Отдельный контракт, чтобы
+/// экран не тянул за собой god-репозиторий.
+protocol MessageActionsRepository {
+    func editMessage(messageUuid: String, text: String) async throws -> MessageResponse
+    func deleteMessage(messageUuid: String) async throws
+    func forwardMessage(messageUuid: String, toChatUuid: String) async throws -> MessageResponse
+    func pinMessage(chatUuid: String, messageUuid: String) async throws
+    func unpinMessage(chatUuid: String, messageUuid: String) async throws
+    func loadPinned(chatUuid: String) async throws -> [MessageResponse]
+}
+
+protocol MessageReactionRepository {
+    /// Ставит или снимает реакцию; возвращает свежую сводку по сообщению.
+    func toggleReaction(messageUuid: String, emoji: String) async throws -> [MessageReactionResponse]
+}
+
+protocol MessageReceiptRepository {
+    func loadReceipts(chatUuid: String) async throws -> [ChatReceiptResponse]
+}
+
+/// Черновики по чатам. Хранятся локально и не отправляются автоматически.
+protocol ChatDraftStore {
+    func draft(chatUuid: String) -> String?
+    func save(chatUuid: String, text: String?)
+    func clear(chatUuid: String)
+    func clearAll()
+}
+
+extension MessageRepository {
+    /// Запасная реализация для тест-дублей: старый send без reply/идемпотентности.
+    func sendMessage(
+        chatUuid: String,
+        text: String,
+        replyToMessageUuid: String?,
+        clientMessageId: String?
+    ) async throws -> MessageResponse {
+        try await sendMessage(chatUuid: chatUuid, text: text)
+    }
+
+    func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [MessageResponse] {
+        try await loadMessages(chatUuid: chatUuid)
+    }
+
+    func loadMessagesUpdated(chatUuid: String, timestamp: String) async throws -> [MessageResponse] {
+        []
+    }
+
+    func markMessagesAsDelivered(chatUuid: String, upToMessageUuid: String) async {}
 }
 
 protocol ContactRepository {

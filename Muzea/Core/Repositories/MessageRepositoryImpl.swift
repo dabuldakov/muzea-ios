@@ -1,6 +1,6 @@
 import Foundation
 
-/// Реализация `MessageRepository`: загрузка, отправка и отметка о прочтении.
+/// Реализация `MessageRepository`: загрузка, отправка и отметки о прочтении.
 final class MessageRepositoryImpl: MessageRepository {
     private let auth: ChatAuthorization
     private let cache: ChatMessagesCache
@@ -30,11 +30,48 @@ final class MessageRepositoryImpl: MessageRepository {
     }
 
     func sendMessage(chatUuid: String, text: String) async throws -> MessageResponse {
+        try await sendMessage(
+            chatUuid: chatUuid,
+            text: text,
+            replyToMessageUuid: nil,
+            clientMessageId: nil
+        )
+    }
+
+    func sendMessage(
+        chatUuid: String,
+        text: String,
+        replyToMessageUuid: String?,
+        clientMessageId: String?
+    ) async throws -> MessageResponse {
         try await auth.authorized {
             try await auth.client.request(
                 "POST",
                 "/api/messages/\(chatUuid)",
-                body: SendMessageRequest(text: text, messageType: "TEXT")
+                body: SendMessageRequest(
+                    text: text,
+                    messageType: "TEXT",
+                    replyToMessageUuid: replyToMessageUuid,
+                    clientMessageId: clientMessageId
+                )
+            )
+        }
+    }
+
+    func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [MessageResponse] {
+        try await auth.authorized {
+            try await auth.client.request(
+                "GET",
+                "/api/messages/\(chatUuid)/after/\(Self.pathTimestamp(timestamp))"
+            )
+        }
+    }
+
+    func loadMessagesUpdated(chatUuid: String, timestamp: String) async throws -> [MessageResponse] {
+        try await auth.authorized {
+            try await auth.client.request(
+                "GET",
+                "/api/messages/\(chatUuid)/updated/\(Self.pathTimestamp(timestamp))"
             )
         }
     }
@@ -47,5 +84,21 @@ final class MessageRepositoryImpl: MessageRepository {
                 query: [URLQueryItem(name: "upToMessageUuid", value: upToMessageUuid)]
             )
         }
+    }
+
+    func markMessagesAsDelivered(chatUuid: String, upToMessageUuid: String) async {
+        _ = try? await auth.authorized {
+            try await auth.client.requestVoid(
+                "POST",
+                "/api/messages/\(chatUuid)/delivered",
+                query: [URLQueryItem(name: "upToMessageUuid", value: upToMessageUuid)]
+            )
+        }
+    }
+
+    /// Timestamp попадает в путь, а не в query: экранируем только то, что
+    /// действительно ломает URL. Двоеточия в ISO-строке допустимы в пути.
+    private static func pathTimestamp(_ timestamp: String) -> String {
+        timestamp.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? timestamp
     }
 }

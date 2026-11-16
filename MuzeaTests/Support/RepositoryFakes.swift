@@ -68,9 +68,11 @@ final class FakeMessageRepository: MessageRepository {
     var messages: [MessageResponse] = []
     var cached: [MessageResponse] = []
     var sentTexts: [String] = []
+    var sentRequests: [(text: String, replyTo: String?, clientId: String?)] = []
     var sendResult: MessageResponse?
     var loadError: Error?
     var markedRead: [(String, String)] = []
+    var markedDelivered: [(String, String)] = []
 
     func loadMessages(chatUuid: String) async throws -> [MessageResponse] {
         if let loadError { throw loadError }
@@ -80,7 +82,22 @@ final class FakeMessageRepository: MessageRepository {
     func cachedMessages(chatUuid: String) -> [MessageResponse] { cached }
 
     func sendMessage(chatUuid: String, text: String) async throws -> MessageResponse {
+        try await sendMessage(
+            chatUuid: chatUuid,
+            text: text,
+            replyToMessageUuid: nil,
+            clientMessageId: nil
+        )
+    }
+
+    func sendMessage(
+        chatUuid: String,
+        text: String,
+        replyToMessageUuid: String?,
+        clientMessageId: String?
+    ) async throws -> MessageResponse {
         sentTexts.append(text)
+        sentRequests.append((text, replyToMessageUuid, clientMessageId))
         return sendResult ?? MessageResponse(
             messageUuid: "server-1",
             chatUuid: chatUuid,
@@ -90,7 +107,7 @@ final class FakeMessageRepository: MessageRepository {
             senderAvatar: nil,
             text: text,
             messageType: "TEXT",
-            replyToMessageUuid: nil,
+            replyToMessageUuid: replyToMessageUuid,
             isEdited: false,
             isDeleted: false,
             isPinned: false,
@@ -101,6 +118,105 @@ final class FakeMessageRepository: MessageRepository {
 
     func markMessagesAsRead(chatUuid: String, upToMessageUuid: String) async {
         markedRead.append((chatUuid, upToMessageUuid))
+    }
+
+    func markMessagesAsDelivered(chatUuid: String, upToMessageUuid: String) async {
+        markedDelivered.append((chatUuid, upToMessageUuid))
+    }
+}
+
+final class FakeMessageActionsRepository: MessageActionsRepository {
+    var edited: [(String, String)] = []
+    var deleted: [String] = []
+    var forwarded: [(String, String)] = []
+    var pinned: [(String, String)] = []
+    var unpinned: [(String, String)] = []
+    var pinnedMessages: [MessageResponse] = []
+    var editResult: MessageResponse?
+
+    func editMessage(messageUuid: String, text: String) async throws -> MessageResponse {
+        edited.append((messageUuid, text))
+        guard let editResult else { throw APIError.server(500, "no edit result") }
+        return editResult
+    }
+
+    func deleteMessage(messageUuid: String) async throws {
+        deleted.append(messageUuid)
+    }
+
+    func forwardMessage(messageUuid: String, toChatUuid: String) async throws -> MessageResponse {
+        forwarded.append((messageUuid, toChatUuid))
+        return TestData.message("forwarded-\(messageUuid)")
+    }
+
+    func pinMessage(chatUuid: String, messageUuid: String) async throws {
+        pinned.append((chatUuid, messageUuid))
+    }
+
+    func unpinMessage(chatUuid: String, messageUuid: String) async throws {
+        unpinned.append((chatUuid, messageUuid))
+    }
+
+    func loadPinned(chatUuid: String) async throws -> [MessageResponse] {
+        pinnedMessages
+    }
+}
+
+final class FakeMessageReactionRepository: MessageReactionRepository {
+    var reactions: [String: [MessageReactionResponse]] = [:]
+    var toggles: [(String, String)] = []
+
+    func toggleReaction(messageUuid: String, emoji: String) async throws -> [MessageReactionResponse] {
+        toggles.append((messageUuid, emoji))
+        return reactions[messageUuid] ?? []
+    }
+}
+
+final class FakeMessageReceiptRepository: MessageReceiptRepository {
+    var receipts: [ChatReceiptResponse] = []
+    var loads = 0
+
+    func loadReceipts(chatUuid: String) async throws -> [ChatReceiptResponse] {
+        loads += 1
+        return receipts
+    }
+}
+
+final class FakeChatDraftStore: ChatDraftStore {
+    var storage: [String: String] = [:]
+
+    func draft(chatUuid: String) -> String? { storage[chatUuid] }
+
+    func save(chatUuid: String, text: String?) {
+        if let text, !text.isEmpty {
+            storage[chatUuid] = text
+        } else {
+            storage.removeValue(forKey: chatUuid)
+        }
+    }
+
+    func clear(chatUuid: String) { storage.removeValue(forKey: chatUuid) }
+
+    func clearAll() { storage.removeAll() }
+}
+
+extension ChatConversationServices {
+    static func fake(
+        messages: FakeMessageRepository = FakeMessageRepository(),
+        actions: FakeMessageActionsRepository = FakeMessageActionsRepository(),
+        reactions: FakeMessageReactionRepository = FakeMessageReactionRepository(),
+        receipts: FakeMessageReceiptRepository = FakeMessageReceiptRepository(),
+        drafts: FakeChatDraftStore = FakeChatDraftStore(),
+        chats: FakeChatRepository = FakeChatRepository()
+    ) -> ChatConversationServices {
+        ChatConversationServices(
+            messages: messages,
+            actions: actions,
+            reactions: reactions,
+            receipts: receipts,
+            drafts: drafts,
+            chats: chats
+        )
     }
 }
 

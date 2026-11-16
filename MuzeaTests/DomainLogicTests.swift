@@ -55,13 +55,22 @@ final class ChatMessageReducerTests: XCTestCase {
         XCTAssertEqual(result[0].text, "hi!")
     }
 
-    func testMergeExistingWinsOverIncoming() {
+    func testMergeAppliesServerUpdatesToExistingMessage() {
         let reducer = ChatMessageReducer()
         let current = TestData.message("m1", text: "local")
         let merged = reducer.merge(current: [current], incoming: [TestData.message("m1", text: "server")])
 
         XCTAssertEqual(merged.count, 1)
-        XCTAssertEqual(merged[0].text, "local")
+        XCTAssertEqual(merged[0].text, "server")
+    }
+
+    func testServerDeleteMarkerRemovesExistingMessage() {
+        let reducer = ChatMessageReducer()
+        let current = TestData.message("m1").replacing(isDeleted: true)
+
+        let merged = reducer.merge(current: [TestData.message("m1")], incoming: [current])
+
+        XCTAssertTrue(merged.isEmpty)
     }
 }
 

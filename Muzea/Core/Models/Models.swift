@@ -201,6 +201,9 @@ struct PresenceResponse: Decodable {
 struct MessageResponse: Decodable, Identifiable, Hashable {
     var id: String { messageUuid }
     let messageUuid: String
+    /// Глобальный монотонный id сервера. У локальных сообщений — nil; по нему
+    /// сравниваются водяные знаки прочтения и доставки.
+    var messageId: Int64? = nil
     let chatUuid: String?
     let senderId: Int64?
     let senderUuid: String?
@@ -209,11 +212,15 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
     let text: String?
     let messageType: String?
     let replyToMessageUuid: String?
+    var forwardedFromMessageUuid: String? = nil
+    var forwardedFromUserUuid: String? = nil
     let isEdited: Bool?
     let isDeleted: Bool?
     let isPinned: Bool?
     let createdAt: String?
     let updatedAt: String?
+    /// Сводка реакций. Сервер всегда отдаёт массив, но в старых ответах его нет.
+    var reactions: [MessageReactionResponse]? = nil
     /// Автор удалён: имя/аватар скрываются, показываем «Удалённый пользователь».
     var senderDeleted: Bool? = nil
 
@@ -221,24 +228,82 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
     /// оптимистичный локальный пузырь серверным эхом, сохранив локальный UUID
     /// (иначе список перерисовывается и мигает) — аналог Kotlin `copy`.
     func withMessageUuid(_ uuid: String) -> MessageResponse {
+        replacing(messageUuid: uuid)
+    }
+
+    /// Полная копия с точечными изменениями (аналог Kotlin `copy`): UI-слой
+    /// обновляет флаги/реакции, не теряя серверные поля.
+    func replacing(
+        messageUuid: String? = nil,
+        messageId: Int64? = nil,
+        text: String? = nil,
+        messageType: String? = nil,
+        replyToMessageUuid: String? = nil,
+        isEdited: Bool? = nil,
+        isDeleted: Bool? = nil,
+        isPinned: Bool? = nil,
+        reactions: [MessageReactionResponse]? = nil,
+        senderDeleted: Bool? = nil
+    ) -> MessageResponse {
         MessageResponse(
-            messageUuid: uuid,
+            messageUuid: messageUuid ?? self.messageUuid,
+            messageId: messageId ?? self.messageId,
             chatUuid: chatUuid,
             senderId: senderId,
             senderUuid: senderUuid,
             senderName: senderName,
             senderAvatar: senderAvatar,
-            text: text,
-            messageType: messageType,
-            replyToMessageUuid: replyToMessageUuid,
-            isEdited: isEdited,
-            isDeleted: isDeleted,
-            isPinned: isPinned,
+            text: text ?? self.text,
+            messageType: messageType ?? self.messageType,
+            replyToMessageUuid: replyToMessageUuid ?? self.replyToMessageUuid,
+            forwardedFromMessageUuid: forwardedFromMessageUuid,
+            forwardedFromUserUuid: forwardedFromUserUuid,
+            isEdited: isEdited ?? self.isEdited,
+            isDeleted: isDeleted ?? self.isDeleted,
+            isPinned: isPinned ?? self.isPinned,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            senderDeleted: senderDeleted
+            reactions: reactions ?? self.reactions,
+            senderDeleted: senderDeleted ?? self.senderDeleted
         )
     }
+}
+
+struct MessageReactionResponse: Decodable, Hashable {
+    let emoji: String
+    let count: Int
+    let mine: Bool
+    let users: [ReactionUserResponse]?
+}
+
+struct ReactionUserResponse: Decodable, Hashable {
+    let userUuid: String?
+    let at: String?
+}
+
+/// Квитанция участника: докуда его устройство доставило и докуда прочитало.
+/// Сравнивается с `MessageResponse.messageId`.
+struct ChatReceiptResponse: Decodable, Hashable {
+    let userUuid: String?
+    let username: String?
+    let fullName: String?
+    let avatarUrl: String?
+    let joinedAt: String?
+    let lastDeliveredMessageId: Int64?
+    let lastDeliveredAt: String?
+    let lastReadMessageId: Int64?
+    let lastReadAt: String?
+
+    var displayName: String { fullName ?? username ?? "Участник" }
+}
+
+/// Статус собственного сообщения. Отправляется в UI как галочки.
+enum MessageDeliveryStatus: String, Hashable {
+    case sending
+    case failed
+    case sent
+    case delivered
+    case read
 }
 
 struct UnreadCountResponse: Decodable {
@@ -288,6 +353,23 @@ struct AddGroupParticipantsRequest: Encodable {
 struct SendMessageRequest: Encodable {
     let text: String
     let messageType: String
+    /// Сообщение, на которое отвечаем. Сервер ждёт реальный uuid.
+    var replyToMessageUuid: String? = nil
+    /// Идемпотентность текстовых отправок: повтор с тем же id не создаёт дубль.
+    var clientMessageId: String? = nil
+}
+
+struct EditMessageRequest: Encodable {
+    let text: String
+}
+
+struct ForwardMessageRequest: Encodable {
+    let messageUuid: String
+    let targetChatUuid: String
+}
+
+struct ReactionRequest: Encodable {
+    let emoji: String
 }
 
 struct FcmTokenRequest: Encodable {

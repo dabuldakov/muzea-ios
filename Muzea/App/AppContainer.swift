@@ -16,6 +16,11 @@ final class AppContainer: ObservableObject {
     let videoRepository: VideoRepository
     let chatRepository: ChatRepository
     let messageRepository: MessageRepository
+    let messageActionsRepository: MessageActionsRepository
+    let messageReactionRepository: MessageReactionRepository
+    let messageReceiptRepository: MessageReceiptRepository
+    let chatDraftStore: ChatDraftStore
+    let chatConversationServices: ChatConversationServices
     let contactRepository: ContactRepository
     let avatarRepository: AvatarRepository
     let chatSessionRepository: ChatSessionRepository
@@ -61,7 +66,24 @@ final class AppContainer: ObservableObject {
 
         let chats = ChatRepositoryImpl(auth: authorization, listCache: listCache, privateCache: privateCache)
         chatRepository = chats
-        messageRepository = MessageRepositoryImpl(auth: authorization, cache: messagesCache)
+        let messages = MessageRepositoryImpl(auth: authorization, cache: messagesCache)
+        messageRepository = messages
+        let actions = MessageActionsRepositoryImpl(auth: authorization)
+        messageActionsRepository = actions
+        let reactions = MessageReactionRepositoryImpl(auth: authorization)
+        messageReactionRepository = reactions
+        let receipts = MessageReceiptRepositoryImpl(auth: authorization)
+        messageReceiptRepository = receipts
+        let drafts = UserDefaultsChatDraftStore()
+        chatDraftStore = drafts
+        chatConversationServices = ChatConversationServices(
+            messages: messages,
+            actions: actions,
+            reactions: reactions,
+            receipts: receipts,
+            drafts: drafts,
+            chats: chats
+        )
         contactRepository = ContactRepositoryImpl(auth: authorization)
         avatarRepository = AvatarRepositoryImpl(auth: authorization)
         chatSessionRepository = ChatSessionRepositoryImpl(auth: authorization)
@@ -151,5 +173,8 @@ final class AppContainer: ObservableObject {
         chatMessagesCache.clear()
         privateChatCache.clear()
         videoListCache.clear()
+        // Черновики содержат текст прошлого пользователя — после выхода их быть
+        // не должно.
+        chatDraftStore.clearAll()
     }
 }

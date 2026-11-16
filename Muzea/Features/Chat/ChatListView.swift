@@ -33,6 +33,13 @@ struct ChatListView: View {
         }
         .environmentObject(router)
         .task { await viewModel.startAutoRefresh() }
+        .onChange(of: router.path.count) { count in
+            // Вернулись из переписки: не ждём 8-секундный опрос, сразу
+            // подтягиваем счётчики непрочитанных и последние сообщения.
+            if count == 0 {
+                Task { await viewModel.load() }
+            }
+        }
     }
 
     @ViewBuilder

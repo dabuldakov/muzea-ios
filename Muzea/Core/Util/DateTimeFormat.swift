@@ -20,6 +20,11 @@ enum DateTimeFormat {
         format(iso, pattern: datePattern, timeZone: timeZone)
     }
 
+    /// Только время, например «12:34» в поясе устройства.
+    static func time(_ iso: String?, timeZone: TimeZone = .current) -> String {
+        format(iso, pattern: "HH:mm", timeZone: timeZone)
+    }
+
     private static func format(_ iso: String?, pattern: String, timeZone: TimeZone) -> String {
         guard let iso, !iso.isEmpty else { return "" }
         let clipped = iso.count >= 19 ? String(iso.prefix(19)) : iso
