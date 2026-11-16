@@ -117,7 +117,7 @@ the iOS backlog: update the status as work lands. Status values:
 
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
-| QA.01 | Unit tests | partial | ~230 vs 1151 on Android; auth/refresh contract tests added |
+| QA.01 | Unit tests | partial | 230 vs 1151 on Android (1 Keychain test skipped on unsigned simulator); chat text parity covered |
 | QA.02 | Robolectric | n/a | |
 | QA.03 | Integration (mock network) | partial | `MockURLProtocol`; add shared fixtures |
 | QA.04 | Device tests | missing | XCUITest for 4 critical paths |
