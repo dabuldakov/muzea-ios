@@ -25,6 +25,8 @@ struct ChatConversationView: View {
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var videoItem: PhotosPickerItem?
     @State private var showVideoNoteRecorder = false
+    @State private var gallery: GalleryRequest?
+    @State private var pendingGalleryAction: GalleryAction?
 
     init(chat: Chat, myUserUuid: String?, services: ChatConversationServices) {
         self.chat = chat
@@ -116,6 +118,7 @@ struct ChatConversationView: View {
                 } label: {
                     Image(systemName: "info.circle")
                 }
+                .accessibilityLabel("О чате")
             }
         }
         .task { await viewModel.start() }
@@ -221,6 +224,22 @@ struct ChatConversationView: View {
                 Task { await addFile(url) }
             }
         }
+        .sheet(item: $gallery, onDismiss: runPendingGalleryAction) { request in
+            ImageGalleryViewer(
+                attachments: request.images,
+                startIndex: request.startIndex,
+                senderName: request.senderName,
+                createdAt: request.message.createdAt,
+                onReply: {
+                    pendingGalleryAction = .reply(request.message)
+                    gallery = nil
+                },
+                onForward: {
+                    pendingGalleryAction = .forward(request.message)
+                    gallery = nil
+                }
+            )
+        }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {            case .forward:
                 ForwardChatPickerView(chats: viewModel.state.forwardChats) { chatUuid, comment in
@@ -281,6 +300,9 @@ struct ChatConversationView: View {
             myUserUuid: viewModel.myUserUuid,
             onReaction: { emoji in
                 Task { await viewModel.toggleReaction(message, emoji: emoji) }
+            },
+            onOpenImage: { index in
+                gallery = GalleryRequest(message: message, tappedIndex: index)
             }
         )
         .overlay(alignment: .topTrailing) {
@@ -408,6 +430,7 @@ struct ChatConversationView: View {
             } label: {
                 Image(systemName: "xmark")
             }
+            .accessibilityLabel("Выйти из выбора")
 
             Text("Выбрано: \(viewModel.state.selection.count)")
                 .font(.subheadline).bold()
@@ -419,6 +442,7 @@ struct ChatConversationView: View {
             } label: {
                 Image(systemName: "arrowshape.turn.up.right")
             }
+            .accessibilityLabel("Переслать выбранные")
             .disabled(viewModel.selectedMessages.isEmpty)
 
             Button {
@@ -426,6 +450,7 @@ struct ChatConversationView: View {
             } label: {
                 Image(systemName: "trash")
             }
+            .accessibilityLabel("Удалить выбранные")
             .disabled(viewModel.selectedMessages.isEmpty)
         }
         .padding(.horizontal, 16)
@@ -518,6 +543,17 @@ struct ChatConversationView: View {
             draftBeforeEdit = ""
         }
         viewModel.cancelComposer()
+    }
+
+    private func runPendingGalleryAction() {
+        guard let action = pendingGalleryAction else { return }
+        pendingGalleryAction = nil
+        switch action {
+        case .reply(let message):
+            viewModel.beginReply(to: message)
+        case .forward(let message):
+            openForward([message])
+        }
     }
 
     private func openForward(_ messages: [ChatMessage]) {

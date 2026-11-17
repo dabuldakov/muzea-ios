@@ -11,6 +11,8 @@ struct MessageRow: View {
     let isSelected: Bool
     let myUserUuid: String?
     let onReaction: (String) -> Void
+    /// Индекс нажатого фото в списке изображений сообщения.
+    let onOpenImage: ((Int) -> Void)?
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
@@ -43,13 +45,13 @@ struct MessageRow: View {
                             Text(text)
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(bubbleColor)
+                    .padding(.horizontal, Theme.Spacing.m)
+                    .padding(.vertical, Theme.Spacing.s)
+                    .background(bubbleBackground)
                     .foregroundColor(isMine ? .white : .primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.bubble))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14)
+                        RoundedRectangle(cornerRadius: Theme.Radius.bubble)
                             .stroke(Color.accentColor, lineWidth: isSelected ? 2 : 0)
                     )
                 }
@@ -59,10 +61,7 @@ struct MessageRow: View {
                         attachments: attachments,
                         isMine: isMine,
                         messageType: message.messageType,
-                        senderName: message.senderDeleted == true
-                            ? "Удалённый пользователь"
-                            : message.senderName,
-                        createdAt: message.createdAt
+                        onOpenImage: onOpenImage
                     )
                 }
 
@@ -100,7 +99,7 @@ struct MessageRow: View {
         }
         .padding(.vertical, 2)
         .contentShape(Rectangle())
-        .background(isSelected ? Color.accentColor.opacity(0.12) : Color.clear)
+        .background(isSelected ? Theme.Palette.selection : Color.clear)
     }
 
     private var replyQuote: some View {
@@ -118,7 +117,7 @@ struct MessageRow: View {
             .foregroundColor(isMine ? .white.opacity(0.9) : .secondary)
             Spacer(minLength: 0)
         }
-        .frame(maxWidth: 220, alignment: .leading)
+        .frame(maxWidth: Theme.Size.bubbleMaxWidth, alignment: .leading)
     }
 
     private func reactionRow(_ reactions: [MessageReaction]) -> some View {
@@ -138,13 +137,19 @@ struct MessageRow: View {
                     .background(reaction.mine ? Color.accentColor.opacity(0.2) : Color(.tertiarySystemBackground))
                     .clipShape(Capsule())
                 }
+                .accessibilityLabel("Реакция \(reaction.emoji), \(reaction.count)")
                 .buttonStyle(.plain)
             }
         }
     }
 
-    private var bubbleColor: Color {
-        isMine ? Color.accentColor.opacity(0.85) : Color(.secondarySystemBackground)
+    @ViewBuilder
+    private var bubbleBackground: some View {
+        if isMine {
+            Theme.Palette.outgoingBubble
+        } else {
+            Theme.Palette.incomingBubble
+        }
     }
 
     private var hasBubble: Bool {
@@ -181,5 +186,17 @@ struct MessageStatusIcon: View {
         }
         .font(.caption2)
         .foregroundColor(status == .read ? .accentColor : .secondary)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private var accessibilityText: String {
+        switch status {
+        case .sending: return "Отправляется"
+        case .failed: return "Ошибка отправки"
+        case .sent: return "Отправлено"
+        case .delivered: return "Доставлено"
+        case .read: return "Прочитано"
+        case .none: return ""
+        }
     }
 }

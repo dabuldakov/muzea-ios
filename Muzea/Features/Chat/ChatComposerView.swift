@@ -82,6 +82,7 @@ struct ChatComposerView: View {
                                 } label: {
                                     Image(systemName: "xmark.circle.fill")
                                 }
+                                .accessibilityLabel("Удалить вложение")
                                 .buttonStyle(.plain)
                             }
                             .font(.caption)
@@ -101,12 +102,14 @@ struct ChatComposerView: View {
                     Image(systemName: "paperclip")
                         .font(.title3)
                 }
+                .accessibilityLabel("Прикрепить")
                 .disabled(editing != nil || (isUploadingAttachments && pendingAttachments.isEmpty))
 
                 Button(action: onEmojiGif) {
                     Image(systemName: "face.smiling")
                         .font(.title3)
                 }
+                .accessibilityLabel("Эмодзи и GIF")
                 .disabled(editing != nil)
 
                 ZStack(alignment: .topLeading) {
@@ -119,7 +122,10 @@ struct ChatComposerView: View {
                             .allowsHitTesting(false)
                     }
                 }
-                .frame(minHeight: 44, maxHeight: 140)
+                .frame(
+                    minHeight: Theme.Size.composerMinHeight,
+                    maxHeight: Theme.Size.composerMaxHeight
+                )
                 .background(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color(.separator), lineWidth: 1)
@@ -145,10 +151,14 @@ struct ChatComposerView: View {
                         Button(action: onVideoNote) {
                             Image(systemName: "video.fill")
                                 .font(.title3)
-                                .frame(width: 44, height: 44)
+                                .frame(
+                                    width: Theme.Size.iconButton,
+                                    height: Theme.Size.iconButton
+                                )
                                 .background(Color.accentColor.opacity(0.12))
                                 .clipShape(Circle())
                         }
+                        .accessibilityLabel("Видео-кружок")
                     }
                 }
             }
@@ -176,6 +186,7 @@ struct ChatComposerView: View {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.secondary)
             }
+            .accessibilityLabel(editing == nil ? "Отменить ответ" : "Отменить редактирование")
             .buttonStyle(.plain)
         }
         .frame(height: 40)

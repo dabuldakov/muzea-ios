@@ -31,6 +31,48 @@ final class AttachmentPolicyTests: XCTestCase {
         XCTAssertEqual(AttachmentPolicy.messageType(for: [.gif]), "GIF")
     }
 
+    func testAttachmentKindFallsBackToFileName() {
+        XCTAssertEqual(AttachmentPolicy.kind(of: Self.attachment(type: "IMAGE")), .image)
+        XCTAssertEqual(AttachmentPolicy.kind(of: Self.attachment(type: "FILE")), .document)
+        XCTAssertEqual(
+            AttachmentPolicy.kind(of: Self.attachment(type: nil, fileName: "voice.m4a")),
+            .audio
+        )
+        XCTAssertEqual(AttachmentPolicy.kind(of: Self.attachment(type: nil, fileName: nil)), .document)
+    }
+
+    func testImagesFilterKeepsOnlyImages() {
+        let attachments = [
+            Self.attachment(type: "IMAGE", uuid: "a"),
+            Self.attachment(type: "VIDEO", uuid: "b"),
+            Self.attachment(type: nil, fileName: "x.jpg", uuid: "c")
+        ]
+
+        XCTAssertEqual(AttachmentPolicy.images(in: attachments).map(\.attachmentUuid), ["a", "c"])
+        XCTAssertTrue(AttachmentPolicy.images(in: []).isEmpty)
+    }
+
+    private static func attachment(
+        type: String?,
+        fileName: String? = "photo.jpg",
+        uuid: String? = "a-1"
+    ) -> ChatAttachment {
+        ChatAttachment(
+            attachmentUuid: uuid,
+            fileName: fileName,
+            fileUrl: nil,
+            thumbnailUrl: nil,
+            mp4Url: nil,
+            fileSize: nil,
+            mimeType: nil,
+            type: type,
+            width: nil,
+            height: nil,
+            duration: nil,
+            gifKey: nil
+        )
+    }
+
     func testServerTypeMapping() {
         XCTAssertEqual(AttachmentPolicy.kind(fromServerType: "FILE"), .document)
         XCTAssertEqual(AttachmentPolicy.kind(fromServerType: "IMAGE"), .image)

@@ -93,6 +93,18 @@ enum AttachmentPolicy {
         if normalized == "FILE" { return .document }
         return AttachmentKind(rawValue: normalized)
     }
+
+    /// Тип вложения для UI: серверный `type`, иначе расширение файла.
+    static func kind(of attachment: ChatAttachment) -> AttachmentKind {
+        kind(fromServerType: attachment.type)
+            ?? rule(for: attachment.fileName ?? "")?.kind
+            ?? .document
+    }
+
+    /// Только изображения — сетка в пузыре и полноэкранная галерея.
+    static func images(in attachments: [ChatAttachment]) -> [ChatAttachment] {
+        attachments.filter { kind(of: $0) == .image }
+    }
 }
 
 /// Вложение, выбранное в композере: локальное имя и результат загрузки.

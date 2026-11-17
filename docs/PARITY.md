@@ -15,13 +15,13 @@ the iOS backlog: update the status as work lands. Status values:
 
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
-| UI.01 | Theme components | partial | SwiftUI native; need a shared theme/design tokens layer |
+| UI.01 | Theme components | partial | `Theme` tokens: spacing, radius, palette, outgoing gradient |
 | UI.02 | Fonts | partial | system fonts; custom sizes not unified |
 | UI.03 | Chat screen, bubbles | partial | text + replies, reactions, pins, link previews; attachments/media missing |
 | UI.04 | Animations | missing | charge button, delete, transitions |
 | UI.05 | Haptics | missing | |
 | UI.06 | Dark theme | partial | follows system; explicit palette needed |
-| UI.07 | Accessibility | missing | labels, dynamic type, contrast |
+| UI.07 | Accessibility | partial | labels/hints в чате, галерее и композере; dynamic type/contrast pending |
 | UI.08 | Adaptivity | partial | iPhone portrait only |
 | UI.09 | Localization | partial | RU strings; EN + pluralization missing |
 | UI.10 | 6-line composer | partial | UIViewRepresentable editor, 1...6 lines, cursor-aware; device check pending |
@@ -40,7 +40,7 @@ the iOS backlog: update the status as work lands. Status values:
 | MSG.02 | Send-button charge | partial | hold-to-charge 0..100, `power` in send body, haptics; tests in `ChatTextParityTests`; device check pending |
 | MSG.03 | Cancel mechanics | partial | swipe up/left cancels, red indicator; tests in `ChatTextParityTests`; device check pending |
 | MSG.04 | Local cache + outbox | partial | disk `chat-outbox.json`, same `clientMessageId` on retry, auto-retry every 15 s; no network monitor |
-| MSG.05 | Replies / edits / forward | partial | reply/edit/delete/forward + comment; tests in `ChatTextParityTests`; device smoke pending |
+| MSG.05 | Replies / edits / forward | partial | reply/edit/forward + comment, действия из галереи фото; multi-select/device smoke pending |
 | MSG.06 | @mentions | partial | cursor-aware suggestions in any text position; tests in `ChatTextParityTests` |
 | MSG.07 | Multi-select | partial | select, forward, delete; tests in `ChatTextParityTests` |
 | MSG.08 | Pinned messages | partial | top bar, pin/unpin, jump; tests in `ChatTextParityTests` |
@@ -61,7 +61,7 @@ the iOS backlog: update the status as work lands. Status values:
 |---|---|---|---|
 | MEDIA.01 | Photos | partial | multi-select до 10, JPEG 2048px, upload, grid, gallery; device smoke pending |
 | MEDIA.02 | Video | partial | upload, full-screen AVPlayer, cache; thumbnails/compression/progress pending |
-| MEDIA.03 | Voice messages | partial | m4a/AAC recorder, hold/swipe-cancel, playback with progress; waveform pending |
+| MEDIA.03 | Voice messages | partial | запись, waveform из реальных пиков, прогресс, кэш; device smoke pending |
 | MEDIA.04 | Video notes (circles) | partial | AVCaptureSession, 60s, round preview/recorder, VIDEO_NOTE, thumbnail; device check pending |
 | MEDIA.05 | GIF (Klipy) | partial | поиск + «Мои»/«Этот чат» с сервера, диск cache, looping MP4; device smoke pending |
 | MEDIA.06 | Documents | partial | upload, card, QuickLook, share; device check pending |

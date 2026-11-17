@@ -25,11 +25,12 @@ struct PinnedMessagesBar: View {
                     Image(systemName: "xmark")
                         .font(.caption)
                 }
+                .accessibilityLabel("Открепить сообщение")
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color(.secondarySystemBackground))
+            .padding(.horizontal, Theme.Spacing.m)
+            .padding(.vertical, Theme.Spacing.s)
+            .background(Theme.Palette.incomingBubble)
             .contentShape(Rectangle())
             .onTapGesture { onOpen(first) }
         }

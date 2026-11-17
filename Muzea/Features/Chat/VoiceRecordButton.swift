@@ -27,8 +27,12 @@ struct VoiceRecordButton: View {
                     .foregroundColor(.accentColor)
             }
         }
-        .frame(width: 44, height: 44)
+        .frame(width: Theme.Size.iconButton, height: Theme.Size.iconButton)
         .contentShape(Circle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(isRecording ? "Идёт запись" : "Записать голосовое")
+        .accessibilityValue(isRecording ? DurationFormatter.mmss(elapsed) : "")
+        .accessibilityHint("Удерживайте для записи, свайп вверх — отмена")
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { value in
