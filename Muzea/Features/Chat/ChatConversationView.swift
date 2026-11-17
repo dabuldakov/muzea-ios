@@ -525,10 +525,15 @@ struct ChatConversationView: View {
             return
         }
         let ext = item.supportedContentTypes.first?.preferredFilenameExtension ?? "mov"
+        let fileName = "video_\(Int(Date().timeIntervalSince1970)).\(ext)"
+        let prepared = await VideoPreparation.prepare(data: data, fileName: fileName)
         await viewModel.addVideo(
             data: data,
-            fileName: "video_\(Int(Date().timeIntervalSince1970)).\(ext)",
-            duration: nil
+            fileName: fileName,
+            width: prepared.width,
+            height: prepared.height,
+            duration: prepared.duration,
+            thumbnail: prepared.thumbnail
         )
     }
 

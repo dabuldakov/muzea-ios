@@ -277,6 +277,21 @@ final class AttachmentRepositoryTests: XCTestCase {
 }
 
 @MainActor
+final class VideoPreparationTests: XCTestCase {
+
+    func testBrokenDataReturnsEmptyMetadata() async {
+        let prepared = await VideoPreparation.prepare(
+            data: Data([0, 1, 2, 3]),
+            fileName: "broken.mp4"
+        )
+
+        XCTAssertNil(prepared.thumbnail)
+        XCTAssertNil(prepared.width)
+        XCTAssertNil(prepared.height)
+        XCTAssertNil(prepared.duration)
+    }
+}
+
 final class ChatMediaViewModelTests: XCTestCase {
 
     private func makeViewModel(

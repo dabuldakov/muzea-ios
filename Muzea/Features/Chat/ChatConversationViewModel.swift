@@ -366,16 +366,23 @@ final class ChatConversationViewModel: ObservableObject {
         )
     }
 
-    func addVideo(data: Data, fileName: String, duration: Int?) async {
+    func addVideo(
+        data: Data,
+        fileName: String,
+        width: Int? = nil,
+        height: Int? = nil,
+        duration: Int? = nil,
+        thumbnail: Data? = nil
+    ) async {
         let rule = AttachmentPolicy.rule(for: fileName)
         await upload(
             data: data,
             fileName: fileName,
             mimeType: rule?.mimeType ?? "video/mp4",
             kind: .video,
-            thumbnail: nil,
-            width: nil,
-            height: nil,
+            thumbnail: thumbnail,
+            width: width,
+            height: height,
             duration: duration
         )
     }
