@@ -50,9 +50,10 @@ final class CacheManagerTests: XCTestCase {
         try Data([4, 5]).write(to: root.appendingPathComponent("b.bin"))
 
         var cleared = false
-        let manager = CacheManager(directories: [root]) {
-            cleared = true
-        }
+        let manager = CacheManager(
+            directories: [root],
+            clearActions: [{ cleared = true }]
+        )
 
         XCTAssertEqual(manager.totalSizeBytes(), 5)
         await manager.clear()

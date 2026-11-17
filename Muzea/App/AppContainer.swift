@@ -64,9 +64,10 @@ final class AppContainer: ObservableObject {
             FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first,
             FileManager.default.temporaryDirectory.appendingPathComponent("attachment-cache")
         ].compactMap { $0 }
-        cacheManager = CacheManager(directories: cacheDirectories) {
-            await GifCache.shared.clearAll()
-        }
+        cacheManager = CacheManager(
+            directories: cacheDirectories,
+            clearActions: [{ await GifCache.shared.clearAll() }]
+        )
 
         let videoCache = VideoListCache()
         videoListCache = videoCache
