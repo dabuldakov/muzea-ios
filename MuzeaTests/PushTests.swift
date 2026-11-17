@@ -72,7 +72,8 @@ final class AppRouterTests: XCTestCase {
         XCTAssertEqual(router.selectedTab, AppRouter.tabChats)
         XCTAssertEqual(router.chatTarget?.chatUuid, "c1")
         XCTAssertEqual(router.chatTarget?.title, "Alice")
-        XCTAssertNil(router.consumeChatTarget())
+        XCTAssertEqual(router.consumeChatTarget()?.chatUuid, "c1")
+        XCTAssertNil(router.chatTarget)
     }
 
     func testNewsRouteSelectsNewsTab() {
@@ -82,7 +83,8 @@ final class AppRouterTests: XCTestCase {
 
         XCTAssertEqual(router.selectedTab, AppRouter.tabNews)
         XCTAssertEqual(router.newsTarget, 7)
-        XCTAssertNil(router.consumeNewsTarget())
+        XCTAssertEqual(router.consumeNewsTarget(), 7)
+        XCTAssertNil(router.newsTarget)
     }
 }
 
