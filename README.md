@@ -220,6 +220,7 @@ docs/
 ├── PARITY.md        матрица паритета Android → iOS
 ├── TRANSFER_GUIDE.md правила переноса фич и слоёв
 ├── XCODE_CLOUD.md   сборка и TestFlight через Xcode Cloud
+├── TESTFLIGHT.md    ручной TestFlight workflow и manual signing
 ├── fixtures/chat/   общие JSON-фикстуры для Android и iOS тестов
 └── fixtures/makeup/ фикстуры новостей, видео и профиля
 ```
