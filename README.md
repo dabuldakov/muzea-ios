@@ -213,6 +213,8 @@ Muzea/
 │   └── Profile/    профиль, аватар, оператор ПДн, удаление аккаунта
 └── Resources/      Info.plist, Assets
 
+MuzeaShare/          Share Extension: текст/ссылка → выбор чата
+
 docs/
 ├── API_CONTRACT.md  контракт бэкенда (auth/chat/makeup) для iOS
 ├── PARITY.md        матрица паритета Android → iOS
