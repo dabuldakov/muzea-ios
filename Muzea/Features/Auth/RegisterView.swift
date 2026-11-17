@@ -14,9 +14,10 @@ struct RegisterView: View {
     @State private var code = ""
     @State private var consentAccepted = false
 
-    init(container: AppContainer) {
+    init(container: AppContainer, email: String = "") {
         self.container = container
         _viewModel = StateObject(wrappedValue: AuthViewModel(repository: container.authRepository))
+        _email = State(initialValue: email)
     }
 
     var body: some View {

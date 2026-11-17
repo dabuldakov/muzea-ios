@@ -283,3 +283,6 @@
 "auth.reauth.body" = "Sign-in and registration now use an email code, no password.\n\nIf you already had an account, tap “Register” and enter your previous email and username — your access, chats and contacts will be kept (the account will be linked automatically).";
 "auth.reauth.register" = "Register";
 "auth.reauth.ok" = "Got it";
+"auth.error.notRegistered" = "No account with this email. Tap “Sign up” to create one.";
+"auth.error.accountDeleted" = "This account is deactivated. Contact support to restore access.";
+"auth.verificationSent" = "Email is not confirmed yet. We sent a new code to %@ — enter it below.";

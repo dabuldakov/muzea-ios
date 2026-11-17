@@ -203,6 +203,8 @@ enum L10n {
     static var reauthBody: String { t("auth.reauth.body") }
     static var reauthRegister: String { t("auth.reauth.register") }
     static var reauthOk: String { t("auth.reauth.ok") }
+    static var emailNotRegistered: String { t("auth.error.notRegistered") }
+    static var accountDeactivated: String { t("auth.error.accountDeleted") }
 
     static func codeSent(_ email: String) -> String {
         format("auth.code.sent", email)
@@ -210,6 +212,10 @@ enum L10n {
 
     static func codeSentAgain(_ email: String) -> String {
         format("auth.code.sentAgain", email)
+    }
+
+    static func verificationSent(_ email: String) -> String {
+        format("auth.verificationSent", email)
     }
 
     // MARK: - Contacts

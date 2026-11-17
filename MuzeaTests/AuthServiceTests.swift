@@ -75,15 +75,40 @@ final class AuthServiceTests: XCTestCase {
         XCTAssertEqual(store.email, "a@b.c")
     }
 
-    func testRequestLoginCode() async throws {
+    func testRequestLoginCodeSendsEmailAndReadsStatus() async throws {
         MockURLProtocol.handler = { request in
-            (MockURLProtocol.response(for: request), TestSupport.data(#"{"message":"If the account exists, a code has been sent"}"#))
+            (MockURLProtocol.response(for: request), TestSupport.data(#"{"message":"If the account exists, a code has been sent","status":"NOT_FOUND"}"#))
         }
 
-        try await repository().requestLoginCode(email: "a@b.c")
+        let status = try await repository().requestLoginCode(email: "a@b.c")
 
+        XCTAssertEqual(status, .notFound)
         XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/auth/otp/request")
         XCTAssertEqual(body(MockURLProtocol.requests.first)?["email"] as? String, "a@b.c")
+    }
+
+    func testRequestLoginCodeWithoutStatusFallsBackToUnknown() async throws {
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request), TestSupport.data(#"{"message":"sent"}"#))
+        }
+
+        let status = try await repository().requestLoginCode(email: "a@b.c")
+
+        XCTAssertEqual(status, .unknown)
+    }
+
+    func testRequestLoginCodeStatusesMapToDomain() {
+        let statuses: [(String, LoginCodeStatus)] = [
+            ("SENT", .sent),
+            ("NOT_FOUND", .notFound),
+            ("UNVERIFIED", .unverified),
+            ("DELETED", .deleted),
+            ("something-else", .unknown)
+        ]
+        for (raw, expected) in statuses {
+            let dto = AuthOtpRequestResponse(message: nil, status: raw)
+            XCTAssertEqual(dto.loginCodeStatus, expected)
+        }
     }
 
     func testVerifyLoginCodePersistsTokens() async throws {

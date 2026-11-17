@@ -626,6 +626,7 @@ final class FakeAuthRepository: AuthRepositoryProtocol {
     var verifyEmailError: Error?
     var resendError: Error?
     var requestCodeError: Error?
+    var requestCodeStatus: LoginCodeStatus = .sent
     var verifyLoginError: Error?
     var currentUserError: Error?
     var deleteError: Error?
@@ -662,9 +663,10 @@ final class FakeAuthRepository: AuthRepositoryProtocol {
         resent.append(email)
     }
 
-    func requestLoginCode(email: String) async throws {
+    func requestLoginCode(email: String) async throws -> LoginCodeStatus {
         if let requestCodeError { throw requestCodeError }
         requestedCodes.append(email)
+        return requestCodeStatus
     }
 
     func verifyLoginCode(email: String, code: String) async throws {

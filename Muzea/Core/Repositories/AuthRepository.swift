@@ -50,13 +50,14 @@ final class AuthRepositoryImpl: AuthRepositoryProtocol {
         )
     }
 
-    func requestLoginCode(email: String) async throws {
-        let _: AuthServiceMessage = try await client.request(
+    func requestLoginCode(email: String) async throws -> LoginCodeStatus {
+        let response: AuthOtpRequestResponse = try await client.request(
             "POST",
             "/auth/otp/request",
             body: AuthEmailRequest(email: email),
             authorized: false
         )
+        return response.loginCodeStatus
     }
 
     func verifyLoginCode(email: String, code: String) async throws {

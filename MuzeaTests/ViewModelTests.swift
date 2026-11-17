@@ -230,6 +230,56 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.state.isLoading)
     }
 
+    func testRequestLoginCodeForUnknownEmailShowsError() async {
+        let repository = FakeAuthRepository()
+        repository.requestCodeStatus = .notFound
+        let viewModel = AuthViewModel(repository: repository)
+
+        let ok = await viewModel.requestLoginCode(email: "new@example.com")
+
+        XCTAssertFalse(ok)
+        XCTAssertEqual(repository.requestedCodes, ["new@example.com"])
+        XCTAssertEqual(viewModel.state.error, L10n.emailNotRegistered)
+        XCTAssertEqual(viewModel.state.phase, .email)
+    }
+
+    func testRequestLoginCodeForUnverifiedEmailResendsVerification() async {
+        let repository = FakeAuthRepository()
+        repository.requestCodeStatus = .unverified
+        let viewModel = AuthViewModel(repository: repository)
+
+        let ok = await viewModel.requestLoginCode(email: "u@u.u")
+
+        XCTAssertTrue(ok)
+        XCTAssertEqual(repository.resent, ["u@u.u"])
+        XCTAssertEqual(viewModel.state.flow, .register)
+        XCTAssertEqual(viewModel.state.phase, .code)
+        XCTAssertEqual(viewModel.state.info, L10n.verificationSent("u@u.u"))
+    }
+
+    func testRequestLoginCodeForDeletedAccountShowsSupportHint() async {
+        let repository = FakeAuthRepository()
+        repository.requestCodeStatus = .deleted
+        let viewModel = AuthViewModel(repository: repository)
+
+        let ok = await viewModel.requestLoginCode(email: "gone@example.com")
+
+        XCTAssertFalse(ok)
+        XCTAssertEqual(viewModel.state.error, L10n.accountDeactivated)
+        XCTAssertEqual(viewModel.state.phase, .email)
+    }
+
+    func testRequestLoginCodeWithOldServerStillOpensCodeStep() async {
+        let repository = FakeAuthRepository()
+        repository.requestCodeStatus = .unknown
+        let viewModel = AuthViewModel(repository: repository)
+
+        let ok = await viewModel.requestLoginCode(email: "a@b.c")
+
+        XCTAssertTrue(ok)
+        XCTAssertEqual(viewModel.state.phase, .code)
+    }
+
     func testInvalidEmailDoesNotCallRepository() async {
         let repository = FakeAuthRepository()
         let viewModel = AuthViewModel(repository: repository)

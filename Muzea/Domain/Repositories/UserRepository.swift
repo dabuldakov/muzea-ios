@@ -10,6 +10,17 @@ protocol UserRepository {
 
 /// Авторизация на едином IdP. Отделена от профиля: у неё свой жизненный цикл
 /// (токены/секреты), а у профиля — только данные пользователя.
+/// Чем закончился запрос кода входа. Сервер знает про аккаунт, но текст
+/// ответа остаётся нейтральным — статус нужен только своему клиенту.
+enum LoginCodeStatus: Equatable {
+    case sent
+    case notFound
+    case unverified
+    case deleted
+    /// Старый сервер без поля `status`: ведём себя как раньше.
+    case unknown
+}
+
 protocol AuthRepositoryProtocol {
     var isLoggedIn: Bool { get }
 
@@ -19,8 +30,8 @@ protocol AuthRepositoryProtocol {
     func verifyEmail(email: String, code: String) async throws
     func resendVerification(email: String) async throws
 
-    /// Вход по коду (passwordless).
-    func requestLoginCode(email: String) async throws
+    /// Вход по коду (passwordless). Возвращает, существует ли аккаунт.
+    func requestLoginCode(email: String) async throws -> LoginCodeStatus
     func verifyLoginCode(email: String, code: String) async throws
 
     /// Профиль IdP (email/username/displayName/emailVerified).

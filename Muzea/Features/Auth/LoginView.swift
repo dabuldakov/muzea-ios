@@ -44,7 +44,7 @@ struct LoginView: View {
                 .padding()
             }
             .sheet(isPresented: $showRegister) {
-                RegisterView(container: container)
+                RegisterView(container: container, email: email)
             }
             .alert(L10n.reauthTitle, isPresented: $showReauthNotice) {
                 Button(L10n.reauthRegister) {

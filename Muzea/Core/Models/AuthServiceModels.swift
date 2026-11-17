@@ -54,6 +54,22 @@ struct AuthServiceMessage: Decodable {
     let message: String?
 }
 
+/// Ответ `/auth/otp/request`: текст нейтральный, статус говорит правду.
+struct AuthOtpRequestResponse: Decodable {
+    let message: String?
+    let status: String?
+
+    var loginCodeStatus: LoginCodeStatus {
+        switch status?.uppercased() {
+        case "SENT": return .sent
+        case "NOT_FOUND": return .notFound
+        case "UNVERIFIED": return .unverified
+        case "DELETED": return .deleted
+        default: return .unknown
+        }
+    }
+}
+
 struct AuthServiceErrorBody: Decodable {
     let code: String?
     let message: String?

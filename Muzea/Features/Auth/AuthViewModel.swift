@@ -40,11 +40,43 @@ final class AuthViewModel: ObservableObject {
         }
         state.flow = .login
         state.email = normalized
-        return await perform {
-            try await repository.requestLoginCode(email: normalized)
-        } onSuccess: {
-            state.phase = .code
-            state.info = L10n.codeSent(normalized)
+        return await submitLoginCodeRequest(email: normalized)
+    }
+
+    /// Общий путь для «Получить код» и «Отправить ещё раз». Сервер сообщает,
+    /// существует ли аккаунт: без этого пользователь видел «код отправлен»,
+    /// хотя письмо не уходило. Неподтверждённый email сразу доводим до кода.
+    private func submitLoginCodeRequest(email: String) async -> Bool {
+        state.isLoading = true
+        state.error = nil
+        defer { state.isLoading = false }
+        do {
+            let status = try await repository.requestLoginCode(email: email)
+            switch status {
+            case .sent, .unknown:
+                state.phase = .code
+                state.info = L10n.codeSent(email)
+                return true
+            case .notFound:
+                state.phase = .email
+                state.info = nil
+                state.error = L10n.emailNotRegistered
+                return false
+            case .deleted:
+                state.phase = .email
+                state.info = nil
+                state.error = L10n.accountDeactivated
+                return false
+            case .unverified:
+                try await repository.resendVerification(email: email)
+                state.flow = .register
+                state.phase = .code
+                state.info = L10n.verificationSent(email)
+                return true
+            }
+        } catch {
+            state.error = AuthErrorMapper.message(for: error)
+            return false
         }
     }
 
@@ -101,13 +133,11 @@ final class AuthViewModel: ObservableObject {
     func resend() async -> Bool {
         let flow = state.flow
         let email = state.email
+        if flow == .login {
+            return await submitLoginCodeRequest(email: email)
+        }
         return await perform {
-            switch flow {
-            case .login:
-                try await repository.requestLoginCode(email: email)
-            case .register:
-                try await repository.resendVerification(email: email)
-            }
+            try await repository.resendVerification(email: email)
         } onSuccess: {
             state.info = L10n.codeSentAgain(email)
         }
