@@ -79,14 +79,16 @@ final class HTTPClient {
         method: String = "POST",
         fields: [String: String] = [:],
         files: [MultipartFile],
-        authorized: Bool = true
+        authorized: Bool = true,
+        onProgress: ((Double) -> Void)? = nil
     ) async throws -> T {
         let data = try await uploadData(
             path,
             method: method,
             fields: fields,
             files: files,
-            authorized: authorized
+            authorized: authorized,
+            onProgress: onProgress
         )
         do {
             return try JSONDecoder().decode(T.self, from: data)
@@ -102,7 +104,8 @@ final class HTTPClient {
         method: String = "POST",
         fields: [String: String] = [:],
         files: [MultipartFile],
-        authorized: Bool = true
+        authorized: Bool = true,
+        onProgress: ((Double) -> Void)? = nil
     ) async throws -> Data {
         let boundary = "Boundary-\(UUID().uuidString)"
         var request = URLRequest(url: try makeURL(path, query: []))
@@ -112,7 +115,7 @@ final class HTTPClient {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         request.httpBody = multipartBody(boundary: boundary, fields: fields, files: files)
-        return try await execute(request)
+        return try await execute(request, onProgress: onProgress)
     }
 
     /// multipart/form-data только из текстовых полей (без файла).
@@ -160,13 +163,16 @@ final class HTTPClient {
         return try await execute(request)
     }
 
-    private func execute(_ request: URLRequest) async throws -> Data {
+    private func execute(
+        _ request: URLRequest,
+        onProgress: ((Double) -> Void)? = nil
+    ) async throws -> Data {
         var current = request
         var attempt = 0
 
         while true {
             do {
-                let (data, response) = try await session.data(for: current)
+                let (data, response) = try await send(current, onProgress: onProgress)
                 guard let http = response as? HTTPURLResponse else {
                     throw APIError.server(-1, "Пустой ответ")
                 }
@@ -201,6 +207,18 @@ final class HTTPClient {
                 throw APIError.transport(error)
             }
         }
+    }
+
+    /// Обычный запрос или запрос с отчётом о прогрессе отправки тела.
+    private func send(
+        _ request: URLRequest,
+        onProgress: ((Double) -> Void)?
+    ) async throws -> (Data, URLResponse) {
+        guard let onProgress else {
+            return try await session.data(for: request)
+        }
+        let delegate = UploadProgressDelegate(handler: onProgress)
+        return try await session.data(for: request, delegate: delegate)
     }
 
     private func refreshIfPossible(sentToken: String?) async -> Bool {
@@ -268,5 +286,28 @@ final class HTTPClient {
         }
         body.append("--\(boundary)--\(lineBreak)")
         return body
+    }
+}
+
+/// `URLSessionTaskDelegate` только ради `didSendBodyData`: multipart-тело
+/// кладётся в запрос целиком, но URLSession всё равно сообщает, сколько
+/// байт уже ушло.
+private final class UploadProgressDelegate: NSObject, URLSessionTaskDelegate {
+    private let handler: (Double) -> Void
+
+    init(handler: @escaping (Double) -> Void) {
+        self.handler = handler
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didSendBodyData bytesSent: Int64,
+        totalBytesSent: Int64,
+        totalBytesExpectedToSend: Int64
+    ) {
+        guard totalBytesExpectedToSend > 0 else { return }
+        let progress = Double(totalBytesSent) / Double(totalBytesExpectedToSend)
+        handler(min(1, max(0, progress)))
     }
 }

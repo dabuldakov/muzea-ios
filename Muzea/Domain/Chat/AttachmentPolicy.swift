@@ -107,14 +107,24 @@ enum AttachmentPolicy {
     }
 }
 
-/// Вложение, выбранное в композере: локальное имя и результат загрузки.
+/// Вложение, выбранное в композере: локальное имя, прогресс и результат.
 struct PendingChatAttachment: Identifiable, Equatable {
     let id: String
     let fileName: String
     let kind: AttachmentKind
     var uploaded: ChatAttachment?
+    /// 0...1; 0 — размер ещё неизвестен, показываем индикатор без значения.
+    var progress: Double = 0
+    /// Ошибка загрузки именно этого файла: пузырь можно повторить отдельно.
+    var error: String?
 
     var isUploaded: Bool { uploaded != nil }
+    var isUploading: Bool { uploaded == nil && error == nil }
+
+    /// Прогресс для `ProgressView`: 0 — неопределённый.
+    var normalizedProgress: Double {
+        min(1, max(0, progress))
+    }
 }
 
 /// Абсолютные URL вложений. Сервер отдаёт `fileUrl` ключом MinIO, поэтому

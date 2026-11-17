@@ -85,19 +85,49 @@ protocol ModerationRepository {
     func block(userUuid: String, reason: String?) async throws
 }
 
-/// Вложения: загрузка orphan-файла и скачивание через бэкенд.
-protocol AttachmentRepository {
-    func upload(
+/// Параметры загрузки вложения. Отдельный тип вместо девяти аргументов:
+/// проще добавлять поля (прогресс, сжатие) и подменять в тестах.
+struct AttachmentUploadRequest {
+    let chatUuid: String
+    let data: Data
+    let fileName: String
+    let mimeType: String
+    let kind: AttachmentKind
+    let thumbnail: Data?
+    let width: Int?
+    let height: Int?
+    let duration: Int?
+    /// 0...1, вызывается по мере отправки тела запроса.
+    let onProgress: ((Double) -> Void)?
+
+    init(
         chatUuid: String,
         data: Data,
         fileName: String,
         mimeType: String,
         kind: AttachmentKind,
-        thumbnail: Data?,
-        width: Int?,
-        height: Int?,
-        duration: Int?
-    ) async throws -> ChatAttachment
+        thumbnail: Data? = nil,
+        width: Int? = nil,
+        height: Int? = nil,
+        duration: Int? = nil,
+        onProgress: ((Double) -> Void)? = nil
+    ) {
+        self.chatUuid = chatUuid
+        self.data = data
+        self.fileName = fileName
+        self.mimeType = mimeType
+        self.kind = kind
+        self.thumbnail = thumbnail
+        self.width = width
+        self.height = height
+        self.duration = duration
+        self.onProgress = onProgress
+    }
+}
+
+/// Вложения: загрузка orphan-файла и скачивание через бэкенд.
+protocol AttachmentRepository {
+    func upload(_ request: AttachmentUploadRequest) async throws -> ChatAttachment
     func download(attachmentUuid: String) async throws -> Data
     /// Превью для пузыря: оригинал для изображений, миниатюра для видео.
     func preview(attachmentUuid: String) async throws -> Data

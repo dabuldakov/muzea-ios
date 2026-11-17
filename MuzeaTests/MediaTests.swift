@@ -205,15 +205,17 @@ final class AttachmentRepositoryTests: XCTestCase {
         }
 
         let uploaded = try await repository().upload(
-            chatUuid: "c-1",
-            data: Data([0xFF, 0xD8, 0xFF]),
-            fileName: "photo.jpg",
-            mimeType: "image/jpeg",
-            kind: .image,
-            thumbnail: Data([0xFF, 0xD8, 0xFF]),
-            width: 10,
-            height: 20,
-            duration: nil
+            AttachmentUploadRequest(
+                chatUuid: "c-1",
+                data: Data([0xFF, 0xD8, 0xFF]),
+                fileName: "photo.jpg",
+                mimeType: "image/jpeg",
+                kind: .image,
+                thumbnail: Data([0xFF, 0xD8, 0xFF]),
+                width: 10,
+                height: 20,
+                duration: nil
+            )
         )
 
         XCTAssertEqual(uploaded.attachmentUuid, "a-1")
@@ -278,12 +280,14 @@ final class AttachmentRepositoryTests: XCTestCase {
 final class ChatMediaViewModelTests: XCTestCase {
 
     private func makeViewModel(
-        attachmentRepository: FakeAttachmentRepository = FakeAttachmentRepository()
+        attachmentRepository: FakeAttachmentRepository = FakeAttachmentRepository(),
+        pendingStore: FakePendingAttachmentStore = FakePendingAttachmentStore()
     ) -> (ChatConversationViewModel, FakeMessageRepository) {
         let messages = FakeMessageRepository()
         let services = ChatConversationServices.fake(
             messages: messages,
-            attachments: attachmentRepository
+            attachments: attachmentRepository,
+            pendingAttachments: pendingStore
         )
         let viewModel = ChatConversationViewModel(
             chatUuid: "c-1",
@@ -304,6 +308,50 @@ final class ChatMediaViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.state.pendingAttachments.count, 1)
         XCTAssertTrue(viewModel.state.pendingAttachments[0].isUploaded)
         XCTAssertFalse(viewModel.state.isUploadingAttachments)
+    }
+
+    func testUploadFailureIsLocalToAttachmentAndRetrySucceeds() async throws {
+        let attachments = FakeAttachmentRepository()
+        attachments.uploadError = APIError.server(500, "boom")
+        let store = FakePendingAttachmentStore()
+        let (viewModel, _) = makeViewModel(
+            attachmentRepository: attachments,
+            pendingStore: store
+        )
+
+        await viewModel.addImage(data: Data([1, 2, 3]), width: 1, height: 1)
+
+        let failed = try XCTUnwrap(viewModel.state.pendingAttachments.first)
+        XCTAssertFalse(failed.isUploaded)
+        XCTAssertNotNil(failed.error)
+        XCTAssertNil(viewModel.state.error)
+        XCTAssertFalse(viewModel.state.isUploadingAttachments)
+        XCTAssertEqual(store.records.count, 1)
+
+        attachments.uploadError = nil
+        await viewModel.retryPendingAttachment(failed.id)
+
+        let retried = try XCTUnwrap(viewModel.state.pendingAttachments.first)
+        XCTAssertTrue(retried.isUploaded)
+        XCTAssertNil(retried.error)
+        XCTAssertEqual(retried.normalizedProgress, 1)
+        XCTAssertEqual(attachments.uploads.count, 2)
+        XCTAssertEqual(store.records.first?.uploaded?.attachmentUuid, "a-1")
+    }
+
+    func testUploadProgressTargetsOnlyItsAttachmentAndClamps() async throws {
+        let (viewModel, _) = makeViewModel()
+        await viewModel.addImage(data: Data([1]), width: 1, height: 1)
+        let id = try XCTUnwrap(viewModel.state.pendingAttachments.first?.id)
+
+        viewModel.updateUploadProgress(id: id, progress: 0.42)
+        XCTAssertEqual(viewModel.state.pendingAttachments[0].normalizedProgress, 0.42)
+
+        viewModel.updateUploadProgress(id: id, progress: 2)
+        XCTAssertEqual(viewModel.state.pendingAttachments[0].normalizedProgress, 1)
+
+        viewModel.updateUploadProgress(id: "unknown", progress: 0.5)
+        XCTAssertEqual(viewModel.state.pendingAttachments[0].normalizedProgress, 1)
     }
 
     func testAttachmentLimitRejectsEleventhFile() async {

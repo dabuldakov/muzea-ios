@@ -454,6 +454,27 @@ final class ChatConversationViewModel: ObservableObject {
     func removePendingAttachment(_ id: String) {
         services.pendingAttachments.remove(id: id)
         state.pendingAttachments.removeAll { $0.id == id }
+        state.isUploadingAttachments = state.pendingAttachments.contains { $0.isUploading }
+    }
+
+    /// Повторная загрузка одного файла — по тапу на ошибку, как на Android.
+    func retryPendingAttachment(_ id: String) async {
+        guard let record = services.pendingAttachments.load(chatUuid: chatUuid)
+            .first(where: { $0.id == id }), record.uploaded == nil else { return }
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: record.filePath)) else {
+            removePendingAttachment(id)
+            return
+        }
+        let thumbnail = record.thumbnailPath.flatMap { path in
+            try? Data(contentsOf: URL(fileURLWithPath: path))
+        }
+        if let index = state.pendingAttachments.firstIndex(where: { $0.id == id }) {
+            state.pendingAttachments[index].error = nil
+            state.pendingAttachments[index].progress = 0
+        }
+        state.isUploadingAttachments = true
+        await performUpload(id: id, record: record, data: data, thumbnail: thumbnail)
+        state.isUploadingAttachments = state.pendingAttachments.contains { $0.isUploading }
     }
 
     /// Догружает вложения, которые были выбраны до перезапуска приложения.
@@ -468,36 +489,15 @@ final class ChatConversationViewModel: ObservableObject {
 
         for item in stored {
             guard let data = try? Data(contentsOf: URL(fileURLWithPath: item.filePath)) else {
-                services.pendingAttachments.remove(id: item.id)
-                state.pendingAttachments.removeAll { $0.id == item.id }
+                removePendingAttachment(item.id)
                 continue
             }
             let thumbnail = item.thumbnailPath.flatMap { path in
                 try? Data(contentsOf: URL(fileURLWithPath: path))
             }
-            do {
-                let uploaded = try await services.attachments.upload(
-                    chatUuid: chatUuid,
-                    data: data,
-                    fileName: item.fileName,
-                    mimeType: item.mimeType,
-                    kind: AttachmentKind(rawValue: item.kind) ?? .document,
-                    thumbnail: thumbnail,
-                    width: item.width,
-                    height: item.height,
-                    duration: item.duration
-                )
-                var updated = item
-                updated.uploaded = uploaded
-                services.pendingAttachments.update(updated)
-                if let index = state.pendingAttachments.firstIndex(where: { $0.id == item.id }) {
-                    state.pendingAttachments[index].uploaded = uploaded
-                }
-            } catch {
-                state.error = error.localizedDescription
-            }
+            await performUpload(id: item.id, record: item, data: data, thumbnail: thumbnail)
         }
-        state.isUploadingAttachments = state.pendingAttachments.contains { !$0.isUploaded }
+        state.isUploadingAttachments = state.pendingAttachments.contains { $0.isUploading }
     }
 
     private func upload(
@@ -550,31 +550,65 @@ final class ChatConversationViewModel: ObservableObject {
             data: data,
             thumbnail: thumbnail
         )
-        var stored = services.pendingAttachments.load(chatUuid: chatUuid)
+        let stored = services.pendingAttachments.load(chatUuid: chatUuid)
             .first { $0.id == id } ?? record
 
+        await performUpload(id: id, record: stored, data: data, thumbnail: thumbnail)
+        state.isUploadingAttachments = state.pendingAttachments.contains { $0.isUploading }
+    }
+
+    /// Одна загрузка: прогресс обновляет только свой файл, ошибка тоже локальна.
+    private func performUpload(
+        id: String,
+        record: StoredPendingAttachment,
+        data: Data,
+        thumbnail: Data?
+    ) async {
+        let request = AttachmentUploadRequest(
+            chatUuid: chatUuid,
+            data: data,
+            fileName: record.fileName,
+            mimeType: record.mimeType,
+            kind: AttachmentKind(rawValue: record.kind) ?? .document,
+            thumbnail: thumbnail,
+            width: record.width,
+            height: record.height,
+            duration: record.duration,
+            onProgress: { [weak self] progress in
+                Task { @MainActor in
+                    self?.updateUploadProgress(id: id, progress: progress)
+                }
+            }
+        )
+
         do {
-            let uploaded = try await services.attachments.upload(
-                chatUuid: chatUuid,
-                data: data,
-                fileName: fileName,
-                mimeType: mimeType,
-                kind: kind,
-                thumbnail: thumbnail,
-                width: width,
-                height: height,
-                duration: duration
-            )
+            let uploaded = try await services.attachments.upload(request)
+            var stored = record
             stored.uploaded = uploaded
             services.pendingAttachments.update(stored)
             if let index = state.pendingAttachments.firstIndex(where: { $0.id == id }) {
                 state.pendingAttachments[index].uploaded = uploaded
+                state.pendingAttachments[index].error = nil
+                state.pendingAttachments[index].progress = 1
             }
         } catch {
-            // Файл остаётся в дисковой очереди и повторится позже.
-            state.error = error.localizedDescription
+            // Файл остаётся в дисковой очереди: повтор — тапом по вложению.
+            let message = error.localizedDescription
+            if let index = state.pendingAttachments.firstIndex(where: { $0.id == id }) {
+                state.pendingAttachments[index].error = message
+            } else {
+                state.error = message
+            }
         }
-        state.isUploadingAttachments = state.pendingAttachments.contains { !$0.isUploaded }
+    }
+
+    /// Обновление прогресса одного файла. Внутренний, чтобы тесты могли
+    /// проверить адресность и зажим значений без реального URLSession.
+    func updateUploadProgress(id: String, progress: Double) {
+        guard let index = state.pendingAttachments.firstIndex(where: { $0.id == id }) else {
+            return
+        }
+        state.pendingAttachments[index].progress = progress
     }
 
     func beginEdit(_ message: ChatMessage) {

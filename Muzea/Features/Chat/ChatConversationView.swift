@@ -97,6 +97,9 @@ struct ChatConversationView: View {
                     onAttach: { showAttachMenu = true },
                     onEmojiGif: { activeSheet = .emojiGif },
                     onRemoveAttachment: { viewModel.removePendingAttachment($0) },
+                    onRetryAttachment: { id in
+                        Task { await viewModel.retryPendingAttachment(id) }
+                    },
                     onSend: { power in send(power: power) },
                     onVoiceRecorded: { recorded in
                         Task { _ = await viewModel.sendVoice(recorded) }

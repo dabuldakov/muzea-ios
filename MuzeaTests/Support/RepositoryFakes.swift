@@ -198,34 +198,30 @@ final class FakeMessageRepository: MessageRepository {
 
 final class FakeAttachmentRepository: AttachmentRepository {
     var uploads: [(String, String, AttachmentKind)] = []
+    var progressValues: [Double] = []
     var response: ChatAttachment?
+    var uploadError: Error?
     var downloadData = Data([1, 2, 3])
     var downloads = 0
 
-    func upload(
-        chatUuid: String,
-        data: Data,
-        fileName: String,
-        mimeType: String,
-        kind: AttachmentKind,
-        thumbnail: Data?,
-        width: Int?,
-        height: Int?,
-        duration: Int?
-    ) async throws -> ChatAttachment {
-        uploads.append((chatUuid, fileName, kind))
+    func upload(_ request: AttachmentUploadRequest) async throws -> ChatAttachment {
+        uploads.append((request.chatUuid, request.fileName, request.kind))
+        if let uploadError { throw uploadError }
+        for progress in progressValues {
+            request.onProgress?(progress)
+        }
         let result = response ?? ChatAttachment(
             attachmentUuid: "a-1",
-            fileName: fileName,
+            fileName: request.fileName,
             fileUrl: "stored-key",
             thumbnailUrl: nil,
             mp4Url: nil,
-            fileSize: Int64(data.count),
-            mimeType: mimeType,
-            type: kind.rawValue,
-            width: width,
-            height: height,
-            duration: duration,
+            fileSize: Int64(request.data.count),
+            mimeType: request.mimeType,
+            type: request.kind.rawValue,
+            width: request.width,
+            height: request.height,
+            duration: request.duration,
             gifKey: nil
         )
         response = result
@@ -366,10 +362,23 @@ final class FakePendingAttachmentStore: PendingAttachmentStore {
     }
 
     func save(record: StoredPendingAttachment, data: Data, thumbnail: Data?) throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("fake-pending", isDirectory: true)
+            .appendingPathComponent(record.id, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fileURL = directory.appendingPathComponent(record.fileName)
+        try data.write(to: fileURL, options: .atomic)
+
+        var thumbnailPath: String?
+        if let thumbnail {
+            let thumbURL = directory.appendingPathComponent("thumb.jpg")
+            try thumbnail.write(to: thumbURL, options: .atomic)
+            thumbnailPath = thumbURL.path
+        }
+
         dataByID[record.id] = data
         thumbByID[record.id] = thumbnail
-        var stored = record
-        stored = StoredPendingAttachment(
+        let stored = StoredPendingAttachment(
             id: record.id,
             chatUuid: record.chatUuid,
             fileName: record.fileName,
@@ -378,8 +387,8 @@ final class FakePendingAttachmentStore: PendingAttachmentStore {
             width: record.width,
             height: record.height,
             duration: record.duration,
-            filePath: record.filePath,
-            thumbnailPath: record.thumbnailPath,
+            filePath: fileURL.path,
+            thumbnailPath: thumbnailPath,
             uploaded: record.uploaded
         )
         records.removeAll { $0.id == record.id }

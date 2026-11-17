@@ -8,31 +8,22 @@ final class AttachmentRepositoryImpl: AttachmentRepository {
         self.auth = auth
     }
 
-    func upload(
-        chatUuid: String,
-        data: Data,
-        fileName: String,
-        mimeType: String,
-        kind: AttachmentKind,
-        thumbnail: Data?,
-        width: Int?,
-        height: Int?,
-        duration: Int?
-    ) async throws -> ChatAttachment {
-        var fields = ["chatUuid": chatUuid]
-        if let width { fields["width"] = String(width) }
-        if let height { fields["height"] = String(height) }
-        if let duration { fields["duration"] = String(duration) }
+    func upload(_ request: AttachmentUploadRequest) async throws -> ChatAttachment {
+        var fields = ["chatUuid": request.chatUuid]
+        if let width = request.width { fields["width"] = String(width) }
+        if let height = request.height { fields["height"] = String(height) }
+        if let duration = request.duration { fields["duration"] = String(duration) }
 
         var files = [
             MultipartFile(
                 field: "file",
-                fileName: fileName,
-                mimeType: mimeType,
-                data: data
+                fileName: request.fileName,
+                mimeType: request.mimeType,
+                data: request.data
             )
         ]
-        if let thumbnail, kind == .image || kind == .video {
+        if let thumbnail = request.thumbnail,
+           request.kind == .image || request.kind == .video {
             files.append(MultipartFile(
                 field: "thumbnail",
                 fileName: "thumb.jpg",
@@ -41,11 +32,13 @@ final class AttachmentRepositoryImpl: AttachmentRepository {
             ))
         }
 
+        let onProgress = request.onProgress
         return try await auth.authorized {
             try await auth.client.upload(
                 "/api/attachments/upload",
                 fields: fields,
-                files: files
+                files: files,
+                onProgress: onProgress
             )
         }
     }

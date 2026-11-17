@@ -60,16 +60,16 @@ the iOS backlog: update the status as work lands. Status values:
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
 | MEDIA.01 | Photos | partial | multi-select до 10, JPEG 2048px, upload, grid, gallery; device smoke pending |
-| MEDIA.02 | Video | partial | upload, full-screen AVPlayer, cache; thumbnails/compression/progress pending |
+| MEDIA.02 | Video | partial | upload, full-screen AVPlayer, cache; сжатие/миниатюры из видео pending |
 | MEDIA.03 | Voice messages | partial | запись, waveform из реальных пиков, прогресс, кэш; device smoke pending |
 | MEDIA.04 | Video notes (circles) | partial | AVCaptureSession, 60s, round preview/recorder, VIDEO_NOTE, thumbnail; device check pending |
 | MEDIA.05 | GIF (Klipy) | partial | поиск + «Мои»/«Этот чат» с сервера, диск cache, looping MP4; device smoke pending |
 | MEDIA.06 | Documents | partial | upload, card, QuickLook, share; device check pending |
 | MEDIA.07 | Save to Files/Photos | partial | Save to Photos for photo/video, Files через share; device check pending |
-| MEDIA.08 | Upload queue | partial | disk queue files+thumbs, restore/retry at chat open; no network monitor/progress |
+| MEDIA.08 | Upload queue | partial | disk queue files+thumbs, restore/retry, прогресс и ошибка по каждому файлу, retry тапом |
 | MEDIA.09 | Open/share after download | partial | QuickLook, video player, share sheet; device check pending |
 | MEDIA.10 | GIF cache | partial | first page on disk, TTL 30 min, stale fallback |
-| MEDIA.12 | Image viewer | partial | swipe gallery, author/date, share/save; reply/forward actions pending |
+| MEDIA.12 | Image viewer | partial | swipe gallery, author/date, reply/forward/share/save; device check pending |
 | MEDIA.13 | Server thumbnails | n/a | backend plan; client just uses URLs |
 | MEDIA.14 | CDN/presigned | n/a | backend plan |
 
