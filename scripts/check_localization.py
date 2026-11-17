@@ -35,8 +35,26 @@ CYRILLIC = re.compile(r'"[^"\n]*[А-Яа-яЁё][^"\n]*"')
 PLACEHOLDER = re.compile(r'%(?:\d+\$)?[@dfsu]')
 
 
+DECLARED = re.compile(r'static (?:var|func) (\w+)')
+USAGE = re.compile(r'L10n\.(\w+)')
+
+
 def used_keys() -> set[str]:
     return set(KEY_CALL.findall(L10N_SWIFT.read_text()))
+
+
+def getters() -> set[str]:
+    return set(DECLARED.findall(L10N_SWIFT.read_text()))
+
+
+def getter_usages() -> set[str]:
+    used: set[str] = set()
+    for base in (ROOT / "Muzea", ROOT / "MuzeaTests"):
+        for path in base.rglob("*.swift"):
+            if path == L10N_SWIFT:
+                continue
+            used |= set(USAGE.findall(path.read_text()))
+    return used
 
 
 def table(path: Path) -> dict[str, str]:
@@ -72,6 +90,15 @@ def main() -> int:
             problems.append(
                 f"{key}: плейсхолдеры не совпадают ru={ru_placeholders} en={en_placeholders}"
             )
+
+    declared = getters() - {"t", "format"}
+    used_getters = getter_usages()
+    unknown = sorted(used_getters - declared)
+    if unknown:
+        problems.append(f"L10n: нет геттеров {unknown}")
+    dead = sorted(declared - used_getters)
+    if dead:
+        problems.append(f"L10n: не используются геттеры {dead}")
 
     leaked: list[str] = []
     for directory in CHECKED_DIRS:

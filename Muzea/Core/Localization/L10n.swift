@@ -62,7 +62,6 @@ enum L10n {
     static var file: String { t("chat.file") }
     static var emojiGif: String { t("chat.emojiGif") }
     static var emoji: String { t("chat.emoji") }
-    static var gif: String { t("chat.gif") }
     static var mode: String { t("chat.mode") }
     static var attach: String { t("chat.attach") }
     static var removeAttachment: String { t("chat.removeAttachment") }
