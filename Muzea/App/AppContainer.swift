@@ -18,6 +18,7 @@ final class AppContainer: ObservableObject {
     let messageRepository: MessageRepository
     let messageActionsRepository: MessageActionsRepository
     let attachmentRepository: AttachmentRepository
+    let gifRepository: GifRepository
     let messageReactionRepository: MessageReactionRepository
     let messageReceiptRepository: MessageReceiptRepository
     let messageStatusRepository: MessageStatusRepository
@@ -77,6 +78,7 @@ final class AppContainer: ObservableObject {
         messageActionsRepository = actions
         let attachments = AttachmentRepositoryImpl(auth: authorization)
         attachmentRepository = attachments
+        gifRepository = KlipyGifRepository()
         let reactions = MessageReactionRepositoryImpl(auth: authorization)
         messageReactionRepository = reactions
         let receipts = MessageReceiptRepositoryImpl(auth: authorization)

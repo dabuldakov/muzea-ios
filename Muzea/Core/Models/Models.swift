@@ -409,6 +409,19 @@ struct SendMessageRequest: Encodable {
     var power: Int? = nil
     /// UUID загруженных вложений (до 10).
     var attachments: [String]? = nil
+    /// Метаданные GIF: поиск делает клиент у Klipy.
+    var gif: GifPayload? = nil
+}
+
+struct GifPayload: Encodable {
+    let provider: String
+    let providerGifId: String
+    let title: String?
+    let url: String
+    let previewUrl: String?
+    let mp4Url: String?
+    let width: Int?
+    let height: Int?
 }
 
 struct EditMessageRequest: Encodable {

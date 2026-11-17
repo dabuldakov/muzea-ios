@@ -11,6 +11,7 @@ struct ChatComposerView: View {
     let pendingAttachments: [PendingChatAttachment]
     let isUploadingAttachments: Bool
     let onAttach: () -> Void
+    let onEmojiGif: () -> Void
     let onRemoveAttachment: (String) -> Void
     let onSend: (Int) -> Void
     let onVoiceRecorded: (RecordedVoice) -> Void
@@ -100,6 +101,12 @@ struct ChatComposerView: View {
                         .font(.title3)
                 }
                 .disabled(editing != nil || (isUploadingAttachments && pendingAttachments.isEmpty))
+
+                Button(action: onEmojiGif) {
+                    Image(systemName: "face.smiling")
+                        .font(.title3)
+                }
+                .disabled(editing != nil)
 
                 ZStack(alignment: .topLeading) {
                     MentionTextEditor(text: $text, selection: $selection)

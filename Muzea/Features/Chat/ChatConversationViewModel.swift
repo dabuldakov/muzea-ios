@@ -351,6 +351,66 @@ final class ChatConversationViewModel: ObservableObject {
         return await send("")
     }
 
+    func sendGif(_ gif: Gif) async {
+        let replyToUuid = state.replyTo.map { reducer.serverUuid($0.messageUuid) }
+        let attachment = AttachmentResponse(
+            attachmentUuid: nil,
+            fileName: gif.title,
+            fileUrl: gif.url,
+            thumbnailUrl: gif.previewUrl,
+            mp4Url: gif.mp4Url,
+            fileSize: nil,
+            mimeType: "image/gif",
+            type: "GIF",
+            width: gif.width,
+            height: gif.height,
+            duration: nil,
+            gifKey: gif.gifKey
+        )
+        let optimistic = MessageResponse(
+            messageUuid: "local-\(Int(Date().timeIntervalSince1970 * 1000))",
+            chatUuid: chatUuid,
+            senderId: nil,
+            senderUuid: myUserUuid,
+            senderName: nil,
+            senderAvatar: nil,
+            text: nil,
+            messageType: "GIF",
+            replyToMessageUuid: replyToUuid,
+            isEdited: false,
+            isDeleted: false,
+            isPinned: false,
+            createdAt: Self.pendingDateFormatter.string(from: Date()),
+            updatedAt: nil,
+            reactions: [],
+            attachments: [attachment]
+        )
+        merge([optimistic])
+        state.replyTo = nil
+
+        do {
+            let sent = try await services.messages.sendGif(
+                chatUuid: chatUuid,
+                gif: gif,
+                replyToMessageUuid: replyToUuid
+            )
+            state.messages = reducer.applyServerEcho(
+                current: state.messages,
+                localUuid: optimistic.messageUuid,
+                serverMessage: sent
+            )
+            recomputeStatuses()
+            await markDelivered()
+        } catch {
+            state.messages = reducer.removeMessage(
+                current: state.messages,
+                messageUuid: optimistic.messageUuid
+            )
+            state.error = error.localizedDescription
+            recomputeStatuses()
+        }
+    }
+
     func removePendingAttachment(_ id: String) {
         state.pendingAttachments.removeAll { $0.id == id }
     }

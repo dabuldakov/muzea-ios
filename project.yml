@@ -18,6 +18,8 @@ settings:
     CODE_SIGNING_ALLOWED: "NO"
     CODE_SIGNING_REQUIRED: "NO"
     CODE_SIGN_IDENTITY: ""
+    # Klipy GIF: значение подставляет окружение/CI, чтобы ключ не жил в git.
+    KLIPY_APP_KEY: ""
 
 targets:
   Muzea:

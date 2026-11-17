@@ -82,6 +82,37 @@ final class MessageRepositoryImpl: MessageRepository {
         }
     }
 
+    func sendGif(
+        chatUuid: String,
+        gif: Gif,
+        replyToMessageUuid: String?
+    ) async throws -> MessageResponse {
+        try await auth.authorized {
+            try await auth.client.request(
+                "POST",
+                "/api/messages/\(chatUuid)",
+                body: SendMessageRequest(
+                    text: "",
+                    messageType: "GIF",
+                    replyToMessageUuid: replyToMessageUuid,
+                    clientMessageId: nil,
+                    power: nil,
+                    attachments: nil,
+                    gif: GifPayload(
+                        provider: gif.provider,
+                        providerGifId: gif.providerGifId,
+                        title: gif.title,
+                        url: gif.url,
+                        previewUrl: gif.previewUrl,
+                        mp4Url: gif.mp4Url,
+                        width: gif.width,
+                        height: gif.height
+                    )
+                )
+            )
+        }
+    }
+
     func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [MessageResponse] {
         try await auth.authorized {
             try await auth.client.request(

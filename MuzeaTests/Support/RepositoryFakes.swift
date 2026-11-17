@@ -143,6 +143,50 @@ final class FakeMessageRepository: MessageRepository {
         )
     }
 
+    var sentGifs: [Gif] = []
+
+    func sendGif(
+        chatUuid: String,
+        gif: Gif,
+        replyToMessageUuid: String?
+    ) async throws -> MessageResponse {
+        sentGifs.append(gif)
+        if let sendError { throw sendError }
+        return MessageResponse(
+            messageUuid: "gif-1",
+            chatUuid: chatUuid,
+            senderId: nil,
+            senderUuid: "me",
+            senderName: nil,
+            senderAvatar: nil,
+            text: "",
+            messageType: "GIF",
+            replyToMessageUuid: replyToMessageUuid,
+            isEdited: false,
+            isDeleted: false,
+            isPinned: false,
+            createdAt: "2026-01-01T00:00:02",
+            updatedAt: nil,
+            power: nil,
+            attachments: [
+                AttachmentResponse(
+                    attachmentUuid: nil,
+                    fileName: gif.title,
+                    fileUrl: gif.url,
+                    thumbnailUrl: gif.previewUrl,
+                    mp4Url: gif.mp4Url,
+                    fileSize: nil,
+                    mimeType: "image/gif",
+                    type: "GIF",
+                    width: gif.width,
+                    height: gif.height,
+                    duration: nil,
+                    gifKey: nil
+                )
+            ]
+        )
+    }
+
     func markMessagesAsRead(chatUuid: String, upToMessageUuid: String) async {
         markedRead.append((chatUuid, upToMessageUuid))
     }
@@ -292,8 +336,17 @@ final class FakeReactionHistoryStore: ReactionHistoryStore {
     }
 }
 
-final class FakeChatOutboxStore: ChatOutboxStore {
-    var items: [PendingChatMessage] = []
+final class FakeGifRepository: GifRepository {
+    var gifs: [Gif] = []
+    var queries: [String] = []
+
+    func search(query: String, page: Int, size: Int) async -> [Gif] {
+        queries.append(query)
+        return gifs
+    }
+}
+
+final class FakeChatOutboxStore: ChatOutboxStore {    var items: [PendingChatMessage] = []
 
     func pending(chatUuid: String) -> [PendingChatMessage] {
         items.filter { $0.chatUuid == chatUuid }

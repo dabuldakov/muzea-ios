@@ -320,4 +320,25 @@ final class ChatMediaViewModelTests: XCTestCase {
         XCTAssertEqual(messages.sentMedia.first?.attachments, ["a-1"])
         XCTAssertTrue(viewModel.state.pendingAttachments.isEmpty)
     }
+
+    func testSendGifCreatesGifMessage() async {
+        let (viewModel, messages) = makeViewModel()
+        let gif = Gif(
+            provider: "klipy",
+            providerGifId: "g1",
+            title: "Cat",
+            url: "https://cdn/cat.webp",
+            previewUrl: "https://cdn/cat.jpg",
+            mp4Url: "https://cdn/cat.mp4",
+            width: 200,
+            height: 100,
+            gifKey: nil
+        )
+
+        await viewModel.sendGif(gif)
+
+        XCTAssertEqual(messages.sentGifs.first?.providerGifId, "g1")
+        XCTAssertEqual(viewModel.state.messages.first?.messageType, "GIF")
+        XCTAssertEqual(viewModel.state.messages.first?.attachments?.first?.type, "GIF")
+    }
 }

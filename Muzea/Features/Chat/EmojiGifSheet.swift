@@ -1,0 +1,143 @@
+import SwiftUI
+
+/// Нижняя панель «Эмодзи + GIF»: эмодзи вставляются в текст, GIF отправляются
+/// сообщением. Поиск идёт напрямую в Klipy с устройства.
+struct EmojiGifSheet: View {
+    let repository: GifRepository
+    let onEmoji: (String) -> Void
+    let onGif: (Gif) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel: GifSearchViewModel
+    @State private var tab = 0
+    @State private var searchTask: Task<Void, Never>?
+
+    private let emojis = [
+        "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🙂",
+        "😉", "😊", "😍", "🥰", "😘", "😎", "🤔", "😐",
+        "😴", "😢", "😭", "😡", "🤯", "🥳", "👍", "👎",
+        "👏", "🙏", "🤝", "💪", "❤️", "💔", "🔥", "✨",
+        "🎉", "🎂", "☀️", "🌙", "⭐️", "⚡", "💯", "✅",
+        "❌", "👀", "🤡", "💩", "🙈", "🙉", "🙊", "🤗"
+    ]
+
+    init(
+        repository: GifRepository,
+        onEmoji: @escaping (String) -> Void,
+        onGif: @escaping (Gif) -> Void
+    ) {
+        self.repository = repository
+        self.onEmoji = onEmoji
+        self.onGif = onGif
+        _viewModel = StateObject(wrappedValue: GifSearchViewModel(repository: repository))
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                Picker("Режим", selection: $tab) {
+                    Text("Эмодзи").tag(0)
+                    Text("GIF").tag(1)
+                }
+                .pickerStyle(.segmented)
+                .padding(12)
+
+                if tab == 0 {
+                    emojiGrid
+                } else {
+                    gifContent
+                }
+            }
+            .navigationTitle("Эмодзи и GIF")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Закрыть") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .onChange(of: tab) { value in
+            if value == 1 {
+                Task { await viewModel.loadIfNeeded() }
+            }
+        }
+        .onChange(of: viewModel.query) { value in
+            searchTask?.cancel()
+            searchTask = Task {
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                guard !Task.isCancelled else { return }
+                await viewModel.search(query: value)
+            }
+        }
+    }
+
+    private var emojiGrid: some View {
+        ScrollView {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 8),
+                spacing: 10
+            ) {
+                ForEach(emojis, id: \.self) { emoji in
+                    Button(emoji) {
+                        onEmoji(emoji)
+                    }
+                    .font(.title2)
+                }
+            }
+            .padding(12)
+        }
+    }
+
+    @ViewBuilder
+    private var gifContent: some View {
+        if Config.klipyAppKey.trimmingCharacters(in: .whitespaces).isEmpty {
+            VStack(spacing: 8) {
+                Image(systemName: "sparkles").font(.largeTitle)
+                Text("GIF недоступны: не настроен ключ Klipy")
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            VStack(spacing: 0) {
+                TextField("Поиск GIF", text: $viewModel.query)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
+
+                if viewModel.isLoading {
+                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVGrid(
+                            columns: [GridItem(.flexible()), GridItem(.flexible())],
+                            spacing: 8
+                        ) {
+                            ForEach(viewModel.gifs) { gif in
+                                Button {
+                                    onGif(gif)
+                                    dismiss()
+                                } label: {
+                                    AsyncImage(url: URL(string: gif.previewUrl ?? gif.url)) { phase in
+                                        if case .success(let image) = phase {
+                                            image.resizable().scaledToFill()
+                                        } else {
+                                            Color(.tertiarySystemBackground)
+                                        }
+                                    }
+                                    .frame(height: 110)
+                                    .frame(maxWidth: .infinity)
+                                    .clipped()
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(12)
+                    }
+                }
+            }
+            .task { await viewModel.loadIfNeeded() }
+        }
+    }
+}

@@ -39,6 +39,12 @@ protocol MessageRepository {
         attachments: [String],
         power: Int
     ) async throws -> MessageResponse
+    /// GIF: провайдер и метаданные, без idempotency-ключа (как на Android).
+    func sendGif(
+        chatUuid: String,
+        gif: Gif,
+        replyToMessageUuid: String?
+    ) async throws -> MessageResponse
     /// Инкрементальная синхронизация: только новые сообщения после timestamp.
     func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [MessageResponse]
     /// Окно правок/закрепов. Удаления сюда не попадают — нужен полный refresh.
@@ -134,6 +140,15 @@ extension MessageRepository {
             clientMessageId: clientMessageId,
             power: power
         )
+    }
+
+    /// Запасная реализация для тест-дублей.
+    func sendGif(
+        chatUuid: String,
+        gif: Gif,
+        replyToMessageUuid: String?
+    ) async throws -> MessageResponse {
+        try await sendMessage(chatUuid: chatUuid, text: "")
     }
 
     func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [MessageResponse] {

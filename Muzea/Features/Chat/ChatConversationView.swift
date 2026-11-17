@@ -7,6 +7,7 @@ struct ChatConversationView: View {
     let chat: ChatResponse
 
     @EnvironmentObject private var router: Router
+    @EnvironmentObject private var container: AppContainer
     @StateObject private var viewModel: ChatConversationViewModel
     @State private var input: String
     @State private var didScrollToUnread = false
@@ -89,6 +90,7 @@ struct ChatConversationView: View {
                     pendingAttachments: viewModel.state.pendingAttachments,
                     isUploadingAttachments: viewModel.state.isUploadingAttachments,
                     onAttach: { showAttachMenu = true },
+                    onEmojiGif: { activeSheet = .emojiGif },
                     onRemoveAttachment: { viewModel.removePendingAttachment($0) },
                     onSend: { power in send(power: power) },
                     onVoiceRecorded: { recorded in
@@ -223,6 +225,12 @@ struct ChatConversationView: View {
                 ReportReasonSheet { reason in
                     Task { await viewModel.report(message, reason: reason) }
                 }
+            case .emojiGif:
+                EmojiGifSheet(
+                    repository: container.gifRepository,
+                    onEmoji: { emoji in input += emoji },
+                    onGif: { gif in Task { await viewModel.sendGif(gif) } }
+                )
             }
         }
     }
@@ -514,6 +522,7 @@ private enum ActiveSheet: Identifiable {
     case details(MessageResponse)
     case reaction(MessageResponse)
     case report(MessageResponse)
+    case emojiGif
 
     var id: String {
         switch self {
@@ -521,6 +530,7 @@ private enum ActiveSheet: Identifiable {
         case .details(let message): return "details-\(message.messageUuid)"
         case .reaction(let message): return "reaction-\(message.messageUuid)"
         case .report(let message): return "report-\(message.messageUuid)"
+        case .emojiGif: return "emoji-gif"
         }
     }
 }

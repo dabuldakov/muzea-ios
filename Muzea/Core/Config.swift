@@ -25,4 +25,10 @@ enum Config {
 
     /// Ограничение на размер загружаемого аватара (профиля и группы).
     static let maxAvatarBytes = 5 * 1024 * 1024
+
+    /// Klipy GIF API: ключ встраивается в сборку, как на Android. Пустое
+    /// значение отключает поиск GIF, не ломая остальной чат.
+    static var klipyAppKey: String {
+        (Bundle.main.object(forInfoDictionaryKey: "KLIPY_APP_KEY") as? String) ?? ""
+    }
 }
