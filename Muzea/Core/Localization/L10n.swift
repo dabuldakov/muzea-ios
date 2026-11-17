@@ -199,6 +199,10 @@ enum L10n {
     static var signIn: String { t("auth.signIn") }
     static var changeEmail: String { t("auth.changeEmail") }
     static var legalNote: String { t("auth.legalNote") }
+    static var reauthTitle: String { t("auth.reauth.title") }
+    static var reauthBody: String { t("auth.reauth.body") }
+    static var reauthRegister: String { t("auth.reauth.register") }
+    static var reauthOk: String { t("auth.reauth.ok") }
 
     static func codeSent(_ email: String) -> String {
         format("auth.code.sent", email)

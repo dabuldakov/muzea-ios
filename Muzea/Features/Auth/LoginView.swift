@@ -9,6 +9,9 @@ struct LoginView: View {
     @State private var email = ""
     @State private var code = ""
     @State private var showRegister = false
+    @State private var showReauthNotice = false
+
+    private let noticeStore = AuthNoticeStore()
 
     init(container: AppContainer) {
         self.container = container
@@ -42,6 +45,21 @@ struct LoginView: View {
             }
             .sheet(isPresented: $showRegister) {
                 RegisterView(container: container)
+            }
+            .alert(L10n.reauthTitle, isPresented: $showReauthNotice) {
+                Button(L10n.reauthRegister) {
+                    noticeStore.markPasswordlessNoticeShown()
+                    showRegister = true
+                }
+                Button(L10n.reauthOk, role: .cancel) {
+                    noticeStore.markPasswordlessNoticeShown()
+                }
+            } message: {
+                Text(L10n.reauthBody)
+            }
+            .onAppear {
+                guard noticeStore.shouldShowPasswordlessNotice else { return }
+                showReauthNotice = true
             }
         }
     }

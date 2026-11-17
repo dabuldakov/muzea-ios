@@ -125,15 +125,27 @@ final class AuthViewModel: ObservableObject {
 
     // MARK: - Validation
 
+    /// Невидимые символы, которые прилетают с клавиатуры/вставки и ломают
+    /// поиск пользователя на сервере (он отвечает нейтрально, письмо не уходит).
+    private static let zeroWidthCharacters = CharacterSet(charactersIn: "\u{200B}\u{200C}\u{200D}\u{FEFF}")
+
     static func normalizeEmail(_ email: String) -> String {
-        email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let cleaned = email.unicodeScalars.filter {
+            !zeroWidthCharacters.contains($0)
+        }
+        return String(String.UnicodeScalarView(cleaned))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
     }
 
+    /// Та же строгость, что у `android.util.Patterns.EMAIL_ADDRESS`: только
+    /// ASCII, без пробелов внутри, с доменом и TLD. Мягкая проверка пропускала
+    /// адрес с пробелом и сервер молча не отправлял код.
     static func isValidEmail(_ email: String) -> Bool {
-        let parts = email.split(separator: "@", omittingEmptySubsequences: false)
-        guard parts.count == 2, !parts[0].isEmpty, !parts[1].isEmpty else { return false }
-        let host = parts[1]
-        return host.contains(".") && !host.hasPrefix(".") && !host.hasSuffix(".")
+        guard email.unicodeScalars.allSatisfy({ $0.isASCII }) else { return false }
+        guard !email.contains(where: \.isWhitespace) else { return false }
+        let pattern = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$"
+        return email.range(of: pattern, options: .regularExpression) != nil
     }
 
     static func isValidUsername(_ username: String) -> Bool {
