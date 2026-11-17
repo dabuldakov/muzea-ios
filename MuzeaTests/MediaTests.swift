@@ -228,6 +228,33 @@ final class AttachmentRepositoryTests: XCTestCase {
         XCTAssertTrue(body.contains("name=\"thumbnail\""))
     }
 
+    func testDocumentUploadDoesNotSendThumbnail() async throws {
+        MockURLProtocol.handler = { request in
+            (
+                MockURLProtocol.response(for: request),
+                TestSupport.data(#"{"attachmentUuid":"a-2","type":"FILE"}"#)
+            )
+        }
+
+        _ = try await repository().upload(
+            AttachmentUploadRequest(
+                chatUuid: "c-1",
+                data: Data([1, 2, 3]),
+                fileName: "report.pdf",
+                mimeType: "application/pdf",
+                kind: .document,
+                thumbnail: Data([9, 9])
+            )
+        )
+
+        let body = String(
+            decoding: MockURLProtocol.requests.first?.capturedBody ?? Data(),
+            as: UTF8.self
+        )
+        XCTAssertFalse(body.contains("name=\"thumbnail\""))
+        XCTAssertTrue(body.contains("report.pdf"))
+    }
+
     func testPreviewUsesPreviewEndpoint() async throws {
         MockURLProtocol.handler = { request in
             (MockURLProtocol.response(for: request), Data([1, 2, 3]))

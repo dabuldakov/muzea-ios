@@ -310,6 +310,14 @@ final class ChatRepositoryTests: XCTestCase {
             "50"
         )
         XCTAssertEqual(cache.get(chatUuid: "c-1").map(\.messageUuid), ["m1", "m2"])
+
+        // Повторная догрузка той же страницы не должна дублировать кэш.
+        _ = try await repository.loadMessagesBefore(
+            chatUuid: "c-1",
+            beforeMessageUuid: "m2",
+            limit: 50
+        )
+        XCTAssertEqual(cache.get(chatUuid: "c-1").map(\.messageUuid), ["m1", "m2"])
     }
 
     func testTotalUnreadCount() async throws {
