@@ -23,6 +23,7 @@ final class AppContainer: ObservableObject {
     let moderationRepository: ModerationRepository
     let chatDraftStore: ChatDraftStore
     let reactionHistoryStore: ReactionHistoryStore
+    let chatOutboxStore: ChatOutboxStore
     let chatConversationServices: ChatConversationServices
     let contactRepository: ContactRepository
     let avatarRepository: AvatarRepository
@@ -85,6 +86,8 @@ final class AppContainer: ObservableObject {
         chatDraftStore = drafts
         let reactionHistory = UserDefaultsReactionHistoryStore()
         reactionHistoryStore = reactionHistory
+        let outbox = FileChatOutboxStore()
+        chatOutboxStore = outbox
         chatConversationServices = ChatConversationServices(
             messages: messages,
             actions: actions,
@@ -94,6 +97,7 @@ final class AppContainer: ObservableObject {
             moderation: moderation,
             drafts: drafts,
             reactionHistory: reactionHistory,
+            outbox: outbox,
             chats: chats
         )
         contactRepository = ContactRepositoryImpl(auth: authorization)
@@ -188,5 +192,6 @@ final class AppContainer: ObservableObject {
         // Черновики содержат текст прошлого пользователя — после выхода их быть
         // не должно.
         chatDraftStore.clearAll()
+        chatOutboxStore.clearAll()
     }
 }

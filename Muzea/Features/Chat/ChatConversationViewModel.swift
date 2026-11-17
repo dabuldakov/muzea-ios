@@ -42,7 +42,18 @@ final class ChatConversationViewModel: ObservableObject {
     private var lastMarkedReadMessageId: Int64 = 0
     private var lastMarkedDeliveredUuid: String?
     private var lastReceiptsRefreshAt: Date?
+    private var lastOutboxRetryAt: Date?
+    private var retryingPending = false
+    private var inFlightClientIds: Set<String> = []
     private var pollTick = 0
+
+    private static let pendingDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        return formatter
+    }()
 
     init(
         chatUuid: String,
@@ -56,7 +67,13 @@ final class ChatConversationViewModel: ObservableObject {
         self.services = services
         // Стартуем с кэша: при повторном входе переписка видна сразу, а опрос
         // догружает свежие сообщения фоном.
-        state.messages = reducer.seed(services.messages.cachedMessages(chatUuid: chatUuid))
+        let cached = reducer.seed(services.messages.cachedMessages(chatUuid: chatUuid))
+        let pending = services.outbox.pending(chatUuid: chatUuid)
+        state.messages = reducer.merge(
+            current: cached,
+            incoming: pending.map(pendingResponse)
+        )
+        state.failedMessages = Set(pending.map(\.localUuid))
         recomputeStatuses()
     }
 
@@ -80,6 +97,7 @@ final class ChatConversationViewModel: ObservableObject {
     /// был бы вторым обращением к серверу подряд.
     func start() async {
         await refresh()
+        await retryPending(force: true)
         await loadParticipantsIfNeeded()
         await refreshPinned()
         await refreshReceipts(force: true)
@@ -94,6 +112,7 @@ final class ChatConversationViewModel: ObservableObject {
                 await loadFull()
                 await refreshPinned()
                 await refreshReceipts()
+                await retryPending()
             } else {
                 await loadIncremental()
             }
@@ -116,7 +135,7 @@ final class ChatConversationViewModel: ObservableObject {
         let clampedPower = min(max(power, 0), 100)
 
         let replyToUuid = state.replyTo.map { reducer.serverUuid($0.messageUuid) }
-        let replyToSnapshot = state.replyTo
+        let clientMessageId = UUID().uuidString
         let optimistic = MessageResponse(
             messageUuid: "local-\(Int(Date().timeIntervalSince1970 * 1000))",
             messageId: nil,
@@ -133,46 +152,110 @@ final class ChatConversationViewModel: ObservableObject {
             isEdited: false,
             isDeleted: false,
             isPinned: false,
-            createdAt: nil,
+            createdAt: Self.pendingDateFormatter.string(from: Date()),
             updatedAt: nil,
             reactions: [],
             power: clampedPower
+        )
+        let pending = PendingChatMessage(
+            clientMessageId: clientMessageId,
+            localUuid: optimistic.messageUuid,
+            chatUuid: chatUuid,
+            text: trimmed,
+            replyToMessageUuid: replyToUuid,
+            power: clampedPower,
+            createdAt: optimistic.createdAt ?? ""
         )
         merge([optimistic])
         state.replyTo = nil
         services.drafts.clear(chatUuid: chatUuid)
 
         do {
+            inFlightClientIds.insert(clientMessageId)
+            defer { inFlightClientIds.remove(clientMessageId) }
             let sent = try await services.messages.sendMessage(
                 chatUuid: chatUuid,
                 text: trimmed,
                 replyToMessageUuid: replyToUuid,
-                clientMessageId: UUID().uuidString,
+                clientMessageId: clientMessageId,
                 power: clampedPower
             )
+            services.outbox.remove(clientMessageId: clientMessageId)
             state.messages = reducer.applyServerEcho(
                 current: state.messages,
                 localUuid: optimistic.messageUuid,
                 serverMessage: sent
             )
+            state.failedMessages.remove(optimistic.messageUuid)
             recomputeStatuses()
             await markDelivered()
             await refreshReceipts(force: true)
             return true
         } catch {
-            // Текст возвращается в поле ввода (это делает View), поэтому
-            // неудачный оптимистичный пузырь убираем: иначе повтор отправки
-            // оставил бы в ленте вечный «failed»-дубль.
-            state.messages = reducer.removeMessage(
-                current: state.messages,
-                messageUuid: optimistic.messageUuid
-            )
-            // Возвращаем и цитату: пользователь повторит отправку с тем же
-            // контекстом, если не начал новый ответ, пока шёл запрос.
-            if state.replyTo == nil { state.replyTo = replyToSnapshot }
+            // Сообщение остаётся в ленте с пометкой «не отправлено» и попадает
+            // в дисковую очередь: повтор идемпотентен по clientMessageId.
+            services.outbox.save(pending)
+            state.failedMessages.insert(optimistic.messageUuid)
             state.error = error.localizedDescription
             recomputeStatuses()
             return false
+        }
+    }
+
+    /// Ручной повтор неудачной отправки.
+    func retry(_ message: MessageResponse) async {
+        guard message.messageUuid.hasPrefix("local-"),
+              let pending = services.outbox.pending(chatUuid: chatUuid)
+                .first(where: { $0.localUuid == message.messageUuid }) else {
+            return
+        }
+        await sendPending(pending)
+    }
+
+    /// Автоповтор дисковой очереди: при входе в чат и раз в 15 секунд.
+    func retryPending(force: Bool = false) async {
+        guard !retryingPending else { return }
+        let now = Date()
+        if !force, let last = lastOutboxRetryAt, now.timeIntervalSince(last) < 15 {
+            return
+        }
+        let pending = services.outbox.pending(chatUuid: chatUuid)
+        guard !pending.isEmpty else { return }
+
+        retryingPending = true
+        lastOutboxRetryAt = now
+        defer { retryingPending = false }
+
+        for item in pending {
+            await sendPending(item)
+        }
+    }
+
+    private func sendPending(_ pending: PendingChatMessage) async {
+        guard !inFlightClientIds.contains(pending.clientMessageId) else { return }
+        inFlightClientIds.insert(pending.clientMessageId)
+        defer { inFlightClientIds.remove(pending.clientMessageId) }
+
+        do {
+            let sent = try await services.messages.sendMessage(
+                chatUuid: chatUuid,
+                text: pending.text,
+                replyToMessageUuid: pending.replyToMessageUuid,
+                clientMessageId: pending.clientMessageId,
+                power: pending.power
+            )
+            services.outbox.remove(clientMessageId: pending.clientMessageId)
+            state.failedMessages.remove(pending.localUuid)
+            state.messages = reducer.applyServerEcho(
+                current: state.messages,
+                localUuid: pending.localUuid,
+                serverMessage: sent
+            )
+            recomputeStatuses()
+            await markDelivered()
+        } catch {
+            state.failedMessages.insert(pending.localUuid)
+            recomputeStatuses()
         }
     }
 
@@ -491,6 +574,30 @@ final class ChatConversationViewModel: ObservableObject {
             myUserUuid: myUserUuid,
             failedMessages: state.failedMessages,
             receiptsLoaded: state.receiptsLoaded
+        )
+    }
+
+    private func pendingResponse(_ item: PendingChatMessage) -> MessageResponse {
+        MessageResponse(
+            messageUuid: item.localUuid,
+            messageId: nil,
+            chatUuid: item.chatUuid,
+            senderId: nil,
+            senderUuid: myUserUuid,
+            senderName: nil,
+            senderAvatar: nil,
+            text: item.text,
+            messageType: "TEXT",
+            replyToMessageUuid: item.replyToMessageUuid,
+            forwardedFromMessageUuid: nil,
+            forwardedFromUserUuid: nil,
+            isEdited: false,
+            isDeleted: false,
+            isPinned: false,
+            createdAt: item.createdAt,
+            updatedAt: nil,
+            reactions: [],
+            power: item.power
         )
     }
 

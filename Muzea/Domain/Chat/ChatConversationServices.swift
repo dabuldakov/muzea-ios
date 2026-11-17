@@ -12,5 +12,6 @@ struct ChatConversationServices {
     let moderation: ModerationRepository
     let drafts: ChatDraftStore
     let reactionHistory: ReactionHistoryStore
+    let outbox: ChatOutboxStore
     let chats: ChatRepository
 }

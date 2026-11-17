@@ -242,6 +242,18 @@ extension ChatTextParityTests {
         XCTAssertFalse(result.showStatus)
     }
 
+    func testFailedLocalMessageOffersRetry() {
+        let local = TestData.message("local-1", text: "hi", createdAt: nil)
+        let result = MessageActionsBuilder.build(
+            message: local,
+            myUserUuid: "me",
+            isGroupChat: false,
+            failedMessages: ["local-1"]
+        )
+
+        XCTAssertTrue(result.actions.contains(.retry))
+    }
+
     func testDeletedMessageHasNoActions() {
         let message = TestData.message("m1").replacing(isDeleted: true)
         XCTAssertTrue(
@@ -320,6 +332,32 @@ extension ChatTextParityTests {
         XCTAssertEqual(store.recent().prefix(2), ["🚀", "🔥"])
     }
 
+    func testFileOutboxRoundTripAndRemove() {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("outbox-\(UUID().uuidString).json")
+        let store = FileChatOutboxStore(fileURL: url)
+        let item = PendingChatMessage(
+            clientMessageId: "client-1",
+            localUuid: "local-1",
+            chatUuid: "c1",
+            text: "queued",
+            replyToMessageUuid: nil,
+            power: 0,
+            createdAt: "2026-01-01T00:00:01"
+        )
+
+        store.save(item)
+        XCTAssertEqual(store.pending(chatUuid: "c1"), [item])
+        XCTAssertTrue(store.pending(chatUuid: "other").isEmpty)
+
+        store.remove(clientMessageId: "client-1")
+        XCTAssertTrue(store.pending(chatUuid: "c1").isEmpty)
+
+        store.save(item)
+        store.clearAll()
+        XCTAssertTrue(store.pending(chatUuid: "c1").isEmpty)
+    }
+
     func testReplyPreviewUsesYouAndDeletedNames() {
         let mine = TestData.message("m1", text: "hi", sender: "me")
         let deleted = TestData.message("m2", text: "hi", sender: "other")
@@ -376,7 +414,8 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         statuses: FakeMessageStatusRepository = FakeMessageStatusRepository(),
         moderation: FakeModerationRepository = FakeModerationRepository(),
         drafts: FakeChatDraftStore = FakeChatDraftStore(),
-        reactionHistory: FakeReactionHistoryStore = FakeReactionHistoryStore()
+        reactionHistory: FakeReactionHistoryStore = FakeReactionHistoryStore(),
+        outbox: FakeChatOutboxStore = FakeChatOutboxStore()
     ) -> (ChatConversationViewModel, FakeMessageRepository) {
         let repository = FakeMessageRepository()
         repository.cached = messages
@@ -388,7 +427,8 @@ final class ChatConversationTextViewModelTests: XCTestCase {
             statuses: statuses,
             moderation: moderation,
             drafts: drafts,
-            reactionHistory: reactionHistory
+            reactionHistory: reactionHistory,
+            outbox: outbox
         )
         return (
             ChatConversationViewModel(
@@ -422,26 +462,55 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.state.messages.first?.power, 55)
     }
 
-    func testFailedSendRemovesOptimisticBubble() async {
-        let (viewModel, repository) = makeViewModel()
+    func testFailedSendKeepsFailedBubbleAndQueuesIt() async {
+        let outbox = FakeChatOutboxStore()
+        let (viewModel, repository) = makeViewModel(outbox: outbox)
         repository.sendError = APIError.server(500, "boom")
 
         let ok = await viewModel.send("lost")
 
         XCTAssertFalse(ok)
-        XCTAssertTrue(viewModel.state.messages.isEmpty)
-        XCTAssertNotNil(viewModel.state.error)
+        XCTAssertEqual(viewModel.state.messages.count, 1)
+        let uuid = viewModel.state.messages.first?.messageUuid
+        XCTAssertEqual(uuid?.hasPrefix("local-"), true)
+        XCTAssertEqual(outbox.items.count, 1)
+        XCTAssertEqual(outbox.items.first?.text, "lost")
+        XCTAssertTrue(uuid.map { viewModel.state.failedMessages.contains($0) } ?? false)
+        XCTAssertEqual(uuid.flatMap { viewModel.state.statuses[$0] }, MessageDeliveryStatus.failed)
     }
 
-    func testFailedSendRestoresReplyContext() async {
-        let original = TestData.message("orig", text: "first")
-        let (viewModel, repository) = makeViewModel(messages: [original])
+    func testRetryPendingSendsQueuedMessage() async {
+        let outbox = FakeChatOutboxStore()
+        let (viewModel, repository) = makeViewModel(outbox: outbox)
         repository.sendError = APIError.server(500, "boom")
-        viewModel.beginReply(to: original)
+        _ = await viewModel.send("lost")
+        XCTAssertEqual(outbox.items.count, 1)
 
-        _ = await viewModel.send("reply")
+        repository.sendError = nil
+        await viewModel.retryPending(force: true)
 
-        XCTAssertEqual(viewModel.state.replyTo?.messageUuid, "orig")
+        XCTAssertTrue(outbox.items.isEmpty)
+        XCTAssertTrue(viewModel.state.failedMessages.isEmpty)
+        XCTAssertEqual(viewModel.state.messages.count, 1)
+    }
+
+    func testInitRestoresPendingBubble() {
+        let outbox = FakeChatOutboxStore()
+        outbox.items = [
+            PendingChatMessage(
+                clientMessageId: "client-1",
+                localUuid: "local-1",
+                chatUuid: "c-1",
+                text: "queued",
+                replyToMessageUuid: nil,
+                power: 0,
+                createdAt: "2026-01-01T00:00:01"
+            )
+        ]
+        let (viewModel, _) = makeViewModel(outbox: outbox)
+
+        XCTAssertEqual(viewModel.state.messages.first?.text, "queued")
+        XCTAssertTrue(viewModel.state.failedMessages.contains("local-1"))
     }
 
     func testEditUpdatesExistingMessage() async {

@@ -11,8 +11,14 @@ struct ChatComposerView: View {
     let onSend: (Int) -> Void
     let onCancel: () -> Void
 
+    @State private var selection = NSRange(location: 0, length: 0)
+
     private var mentionQuery: MentionSuggestions.Query? {
-        MentionSuggestions.resolve(text: text, usernames: usernames)
+        MentionSuggestions.resolve(
+            text: text,
+            cursor: selection.location,
+            usernames: usernames
+        )
     }
 
     var body: some View {
@@ -35,6 +41,10 @@ struct ChatComposerView: View {
                         ForEach(query.candidates, id: \.self) { candidate in
                             Button("@\(candidate)") {
                                 text = MentionSuggestions.apply(candidate, to: text, query: query)
+                                selection = NSRange(
+                                    location: query.start + ("@\(candidate) " as NSString).length,
+                                    length: 0
+                                )
                             }
                             .font(.caption)
                             .padding(.horizontal, 10)
@@ -49,9 +59,22 @@ struct ChatComposerView: View {
             }
 
             HStack(alignment: .bottom, spacing: 8) {
-                TextField(editing == nil ? "Сообщение" : "Новый текст", text: $text, axis: .vertical)
-                    .lineLimit(1...6)
-                    .textFieldStyle(.roundedBorder)
+                ZStack(alignment: .topLeading) {
+                    MentionTextEditor(text: $text, selection: $selection)
+                    if text.isEmpty {
+                        Text(editing == nil ? "Сообщение" : "Новый текст")
+                            .foregroundColor(Color(.placeholderText))
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 8)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .frame(minHeight: 44, maxHeight: 140)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(.separator), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8))
 
                 ChargeSendButton(
                     isEnabled: !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,

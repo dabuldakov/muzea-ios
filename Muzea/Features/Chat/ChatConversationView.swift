@@ -230,7 +230,8 @@ struct ChatConversationView: View {
         let result = MessageActionsBuilder.build(
             message: message,
             myUserUuid: viewModel.myUserUuid,
-            isGroupChat: viewModel.isGroupChat
+            isGroupChat: viewModel.isGroupChat,
+            failedMessages: viewModel.state.failedMessages
         )
 
         ForEach(result.actions, id: \.self) { action in
@@ -240,6 +241,12 @@ struct ChatConversationView: View {
                     activeSheet = .reaction(message)
                 } label: {
                     Label("Реакция", systemImage: "face.smiling")
+                }
+            case .retry:
+                Button {
+                    Task { await viewModel.retry(message) }
+                } label: {
+                    Label("Повторить", systemImage: "arrow.clockwise")
                 }
             case .copy:
                 Button {
@@ -360,12 +367,9 @@ struct ChatConversationView: View {
             if ok {
                 draftBeforeEdit = ""
                 viewModel.saveDraft("")
-            } else {
-                // Не затираем текст, если пользователь уже начал печатать новое.
-                if input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    input = text
-                    viewModel.saveDraft(text)
-                }
+            } else if wasEditing {
+                // Неудачную правку возвращаем в поле, чтобы можно было повторить.
+                input = text
             }
             if !wasEditing {
                 viewModel.cancelComposer()

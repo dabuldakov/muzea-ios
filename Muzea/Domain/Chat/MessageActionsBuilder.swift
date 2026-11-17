@@ -3,6 +3,7 @@ import Foundation
 /// Действия над сообщением, которые показывает контекстное меню.
 enum MessageAction: Hashable {
     case react
+    case retry
     case copy
     case reply
     case select
@@ -27,7 +28,8 @@ enum MessageActionsBuilder {
     static func build(
         message: MessageResponse,
         myUserUuid: String?,
-        isGroupChat: Bool
+        isGroupChat: Bool,
+        failedMessages: Set<String> = []
     ) -> Result {
         guard message.isDeleted != true else {
             return Result(actions: [], showStatus: false)
@@ -38,6 +40,10 @@ enum MessageActionsBuilder {
         // серверного сообщения — messageId.
         let isServerMessage = message.messageId != nil
         var actions: [MessageAction] = [.react]
+
+        if message.messageUuid.hasPrefix("local-"), failedMessages.contains(message.messageUuid) {
+            actions.append(.retry)
+        }
 
         if let text = message.text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             actions.append(.copy)

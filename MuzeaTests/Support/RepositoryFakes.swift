@@ -225,6 +225,27 @@ final class FakeReactionHistoryStore: ReactionHistoryStore {
     }
 }
 
+final class FakeChatOutboxStore: ChatOutboxStore {
+    var items: [PendingChatMessage] = []
+
+    func pending(chatUuid: String) -> [PendingChatMessage] {
+        items.filter { $0.chatUuid == chatUuid }
+    }
+
+    func save(_ message: PendingChatMessage) {
+        items.removeAll { $0.clientMessageId == message.clientMessageId }
+        items.append(message)
+    }
+
+    func remove(clientMessageId: String) {
+        items.removeAll { $0.clientMessageId == clientMessageId }
+    }
+
+    func clearAll() {
+        items.removeAll()
+    }
+}
+
 final class FakeChatDraftStore: ChatDraftStore {
     var storage: [String: String] = [:]
 
@@ -253,6 +274,7 @@ extension ChatConversationServices {
         moderation: FakeModerationRepository = FakeModerationRepository(),
         drafts: FakeChatDraftStore = FakeChatDraftStore(),
         reactionHistory: FakeReactionHistoryStore = FakeReactionHistoryStore(),
+        outbox: FakeChatOutboxStore = FakeChatOutboxStore(),
         chats: FakeChatRepository = FakeChatRepository()
     ) -> ChatConversationServices {
         ChatConversationServices(
@@ -264,6 +286,7 @@ extension ChatConversationServices {
             moderation: moderation,
             drafts: drafts,
             reactionHistory: reactionHistory,
+            outbox: outbox,
             chats: chats
         )
     }
