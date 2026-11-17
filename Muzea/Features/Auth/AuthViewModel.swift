@@ -129,7 +129,7 @@ final class AuthViewModel: ObservableObject {
     /// поиск пользователя на сервере (он отвечает нейтрально, письмо не уходит).
     private static let zeroWidthCharacters = CharacterSet(charactersIn: "\u{200B}\u{200C}\u{200D}\u{FEFF}")
 
-    static func normalizeEmail(_ email: String) -> String {
+    nonisolated static func normalizeEmail(_ email: String) -> String {
         let cleaned = email.unicodeScalars.filter {
             !zeroWidthCharacters.contains($0)
         }
@@ -141,14 +141,14 @@ final class AuthViewModel: ObservableObject {
     /// Та же строгость, что у `android.util.Patterns.EMAIL_ADDRESS`: только
     /// ASCII, без пробелов внутри, с доменом и TLD. Мягкая проверка пропускала
     /// адрес с пробелом и сервер молча не отправлял код.
-    static func isValidEmail(_ email: String) -> Bool {
+    nonisolated static func isValidEmail(_ email: String) -> Bool {
         guard email.unicodeScalars.allSatisfy({ $0.isASCII }) else { return false }
         guard !email.contains(where: \.isWhitespace) else { return false }
         let pattern = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$"
         return email.range(of: pattern, options: .regularExpression) != nil
     }
 
-    static func isValidUsername(_ username: String) -> Bool {
+    nonisolated static func isValidUsername(_ username: String) -> Bool {
         guard (3...64).contains(username.count) else { return false }
         let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.")
         return username.unicodeScalars.allSatisfy { allowed.contains($0) }

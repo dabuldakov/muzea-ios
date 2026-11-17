@@ -331,6 +331,7 @@ final class VideoPreparationTests: XCTestCase {
     }
 }
 
+@MainActor
 final class ChatMediaViewModelTests: XCTestCase {
 
     private func makeViewModel(

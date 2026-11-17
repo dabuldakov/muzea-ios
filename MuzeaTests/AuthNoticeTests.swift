@@ -25,6 +25,7 @@ final class AuthNoticeStoreTests: XCTestCase {
     }
 }
 
+@MainActor
 final class AuthEmailValidationTests: XCTestCase {
 
     func testNormalizeTrimsAndLowercases() {
