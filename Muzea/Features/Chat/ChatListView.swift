@@ -3,6 +3,7 @@ import SwiftUI
 struct ChatListView: View {
     @EnvironmentObject private var container: AppContainer
     @EnvironmentObject private var appRouter: AppRouter
+    @EnvironmentObject private var networkMonitor: NetworkMonitor
     @StateObject private var viewModel: ChatListViewModel
     @StateObject private var router = Router()
     @State private var showCreateGroup = false
@@ -39,6 +40,11 @@ struct ChatListView: View {
             openPendingChat()
             if let text = appRouter.consumeSharedText(), !text.isEmpty {
                 sharePayload = SharePayload(text: text)
+            }
+        }
+        .onChange(of: networkMonitor.isOnline) { online in
+            if online {
+                Task { await viewModel.load() }
             }
         }
         .onChange(of: appRouter.chatTarget) { _ in openPendingChat() }

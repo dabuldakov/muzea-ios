@@ -16,6 +16,7 @@ final class AppContainer: ObservableObject {
     let videoRepository: VideoRepository
     let contentReportRepository: ContentReportRepository
     let cacheManager: CacheManager
+    let networkMonitor: NetworkMonitor
     let chatRepository: ChatRepository
     let messageRepository: MessageRepository
     let messageActionsRepository: MessageActionsRepository
@@ -68,6 +69,7 @@ final class AppContainer: ObservableObject {
             directories: cacheDirectories,
             clearActions: [{ await GifCache.shared.clearAll() }]
         )
+        networkMonitor = NetworkMonitor()
 
         let videoCache = VideoListCache()
         videoListCache = videoCache

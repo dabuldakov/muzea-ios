@@ -9,6 +9,7 @@ struct ChatConversationView: View {
 
     @EnvironmentObject private var router: Router
     @EnvironmentObject private var container: AppContainer
+    @EnvironmentObject private var networkMonitor: NetworkMonitor
     @StateObject private var viewModel: ChatConversationViewModel
     @State private var input: String
     @State private var didScrollToUnread = false
@@ -131,6 +132,13 @@ struct ChatConversationView: View {
         }
         .onChange(of: input) { value in
             viewModel.saveDraft(value)
+        }
+        .onChange(of: networkMonitor.isOnline) { online in
+            guard online else { return }
+            Task {
+                await viewModel.retryPending(force: true)
+                await viewModel.retryPendingAttachments()
+            }
         }
         .onChange(of: viewModel.state.error) { value in
             if let value { activeAlert = .error(value) }

@@ -3,6 +3,7 @@ import SwiftUI
 struct MainTabView: View {
     @EnvironmentObject private var container: AppContainer
     @EnvironmentObject private var appRouter: AppRouter
+    @EnvironmentObject private var networkMonitor: NetworkMonitor
     @Environment(\.scenePhase) private var scenePhase
     @State private var unreadCount: Int64 = 0
 
@@ -28,6 +29,19 @@ struct MainTabView: View {
             ProfileView(container: container)
                 .tabItem { Label("Профиль", systemImage: "person.crop.circle") }
                 .tag(4)
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if !networkMonitor.isOnline {
+                HStack(spacing: 6) {
+                    Image(systemName: "wifi.slash")
+                    Text("Нет подключения к интернету")
+                }
+                .font(.caption).bold()
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .background(Color.orange)
+            }
         }
         .task {
             while !Task.isCancelled {

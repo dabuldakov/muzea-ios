@@ -46,6 +46,7 @@ struct MuzeaApp: App {
             RootView()
                 .environmentObject(container)
                 .environmentObject(appRouter)
+                .environmentObject(container.networkMonitor)
         }
     }
 }
