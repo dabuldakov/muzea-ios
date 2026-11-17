@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Выбор чата для пересылки сообщений и необязательный комментарий.
 struct ForwardChatPickerView: View {
-    let chats: [ChatResponse]
+    let chats: [Chat]
     let onSend: (String, String?) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -55,7 +55,7 @@ struct ForwardChatPickerView: View {
         .presentationDetents([.medium, .large])
     }
 
-    private func title(_ chat: ChatResponse) -> String {
+    private func title(_ chat: Chat) -> String {
         chat.peerDeleted == true ? "Удалённый пользователь" : (chat.title ?? "Чат")
     }
 }

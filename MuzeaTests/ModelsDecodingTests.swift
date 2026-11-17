@@ -87,7 +87,7 @@ final class ModelsDecodingTests: XCTestCase {
          "lastMessage":{"messageUuid":"m-1","text":"hi","senderId":1,
                         "senderName":"Bob","createdAt":"2026-01-01T00:00:00"}}
         """
-        let chat = try TestSupport.decode(ChatResponse.self, json)
+        let chat = try TestSupport.decode(ChatDTO.self, json).toDomain()
         XCTAssertEqual(chat.id, "c-1")
         XCTAssertEqual(chat.lastMessage?.text, "hi")
         XCTAssertEqual(chat.unreadCount, 2)
@@ -100,7 +100,7 @@ final class ModelsDecodingTests: XCTestCase {
          "avatarUrl":null,"contactName":null,"online":true,
          "lastSeenAt":null,"addedAt":"2026-01-01T00:00:00"}
         """
-        let contact = try TestSupport.decode(ContactResponse.self, json)
+        let contact = try TestSupport.decode(ContactDTO.self, json).toDomain()
         XCTAssertEqual(contact.displayName, "bob")
         XCTAssertTrue(contact.isOnline)
     }
@@ -119,7 +119,7 @@ final class ModelsDecodingTests: XCTestCase {
         [{"userUuid":"u-1","online":true,"lastSeenAt":"2026-09-22T12:00:00Z"},
          {"userUuid":"u-2","online":false,"lastSeenAt":null}]
         """
-        let presence = try TestSupport.decode([PresenceResponse].self, json)
+        let presence = try TestSupport.decode([PresenceDTO].self, json).map { $0.toDomain() }
         XCTAssertEqual(presence.count, 2)
         XCTAssertTrue(presence[0].online)
         XCTAssertEqual(presence[1].lastSeenAt, nil)
@@ -129,7 +129,7 @@ final class ModelsDecodingTests: XCTestCase {
         // Бэкенд отдаёт "online". Со старым ключом обязательное поле просто не
         // находится — лучше явная ошибка, чем молчаливый false у всех.
         let legacy = #"{"contactUuid":"k-1","isOnline":true}"#
-        XCTAssertThrowsError(try TestSupport.decode(ContactResponse.self, legacy))
+        XCTAssertThrowsError(try TestSupport.decode(ContactDTO.self, legacy))
     }
 
     func testDecodesMessageResponse() throws {
@@ -139,7 +139,7 @@ final class ModelsDecodingTests: XCTestCase {
          "replyToMessageUuid":null,"isEdited":false,"isDeleted":false,"isPinned":false,
          "createdAt":"2026-01-01T00:00:00","updatedAt":null}
         """
-        let message = try TestSupport.decode(MessageResponse.self, json)
+        let message = try TestSupport.decode(ChatMessageDTO.self, json).toDomain()
         XCTAssertEqual(message.id, "m-1")
         XCTAssertEqual(message.text, "hello")
         XCTAssertEqual(message.isEdited, false)
@@ -151,7 +151,7 @@ final class ModelsDecodingTests: XCTestCase {
          "lastName":null,"fullName":"Alice A","nickname":null,"avatarUrl":null,
          "role":"OWNER","online":true,"lastSeenAt":null,"joinedAt":"2026-01-01T00:00:00"}
         """
-        let participant = try TestSupport.decode(ChatParticipantResponse.self, json)
+        let participant = try TestSupport.decode(ChatParticipantDTO.self, json).toDomain()
         XCTAssertEqual(participant.displayName, "Alice A")
         XCTAssertEqual(participant.role, "OWNER")
         XCTAssertEqual(participant.online, true)
@@ -163,7 +163,7 @@ final class ModelsDecodingTests: XCTestCase {
          "empty":false,"first":true,"last":false,"number":0,
          "numberOfElements":1,"size":50,"totalElements":1,"totalPages":1}
         """
-        let page = try TestSupport.decode(PageResponse<MessageResponse>.self, json)
+        let page = try TestSupport.decode(PageResponse<ChatMessageDTO>.self, json)
         XCTAssertEqual(page.content.count, 1)
         XCTAssertEqual(page.totalElements, 1)
     }
@@ -218,7 +218,7 @@ final class ModelsDecodingTests: XCTestCase {
          "createdAt":null,"updatedAt":null,"participantCount":2,"lastMessage":null,
          "unreadCount":0,"peerDeleted":true}
         """
-        let chat = try TestSupport.decode(ChatResponse.self, json)
+        let chat = try TestSupport.decode(ChatDTO.self, json).toDomain()
         XCTAssertEqual(chat.peerDeleted, true)
     }
 
@@ -229,7 +229,7 @@ final class ModelsDecodingTests: XCTestCase {
          "replyToMessageUuid":null,"isEdited":false,"isDeleted":false,"isPinned":false,
          "createdAt":"2026-01-01T00:00:00","updatedAt":null,"senderDeleted":true}
         """
-        let message = try TestSupport.decode(MessageResponse.self, json)
+        let message = try TestSupport.decode(ChatMessageDTO.self, json).toDomain()
         XCTAssertEqual(message.senderDeleted, true)
     }
 }

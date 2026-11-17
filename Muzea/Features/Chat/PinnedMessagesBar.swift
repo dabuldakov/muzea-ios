@@ -3,8 +3,8 @@ import SwiftUI
 /// Панель закреплённого сообщения над лентой. Показывает последнее закрепление,
 /// позволяет перейти к нему и открепить.
 struct PinnedMessagesBar: View {
-    let pinned: [MessageResponse]
-    let onOpen: (MessageResponse) -> Void
+    let pinned: [ChatMessage]
+    let onOpen: (ChatMessage) -> Void
     let onUnpin: () -> Void
 
     var body: some View {

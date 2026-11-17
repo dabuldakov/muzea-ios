@@ -144,7 +144,7 @@ final class MemoryCachesTests: XCTestCase {
 
 final class ChatListViewStateTests: XCTestCase {
 
-    private func state(_ chats: [ChatResponse], loading: Bool, error: String?) -> ChatListUiState {
+    private func state(_ chats: [Chat], loading: Bool, error: String?) -> ChatListUiState {
         ChatListUiState(chats: chats, isLoading: loading, error: error)
     }
 

@@ -100,7 +100,7 @@ struct PendingChatAttachment: Identifiable, Equatable {
     let id: String
     let fileName: String
     let kind: AttachmentKind
-    var uploaded: AttachmentResponse?
+    var uploaded: ChatAttachment?
 
     var isUploaded: Bool { uploaded != nil }
 }
@@ -108,14 +108,14 @@ struct PendingChatAttachment: Identifiable, Equatable {
 /// Абсолютные URL вложений. Сервер отдаёт `fileUrl` ключом MinIO, поэтому
 /// скачивание всегда идёт через прокси `/api/attachments/{uuid}`.
 enum AttachmentURLResolver {
-    static func fileURL(for attachment: AttachmentResponse) -> URL? {
+    static func fileURL(for attachment: ChatAttachment) -> URL? {
         if let uuid = attachment.attachmentUuid, !uuid.isEmpty {
             return Config.chatBaseURL.appendingPathComponent("api/attachments/\(uuid)")
         }
         return absolute(attachment.fileUrl, base: Config.chatBaseURL)
     }
 
-    static func previewURL(for attachment: AttachmentResponse) -> URL? {
+    static func previewURL(for attachment: ChatAttachment) -> URL? {
         if let uuid = attachment.attachmentUuid, !uuid.isEmpty,
            attachment.thumbnailUrl != nil {
             return Config.chatBaseURL.appendingPathComponent("api/attachments/\(uuid)/preview")

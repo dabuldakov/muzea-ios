@@ -8,14 +8,15 @@ final class MessageActionsRepositoryImpl: MessageActionsRepository {
         self.auth = auth
     }
 
-    func editMessage(messageUuid: String, text: String) async throws -> MessageResponse {
-        try await auth.authorized {
+    func editMessage(messageUuid: String, text: String) async throws -> ChatMessage {
+        let dto: ChatMessageDTO = try await auth.authorized {
             try await auth.client.request(
                 "PUT",
                 "/api/messages/\(messageUuid)",
                 body: EditMessageRequest(text: text)
             )
         }
+        return dto.toDomain()
     }
 
     func deleteMessage(messageUuid: String) async throws {
@@ -24,8 +25,8 @@ final class MessageActionsRepositoryImpl: MessageActionsRepository {
         }
     }
 
-    func forwardMessage(messageUuid: String, toChatUuid: String) async throws -> MessageResponse {
-        try await auth.authorized {
+    func forwardMessage(messageUuid: String, toChatUuid: String) async throws -> ChatMessage {
+        let dto: ChatMessageDTO = try await auth.authorized {
             try await auth.client.request(
                 "POST",
                 "/api/messages/forward",
@@ -35,6 +36,7 @@ final class MessageActionsRepositoryImpl: MessageActionsRepository {
                 )
             )
         }
+        return dto.toDomain()
     }
 
     /// ⚠ На бэкенде это GET, хотя операция меняет состояние.
@@ -56,9 +58,10 @@ final class MessageActionsRepositoryImpl: MessageActionsRepository {
         }
     }
 
-    func loadPinned(chatUuid: String) async throws -> [MessageResponse] {
-        try await auth.authorized {
+    func loadPinned(chatUuid: String) async throws -> [ChatMessage] {
+        let dtos: [ChatMessageDTO] = try await auth.authorized {
             try await auth.client.request("GET", "/api/messages/\(chatUuid)/pinned")
         }
+        return dtos.map { $0.toDomain() }
     }
 }

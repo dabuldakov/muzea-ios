@@ -2,29 +2,29 @@ import Foundation
 
 /// Единое состояние экрана переписки.
 struct ChatConversationUiState: Equatable {
-    var messages: [MessageResponse] = []
+    var messages: [ChatMessage] = []
     var isLoading = false
     var isLoadingMore = false
     var error: String?
     var notice: String?
 
     /// Сообщение, на которое сейчас отвечаем.
-    var replyTo: MessageResponse?
+    var replyTo: ChatMessage?
     /// Сообщение, которое сейчас редактируем.
-    var editing: MessageResponse?
+    var editing: ChatMessage?
 
-    var pinned: [MessageResponse] = []
-    var receipts: [ChatReceiptResponse] = []
+    var pinned: [ChatMessage] = []
+    var receipts: [ChatReceipt] = []
     var receiptsLoaded = false
     /// Точные статусы по сообщению, загруженные при открытии «Деталей».
-    var messageStatuses: [String: [MessageStatusResponse]] = [:]
+    var messageStatuses: [String: [MessageStatus]] = [:]
     /// Статусы собственных сообщений: uuid -> галочка.
     var statuses: [String: MessageDeliveryStatus] = [:]
     var failedMessages: Set<String> = []
 
     var selection: Set<String> = []
-    var participants: [ChatParticipantResponse] = []
-    var forwardChats: [ChatResponse] = []
+    var participants: [ChatParticipant] = []
+    var forwardChats: [Chat] = []
     /// Выбранные вложения, ожидающие загрузки или уже загруженные.
     var pendingAttachments: [PendingChatAttachment] = []
     var isUploadingAttachments = false
@@ -147,7 +147,7 @@ final class ChatConversationViewModel: ObservableObject {
 
         let replyToUuid = state.replyTo.map { reducer.serverUuid($0.messageUuid) }
         let clientMessageId = UUID().uuidString
-        let optimistic = MessageResponse(
+        let optimistic = ChatMessage(
             messageUuid: "local-\(Int(Date().timeIntervalSince1970 * 1000))",
             messageId: nil,
             chatUuid: chatUuid,
@@ -221,7 +221,7 @@ final class ChatConversationViewModel: ObservableObject {
     }
 
     /// Ручной повтор неудачной отправки.
-    func retry(_ message: MessageResponse) async {
+    func retry(_ message: ChatMessage) async {
         guard message.messageUuid.hasPrefix("local-"),
               let pending = services.outbox.pending(chatUuid: chatUuid)
                 .first(where: { $0.localUuid == message.messageUuid }) else {
@@ -279,7 +279,7 @@ final class ChatConversationViewModel: ObservableObject {
         }
     }
 
-    func beginReply(to message: MessageResponse) {
+    func beginReply(to message: ChatMessage) {
         state.replyTo = message
         state.editing = nil
     }
@@ -353,7 +353,7 @@ final class ChatConversationViewModel: ObservableObject {
 
     func sendGif(_ gif: Gif) async {
         let replyToUuid = state.replyTo.map { reducer.serverUuid($0.messageUuid) }
-        let attachment = AttachmentResponse(
+        let attachment = ChatAttachment(
             attachmentUuid: nil,
             fileName: gif.title,
             fileUrl: gif.url,
@@ -367,7 +367,7 @@ final class ChatConversationViewModel: ObservableObject {
             duration: nil,
             gifKey: gif.gifKey
         )
-        let optimistic = MessageResponse(
+        let optimistic = ChatMessage(
             messageUuid: "local-\(Int(Date().timeIntervalSince1970 * 1000))",
             chatUuid: chatUuid,
             senderId: nil,
@@ -468,7 +468,7 @@ final class ChatConversationViewModel: ObservableObject {
         state.isUploadingAttachments = state.pendingAttachments.contains { !$0.isUploaded }
     }
 
-    func beginEdit(_ message: MessageResponse) {
+    func beginEdit(_ message: ChatMessage) {
         state.editing = message
         state.replyTo = nil
     }
@@ -478,7 +478,7 @@ final class ChatConversationViewModel: ObservableObject {
         state.editing = nil
     }
 
-    func deleteMessage(_ message: MessageResponse) async {
+    func deleteMessage(_ message: ChatMessage) async {
         let target = reducer.serverUuid(message.messageUuid)
         do {
             try await services.actions.deleteMessage(messageUuid: target)
@@ -492,7 +492,7 @@ final class ChatConversationViewModel: ObservableObject {
         }
     }
 
-    func togglePin(_ message: MessageResponse) async {
+    func togglePin(_ message: ChatMessage) async {
         let target = reducer.serverUuid(message.messageUuid)
         let shouldUnpin = message.isPinned == true
         do {
@@ -511,7 +511,7 @@ final class ChatConversationViewModel: ObservableObject {
         }
     }
 
-    func toggleReaction(_ message: MessageResponse, emoji: String) async {
+    func toggleReaction(_ message: ChatMessage, emoji: String) async {
         let target = reducer.serverUuid(message.messageUuid)
         do {
             let reactions = try await services.reactions.toggleReaction(
@@ -529,7 +529,7 @@ final class ChatConversationViewModel: ObservableObject {
     }
 
     /// Жалоба на сообщение. Причина — одна из значений Android (`SPAM` и т.д.).
-    func report(_ message: MessageResponse, reason: String) async {
+    func report(_ message: ChatMessage, reason: String) async {
         do {
             try await services.moderation.report(
                 messageUuid: reducer.serverUuid(message.messageUuid),
@@ -552,7 +552,7 @@ final class ChatConversationViewModel: ObservableObject {
     }
 
     /// Точные отметки времени по сообщению для «Деталей».
-    func loadMessageStatuses(for message: MessageResponse) async {
+    func loadMessageStatuses(for message: ChatMessage) async {
         guard message.messageId != nil else { return }
         do {
             state.messageStatuses[message.messageUuid] = try await services.statuses
@@ -567,7 +567,7 @@ final class ChatConversationViewModel: ObservableObject {
 
     /// Пересылка одного сообщения с необязательным комментарием.
     func forward(
-        _ message: MessageResponse,
+        _ message: ChatMessage,
         toChatUuid target: String,
         comment: String? = nil
     ) async {
@@ -576,7 +576,7 @@ final class ChatConversationViewModel: ObservableObject {
 
     /// Пересылка пачки: комментарий уходит один раз после всех сообщений.
     func forward(
-        messages: [MessageResponse],
+        messages: [ChatMessage],
         toChatUuid target: String,
         comment: String? = nil
     ) async {
@@ -614,11 +614,11 @@ final class ChatConversationViewModel: ObservableObject {
 
     // MARK: - Selection
 
-    func enterSelection(with message: MessageResponse) {
+    func enterSelection(with message: ChatMessage) {
         state.selection = [message.messageUuid]
     }
 
-    func toggleSelection(_ message: MessageResponse) {
+    func toggleSelection(_ message: ChatMessage) {
         if state.selection.contains(message.messageUuid) {
             state.selection.remove(message.messageUuid)
         } else {
@@ -630,7 +630,7 @@ final class ChatConversationViewModel: ObservableObject {
         state.selection = []
     }
 
-    var selectedMessages: [MessageResponse] {
+    var selectedMessages: [ChatMessage] {
         state.messages.filter { state.selection.contains($0.messageUuid) }
     }
 
@@ -741,7 +741,7 @@ final class ChatConversationViewModel: ObservableObject {
         }
     }
 
-    private func submitEdit(_ target: MessageResponse, text: String) async -> Bool {
+    private func submitEdit(_ target: ChatMessage, text: String) async -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             state.error = "Сообщение не может быть пустым"
@@ -770,7 +770,7 @@ final class ChatConversationViewModel: ObservableObject {
         }
     }
 
-    private func merge(_ incoming: [MessageResponse]) {
+    private func merge(_ incoming: [ChatMessage]) {
         state.messages = reducer.merge(current: state.messages, incoming: incoming)
         recomputeStatuses()
     }
@@ -785,8 +785,8 @@ final class ChatConversationViewModel: ObservableObject {
         )
     }
 
-    private func pendingResponse(_ item: PendingChatMessage) -> MessageResponse {
-        MessageResponse(
+    private func pendingResponse(_ item: PendingChatMessage) -> ChatMessage {
+        ChatMessage(
             messageUuid: item.localUuid,
             messageId: nil,
             chatUuid: item.chatUuid,
@@ -824,7 +824,7 @@ final class ChatConversationViewModel: ObservableObject {
     /// Отмечает прочитанным всё до указанного сообщения. Вызывается, когда
     /// строка реально показана, — как `markReadUpTo` на Android. Watermark
     /// двигается только вперёд, повторные вызовы безопасны.
-    func markReadUpTo(_ message: MessageResponse) async {
+    func markReadUpTo(_ message: ChatMessage) async {
         guard let messageId = message.messageId,
               messageId > lastMarkedReadMessageId,
               !message.messageUuid.hasPrefix("local-") else { return }

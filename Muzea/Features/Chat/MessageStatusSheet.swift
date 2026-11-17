@@ -4,9 +4,9 @@ import SwiftUI
 /// группе — кто доставил и прочитал. Точные отметки времени приходят из
 /// `/status/{messageUuid}`, а не из watermark квитанций.
 struct MessageStatusSheet: View {
-    let message: MessageResponse
-    let receipts: [ChatReceiptResponse]
-    let statuses: [MessageStatusResponse]
+    let message: ChatMessage
+    let receipts: [ChatReceipt]
+    let statuses: [MessageStatus]
     let myUserUuid: String?
 
     @Environment(\.dismiss) private var dismiss
@@ -109,7 +109,7 @@ struct MessageStatusSheet: View {
         }
     }
 
-    private func name(for userUuid: String, receipt: ChatReceiptResponse?) -> String {
+    private func name(for userUuid: String, receipt: ChatReceipt?) -> String {
         if userUuid == myUserUuid { return "Вы" }
         return receipt?.displayName ?? "Неизвестный пользователь"
     }

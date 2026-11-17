@@ -2,7 +2,7 @@ import Foundation
 
 @MainActor
 final class CreateGroupViewModel: ObservableObject {
-    @Published private(set) var contacts: [ContactResponse] = []
+    @Published private(set) var contacts: [Contact] = []
     @Published private(set) var isLoadingContacts = false
     @Published private(set) var isSubmitting = false
     @Published private(set) var error: String?
@@ -21,7 +21,7 @@ final class CreateGroupViewModel: ObservableObject {
         isLoadingContacts = false
     }
 
-    func create(title: String, memberUuids: [String]) async -> ChatResponse? {
+    func create(title: String, memberUuids: [String]) async -> Chat? {
         let name = title.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return nil }
         isSubmitting = true

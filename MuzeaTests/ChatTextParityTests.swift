@@ -10,8 +10,8 @@ final class ChatTextParityTests: XCTestCase {
         read: Int64?,
         delivered: Int64?,
         joinedAt: String? = "2026-01-01T00:00:00"
-    ) -> ChatReceiptResponse {
-        ChatReceiptResponse(
+    ) -> ChatReceipt {
+        ChatReceipt(
             userUuid: userUuid,
             username: userUuid,
             fullName: nil,
@@ -29,7 +29,7 @@ final class ChatTextParityTests: XCTestCase {
         id: Int64?,
         sender: String = "me",
         createdAt: String = "2026-01-01T00:00:02"
-    ) -> MessageResponse {
+    ) -> ChatMessage {
         TestData.message(uuid, createdAt: createdAt, sender: sender)
             .replacing(messageId: id)
     }
@@ -196,11 +196,11 @@ extension ChatTextParityTests {
     }
 
     func testForeignMessageWithReactionsOffersDetails() {
-        let reaction = MessageReactionResponse(
+        let reaction = MessageReaction(
             emoji: "👍",
             count: 1,
             mine: false,
-            users: [ReactionUserResponse(userUuid: "u2", at: "2026-01-01T00:00:03")]
+            users: [ReactionUser(userUuid: "u2", at: "2026-01-01T00:00:03")]
         )
         let message = TestData.message("m1", text: "hi", sender: "other")
             .replacing(messageId: 5, reactions: [reaction])
@@ -468,7 +468,7 @@ extension ChatTextParityTests {
 final class ChatConversationTextViewModelTests: XCTestCase {
 
     private func makeViewModel(
-        messages: [MessageResponse] = [],
+        messages: [ChatMessage] = [],
         actions: FakeMessageActionsRepository = FakeMessageActionsRepository(),
         reactions: FakeMessageReactionRepository = FakeMessageReactionRepository(),
         statuses: FakeMessageStatusRepository = FakeMessageStatusRepository(),
@@ -624,7 +624,7 @@ final class ChatConversationTextViewModelTests: XCTestCase {
             .replacing(messageId: 5)
         let reactions = FakeMessageReactionRepository()
         reactions.reactions["m1"] = [
-            MessageReactionResponse(emoji: "👍", count: 1, mine: true, users: [])
+            MessageReaction(emoji: "👍", count: 1, mine: true, users: [])
         ]
         let history = FakeReactionHistoryStore()
         let (viewModel, _) = makeViewModel(
@@ -645,7 +645,7 @@ final class ChatConversationTextViewModelTests: XCTestCase {
             .replacing(messageId: 5)
         let statuses = FakeMessageStatusRepository()
         statuses.statuses["m1"] = [
-            MessageStatusResponse(
+            MessageStatus(
                 userId: 7,
                 userUuid: "u1",
                 status: "READ",

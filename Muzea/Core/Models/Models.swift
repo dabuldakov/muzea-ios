@@ -120,7 +120,7 @@ struct ChatUserResponse: Decodable {
     }
 }
 
-struct ChatResponse: Decodable, Identifiable, Hashable {
+struct Chat: Identifiable, Hashable {
     var id: String { chatUuid }
     let chatUuid: String
     let chatType: String?
@@ -135,7 +135,7 @@ struct ChatResponse: Decodable, Identifiable, Hashable {
     var peerDeleted: Bool? = nil
 }
 
-struct MessagePreview: Decodable, Hashable {
+struct MessagePreview: Hashable {
     let messageUuid: String?
     let text: String?
     let senderId: Int64?
@@ -143,7 +143,7 @@ struct MessagePreview: Decodable, Hashable {
     let createdAt: String?
 }
 
-struct ContactResponse: Decodable, Identifiable, Hashable {
+struct Contact: Identifiable, Hashable {
     var id: String { contactUuid }
     let contactUuid: String
     let contactUserId: Int64?
@@ -170,8 +170,8 @@ struct ContactResponse: Decodable, Identifiable, Hashable {
 
     /// Копия контакта с обновлённым присутствием. `lastSeenAt` сохраняется,
     /// если сервер не прислал новое значение.
-    func replacingPresence(online: Bool, lastSeenAt: String?) -> ContactResponse {
-        ContactResponse(
+    func replacingPresence(online: Bool, lastSeenAt: String?) -> Contact {
+        Contact(
             contactUuid: contactUuid,
             contactUserId: contactUserId,
             contactUserUuid: contactUserUuid,
@@ -192,13 +192,13 @@ struct ContactResponse: Decodable, Identifiable, Hashable {
 ///
 /// `online` вычислен сервером по TTL от последней активности, а не прочитан
 /// из флага в БД. `lastSeenAt` приходит, пока пользователь хоть раз был в сети.
-struct PresenceResponse: Decodable {
+struct Presence {
     let userUuid: String
     let online: Bool
     let lastSeenAt: String?
 }
 
-struct MessageResponse: Decodable, Identifiable, Hashable {
+struct ChatMessage: Identifiable, Hashable {
     var id: String { messageUuid }
     let messageUuid: String
     /// Глобальный монотонный id сервера. У локальных сообщений — nil; по нему
@@ -220,18 +220,18 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
     let createdAt: String?
     let updatedAt: String?
     /// Сводка реакций. Сервер всегда отдаёт массив, но в старых ответах его нет.
-    var reactions: [MessageReactionResponse]? = nil
+    var reactions: [MessageReaction]? = nil
     /// Сила «заряда» отправителя, 0...100 (0 — обычное сообщение).
     var power: Int? = nil
     /// Вложения сообщения: фото, видео, аудио, документы, GIF.
-    var attachments: [AttachmentResponse]? = nil
+    var attachments: [ChatAttachment]? = nil
     /// Автор удалён: имя/аватар скрываются, показываем «Удалённый пользователь».
     var senderDeleted: Bool? = nil
 
     /// Копия сообщения с другим идентификатором. Нужна, чтобы подменить
     /// оптимистичный локальный пузырь серверным эхом, сохранив локальный UUID
     /// (иначе список перерисовывается и мигает) — аналог Kotlin `copy`.
-    func withMessageUuid(_ uuid: String) -> MessageResponse {
+    func withMessageUuid(_ uuid: String) -> ChatMessage {
         replacing(messageUuid: uuid)
     }
 
@@ -246,12 +246,12 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
         isEdited: Bool? = nil,
         isDeleted: Bool? = nil,
         isPinned: Bool? = nil,
-        reactions: [MessageReactionResponse]? = nil,
+        reactions: [MessageReaction]? = nil,
         power: Int? = nil,
-        attachments: [AttachmentResponse]? = nil,
+        attachments: [ChatAttachment]? = nil,
         senderDeleted: Bool? = nil
-    ) -> MessageResponse {
-        MessageResponse(
+    ) -> ChatMessage {
+        ChatMessage(
             messageUuid: messageUuid ?? self.messageUuid,
             messageId: messageId ?? self.messageId,
             chatUuid: chatUuid,
@@ -279,7 +279,7 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
 
 /// Вложение сообщения. `fileUrl` — ключ в MinIO, а не готовый URL; скачивание
 /// идёт через `/api/attachments/{attachmentUuid}`.
-struct AttachmentResponse: Codable, Hashable, Identifiable {
+struct ChatAttachment: Codable, Hashable, Identifiable {
     var id: String { attachmentUuid ?? fileUrl ?? fileName ?? "attachment" }
 
     let attachmentUuid: String?
@@ -296,20 +296,21 @@ struct AttachmentResponse: Codable, Hashable, Identifiable {
     let gifKey: String?
 }
 
-struct MessageReactionResponse: Decodable, Hashable {    let emoji: String
+struct MessageReaction: Hashable {
+    let emoji: String
     let count: Int
     let mine: Bool
-    let users: [ReactionUserResponse]?
+    let users: [ReactionUser]?
 }
 
-struct ReactionUserResponse: Decodable, Hashable {
+struct ReactionUser: Hashable {
     let userUuid: String?
     let at: String?
 }
 
 /// Квитанция участника: докуда его устройство доставило и докуда прочитало.
-/// Сравнивается с `MessageResponse.messageId`.
-struct ChatReceiptResponse: Decodable, Hashable {
+/// Сравнивается с `ChatMessage.messageId`.
+struct ChatReceipt: Hashable {
     let userUuid: String?
     let username: String?
     let fullName: String?
@@ -325,7 +326,7 @@ struct ChatReceiptResponse: Decodable, Hashable {
 
 /// Точный статус участника для конкретного сообщения
 /// (`GET /api/messages/{chatUuid}/status/{messageUuid}`).
-struct MessageStatusResponse: Decodable, Hashable {
+struct MessageStatus: Hashable {
     let userId: Int64?
     let userUuid: String?
     let status: String?
@@ -362,7 +363,7 @@ struct AvatarResponse: Decodable {
     let avatarUrl: String?
 }
 
-struct ChatParticipantResponse: Decodable, Identifiable, Hashable {
+struct ChatParticipant: Identifiable, Hashable {
     var id: String { userUuid ?? "\(userId ?? 0)-\(username ?? "")" }
     let userUuid: String?
     let userId: Int64?

@@ -73,7 +73,7 @@ struct ChatListView: View {
 }
 
 struct ChatRow: View {
-    let chat: ChatResponse
+    let chat: Chat
 
     var body: some View {
         HStack(spacing: 12) {

@@ -4,8 +4,8 @@ import SwiftUI
 /// кнопкой отправки.
 struct ChatComposerView: View {
     @Binding var text: String
-    let replyTo: MessageResponse?
-    let editing: MessageResponse?
+    let replyTo: ChatMessage?
+    let editing: ChatMessage?
     let myUserUuid: String?
     let usernames: [String]
     let pendingAttachments: [PendingChatAttachment]

@@ -3,10 +3,10 @@ import SwiftUI
 /// Один пузырь сообщения: цитата ответа, пересылка, текст, реакции, время и
 /// галочки статуса. Вся логика «моё/чужое» приходит снаружи.
 struct MessageRow: View {
-    let message: MessageResponse
+    let message: ChatMessage
     let isMine: Bool
     let showSenderName: Bool
-    let replyTarget: MessageResponse?
+    let replyTarget: ChatMessage?
     let status: MessageDeliveryStatus?
     let isSelected: Bool
     let myUserUuid: String?
@@ -113,7 +113,7 @@ struct MessageRow: View {
         .frame(maxWidth: 220, alignment: .leading)
     }
 
-    private func reactionRow(_ reactions: [MessageReactionResponse]) -> some View {
+    private func reactionRow(_ reactions: [MessageReaction]) -> some View {
         HStack(spacing: 4) {
             ForEach(reactions, id: \.emoji) { reaction in
                 Button {

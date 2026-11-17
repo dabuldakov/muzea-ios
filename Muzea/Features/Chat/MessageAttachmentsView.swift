@@ -20,14 +20,14 @@ final class AttachmentImageCache {
 /// Вложения в пузыре: сетка фото, видео, аудио и документы. Каждый тип — свой
 /// компонент, чтобы плееры и загрузки не смешивались в одном god-view.
 struct MessageAttachmentsView: View {
-    let attachments: [AttachmentResponse]
+    let attachments: [ChatAttachment]
     let isMine: Bool
 
-    private var images: [AttachmentResponse] {
+    private var images: [ChatAttachment] {
         attachments.filter { kind($0) == .image }
     }
 
-    private var others: [AttachmentResponse] {
+    private var others: [ChatAttachment] {
         attachments.filter { kind($0) != .image }
     }
 
@@ -62,7 +62,7 @@ struct MessageAttachmentsView: View {
         }
     }
 
-    private func kind(_ attachment: AttachmentResponse) -> AttachmentKind {
+    private func kind(_ attachment: ChatAttachment) -> AttachmentKind {
         AttachmentPolicy.kind(fromServerType: attachment.type)
             ?? AttachmentPolicy.rule(for: attachment.fileName ?? "")?.kind
             ?? .document
@@ -72,7 +72,7 @@ struct MessageAttachmentsView: View {
 // MARK: - Images
 
 private struct AttachmentImageCell: View {
-    let attachment: AttachmentResponse
+    let attachment: ChatAttachment
     let large: Bool
 
     @EnvironmentObject private var container: AppContainer
@@ -167,7 +167,7 @@ struct ImageAttachmentViewer: View {
 
 // MARK: - Video
 private struct VideoAttachmentView: View {
-    let attachment: AttachmentResponse
+    let attachment: ChatAttachment
     let isMine: Bool
 
     @EnvironmentObject private var container: AppContainer
@@ -248,7 +248,7 @@ private struct VideoAttachmentView: View {
 // MARK: - Audio
 
 private struct AudioAttachmentView: View {
-    let attachment: AttachmentResponse
+    let attachment: ChatAttachment
     let isMine: Bool
 
     @EnvironmentObject private var container: AppContainer
@@ -296,7 +296,7 @@ private struct AudioAttachmentView: View {
 // MARK: - GIF
 
 private struct GifAttachmentView: View {
-    let attachment: AttachmentResponse
+    let attachment: ChatAttachment
 
     private var videoURL: URL? {
         AttachmentURLResolver.absolute(attachment.mp4Url, base: Config.chatBaseURL)
@@ -398,7 +398,7 @@ final class PlayerContainerView: UIView {
 // MARK: - Files
 
 private struct FileAttachmentView: View {
-    let attachment: AttachmentResponse
+    let attachment: ChatAttachment
     let isMine: Bool
 
     @EnvironmentObject private var container: AppContainer

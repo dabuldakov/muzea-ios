@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Список контактов с множественным выбором (по contactUserUuid).
 struct MemberPickerView: View {
-    let contacts: [ContactResponse]
+    let contacts: [Contact]
     @Binding var selected: Set<String>
 
     var body: some View {
@@ -30,7 +30,7 @@ struct MemberPickerView: View {
         }
     }
 
-    private func isSelected(_ contact: ContactResponse) -> Bool {
+    private func isSelected(_ contact: Contact) -> Bool {
         guard let uuid = contact.contactUserUuid, !uuid.isEmpty else { return false }
         return selected.contains(uuid)
     }

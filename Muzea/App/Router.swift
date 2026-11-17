@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Маршруты навигации. Значения `Hashable`, чтобы складываться в `NavigationPath`.
 enum Route: Hashable {
-    case conversation(ChatResponse)
-    case groupSettings(ChatResponse)
+    case conversation(Chat)
+    case groupSettings(Chat)
     case newsDetail(Int64)
     case videoDetail(VideoResponse)
     case operatorInfo

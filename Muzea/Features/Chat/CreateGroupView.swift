@@ -3,7 +3,7 @@ import SwiftUI
 /// Создание группового чата: название и необязательный выбор участников.
 struct CreateGroupView: View {
     let container: AppContainer
-    let onCreated: (ChatResponse) -> Void
+    let onCreated: (Chat) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: CreateGroupViewModel
@@ -11,7 +11,7 @@ struct CreateGroupView: View {
     @State private var selected: Set<String> = []
     @State private var showMemberPicker = false
 
-    init(container: AppContainer, onCreated: @escaping (ChatResponse) -> Void) {
+    init(container: AppContainer, onCreated: @escaping (Chat) -> Void) {
         self.container = container
         self.onCreated = onCreated
         _viewModel = StateObject(wrappedValue: CreateGroupViewModel(

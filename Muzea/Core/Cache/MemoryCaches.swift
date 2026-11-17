@@ -76,11 +76,11 @@ final class LRUStore<Key: Hashable, Value> {
 /// при каждом показе экрана, поэтому общий кэш отдаёт список мгновенно, пока
 /// актуальные данные догружаются сетью (аналог Android `ChatListCache`).
 final class ChatListCache {
-    private let store = LRUStore<String, ChatResponse>(limit: 200)
+    private let store = LRUStore<String, Chat>(limit: 200)
 
-    func get() -> [ChatResponse] { store.all() }
+    func get() -> [Chat] { store.all() }
     func has() -> Bool { !store.isEmpty() }
-    func put(_ list: [ChatResponse]) {
+    func put(_ list: [Chat]) {
         store.replace(list.filter { !$0.chatUuid.isEmpty }.map { ($0.chatUuid, $0) })
     }
     func clear() { store.clear() }
@@ -89,11 +89,11 @@ final class ChatListCache {
 /// Кэш сообщений по чатам. Позволяет мгновенно показать переписку при повторном
 /// входе, пока свежие сообщения догружаются в фоне (аналог `ChatMessagesCache`).
 final class ChatMessagesCache {
-    private let store = LRUStore<String, [MessageResponse]>(limit: 50)
+    private let store = LRUStore<String, [ChatMessage]>(limit: 50)
 
-    func get(chatUuid: String) -> [MessageResponse] { store.value(for: chatUuid) ?? [] }
+    func get(chatUuid: String) -> [ChatMessage] { store.value(for: chatUuid) ?? [] }
     func has(chatUuid: String) -> Bool { store.contains(chatUuid) }
-    func put(chatUuid: String, list: [MessageResponse]) { store.set(list, for: chatUuid) }
+    func put(chatUuid: String, list: [ChatMessage]) { store.set(list, for: chatUuid) }
     func clear() { store.clear() }
 }
 
@@ -104,10 +104,10 @@ final class ChatMessagesCache {
 /// временем не меняется, поэтому найденную пару запоминаем на сессию
 /// (аналог `PrivateChatCache`).
 final class PrivateChatCache {
-    private let store = LRUStore<String, ChatResponse>(limit: 200)
+    private let store = LRUStore<String, Chat>(limit: 200)
 
-    func get(userUuid: String) -> ChatResponse? { store.value(for: userUuid) }
-    func put(userUuid: String, chat: ChatResponse) {
+    func get(userUuid: String) -> Chat? { store.value(for: userUuid) }
+    func put(userUuid: String, chat: Chat) {
         guard !userUuid.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         store.set(chat, for: userUuid)
     }

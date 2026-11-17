@@ -8,9 +8,10 @@ final class MessageReceiptRepositoryImpl: MessageReceiptRepository {
         self.auth = auth
     }
 
-    func loadReceipts(chatUuid: String) async throws -> [ChatReceiptResponse] {
-        try await auth.authorized {
+    func loadReceipts(chatUuid: String) async throws -> [ChatReceipt] {
+        let dtos: [ChatReceiptDTO] = try await auth.authorized {
             try await auth.client.request("GET", "/api/chats/\(chatUuid)/receipts")
         }
+        return dtos.map { $0.toDomain() }
     }
 }

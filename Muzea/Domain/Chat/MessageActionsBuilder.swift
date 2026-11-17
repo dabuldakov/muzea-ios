@@ -26,7 +26,7 @@ enum MessageActionsBuilder {
     }
 
     static func build(
-        message: MessageResponse,
+        message: ChatMessage,
         myUserUuid: String?,
         isGroupChat: Bool,
         failedMessages: Set<String> = []

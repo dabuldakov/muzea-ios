@@ -129,7 +129,7 @@ final class ContactListViewModelTests: XCTestCase {
         let viewModel = makeViewModel(contacts: contacts)
         await viewModel.load()
 
-        contacts.presence = ["u-1": PresenceResponse(userUuid: "u-1", online: true, lastSeenAt: nil)]
+        contacts.presence = ["u-1": Presence(userUuid: "u-1", online: true, lastSeenAt: nil)]
         await viewModel.refreshPresence()
 
         XCTAssertEqual(viewModel.state.contacts.map { $0.contactUserUuid }, ["u-1", "u-2"])
@@ -329,8 +329,8 @@ final class AuthViewModelTests: XCTestCase {
 @MainActor
 final class GroupSettingsViewModelTests: XCTestCase {
 
-    private func participant(_ uuid: String) -> ChatParticipantResponse {
-        ChatParticipantResponse(
+    private func participant(_ uuid: String) -> ChatParticipant {
+        ChatParticipant(
             userUuid: uuid,
             userId: nil,
             username: uuid,

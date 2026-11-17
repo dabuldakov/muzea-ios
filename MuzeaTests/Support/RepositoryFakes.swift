@@ -5,29 +5,29 @@ import Foundation
 /// use-cases без сети. Аналог MockK-моков на Android.
 
 final class FakeChatRepository: ChatRepository {
-    var chats: [ChatResponse] = []
-    var cached: [ChatResponse] = []
-    var participants: [String: [ChatParticipantResponse]] = [:]
-    var privateChats: [String: ChatResponse] = [:]
+    var chats: [Chat] = []
+    var cached: [Chat] = []
+    var participants: [String: [ChatParticipant]] = [:]
+    var privateChats: [String: Chat] = [:]
     var createdPrivateChats: [String] = []
     var createdGroups: [(String, [String])] = []
     var addedParticipants: [(String, [String])] = []
     var loadChatsError: Error?
 
-    func loadChats() async throws -> [ChatResponse] {
+    func loadChats() async throws -> [Chat] {
         if let loadChatsError { throw loadChatsError }
         return chats
     }
 
-    func cachedChats() -> [ChatResponse] { cached }
+    func cachedChats() -> [Chat] { cached }
 
-    func loadChatParticipants(chatUuid: String) async throws -> [ChatParticipantResponse] {
+    func loadChatParticipants(chatUuid: String) async throws -> [ChatParticipant] {
         participants[chatUuid] ?? []
     }
 
-    func createPrivateChat(userUuid: String) async throws -> ChatResponse {
+    func createPrivateChat(userUuid: String) async throws -> Chat {
         createdPrivateChats.append(userUuid)
-        return ChatResponse(
+        return Chat(
             chatUuid: "created-\(userUuid)",
             chatType: "PRIVATE",
             title: nil,
@@ -40,13 +40,13 @@ final class FakeChatRepository: ChatRepository {
         )
     }
 
-    func findPrivateChatWith(userUuid: String) async throws -> ChatResponse? {
+    func findPrivateChatWith(userUuid: String) async throws -> Chat? {
         privateChats[userUuid]
     }
 
-    func createGroupChat(title: String, memberUuids: [String]) async throws -> ChatResponse {
+    func createGroupChat(title: String, memberUuids: [String]) async throws -> Chat {
         createdGroups.append((title, memberUuids))
-        return ChatResponse(
+        return Chat(
             chatUuid: "group-1",
             chatType: "GROUP",
             title: title,
@@ -65,25 +65,25 @@ final class FakeChatRepository: ChatRepository {
 }
 
 final class FakeMessageRepository: MessageRepository {
-    var messages: [MessageResponse] = []
-    var cached: [MessageResponse] = []
+    var messages: [ChatMessage] = []
+    var cached: [ChatMessage] = []
     var sentTexts: [String] = []
     var sentRequests: [(text: String, replyTo: String?, clientId: String?, power: Int)] = []
     var sentMedia: [(messageType: String, attachments: [String])] = []
-    var sendResult: MessageResponse?
+    var sendResult: ChatMessage?
     var sendError: Error?
     var loadError: Error?
     var markedRead: [(String, String)] = []
     var markedDelivered: [(String, String)] = []
 
-    func loadMessages(chatUuid: String) async throws -> [MessageResponse] {
+    func loadMessages(chatUuid: String) async throws -> [ChatMessage] {
         if let loadError { throw loadError }
         return messages
     }
 
-    func cachedMessages(chatUuid: String) -> [MessageResponse] { cached }
+    func cachedMessages(chatUuid: String) -> [ChatMessage] { cached }
 
-    func sendMessage(chatUuid: String, text: String) async throws -> MessageResponse {
+    func sendMessage(chatUuid: String, text: String) async throws -> ChatMessage {
         try await sendMessage(
             chatUuid: chatUuid,
             text: text,
@@ -99,7 +99,7 @@ final class FakeMessageRepository: MessageRepository {
         replyToMessageUuid: String?,
         clientMessageId: String?,
         power: Int
-    ) async throws -> MessageResponse {
+    ) async throws -> ChatMessage {
         try await sendMessage(
             chatUuid: chatUuid,
             text: text,
@@ -119,12 +119,12 @@ final class FakeMessageRepository: MessageRepository {
         clientMessageId: String?,
         attachments: [String],
         power: Int
-    ) async throws -> MessageResponse {
+    ) async throws -> ChatMessage {
         sentTexts.append(text)
         sentRequests.append((text, replyToMessageUuid, clientMessageId, power))
         sentMedia.append((messageType, attachments))
         if let sendError { throw sendError }
-        return sendResult ?? MessageResponse(
+        return sendResult ?? ChatMessage(
             messageUuid: "server-1",
             chatUuid: chatUuid,
             senderId: nil,
@@ -149,10 +149,10 @@ final class FakeMessageRepository: MessageRepository {
         chatUuid: String,
         gif: Gif,
         replyToMessageUuid: String?
-    ) async throws -> MessageResponse {
+    ) async throws -> ChatMessage {
         sentGifs.append(gif)
         if let sendError { throw sendError }
-        return MessageResponse(
+        return ChatMessage(
             messageUuid: "gif-1",
             chatUuid: chatUuid,
             senderId: nil,
@@ -169,7 +169,7 @@ final class FakeMessageRepository: MessageRepository {
             updatedAt: nil,
             power: nil,
             attachments: [
-                AttachmentResponse(
+                ChatAttachment(
                     attachmentUuid: nil,
                     fileName: gif.title,
                     fileUrl: gif.url,
@@ -198,7 +198,7 @@ final class FakeMessageRepository: MessageRepository {
 
 final class FakeAttachmentRepository: AttachmentRepository {
     var uploads: [(String, String, AttachmentKind)] = []
-    var response: AttachmentResponse?
+    var response: ChatAttachment?
     var downloadData = Data([1, 2, 3])
     var downloads = 0
 
@@ -212,9 +212,9 @@ final class FakeAttachmentRepository: AttachmentRepository {
         width: Int?,
         height: Int?,
         duration: Int?
-    ) async throws -> AttachmentResponse {
+    ) async throws -> ChatAttachment {
         uploads.append((chatUuid, fileName, kind))
-        let result = response ?? AttachmentResponse(
+        let result = response ?? ChatAttachment(
             attachmentUuid: "a-1",
             fileName: fileName,
             fileUrl: "stored-key",
@@ -247,10 +247,10 @@ final class FakeMessageActionsRepository: MessageActionsRepository {    var edit
     var forwarded: [(String, String)] = []
     var pinned: [(String, String)] = []
     var unpinned: [(String, String)] = []
-    var pinnedMessages: [MessageResponse] = []
-    var editResult: MessageResponse?
+    var pinnedMessages: [ChatMessage] = []
+    var editResult: ChatMessage?
 
-    func editMessage(messageUuid: String, text: String) async throws -> MessageResponse {
+    func editMessage(messageUuid: String, text: String) async throws -> ChatMessage {
         edited.append((messageUuid, text))
         guard let editResult else { throw APIError.server(500, "no edit result") }
         return editResult
@@ -260,7 +260,7 @@ final class FakeMessageActionsRepository: MessageActionsRepository {    var edit
         deleted.append(messageUuid)
     }
 
-    func forwardMessage(messageUuid: String, toChatUuid: String) async throws -> MessageResponse {
+    func forwardMessage(messageUuid: String, toChatUuid: String) async throws -> ChatMessage {
         forwarded.append((messageUuid, toChatUuid))
         return TestData.message("forwarded-\(messageUuid)")
     }
@@ -273,39 +273,39 @@ final class FakeMessageActionsRepository: MessageActionsRepository {    var edit
         unpinned.append((chatUuid, messageUuid))
     }
 
-    func loadPinned(chatUuid: String) async throws -> [MessageResponse] {
+    func loadPinned(chatUuid: String) async throws -> [ChatMessage] {
         pinnedMessages
     }
 }
 
 final class FakeMessageReactionRepository: MessageReactionRepository {
-    var reactions: [String: [MessageReactionResponse]] = [:]
+    var reactions: [String: [MessageReaction]] = [:]
     var toggles: [(String, String)] = []
 
-    func toggleReaction(messageUuid: String, emoji: String) async throws -> [MessageReactionResponse] {
+    func toggleReaction(messageUuid: String, emoji: String) async throws -> [MessageReaction] {
         toggles.append((messageUuid, emoji))
         return reactions[messageUuid] ?? []
     }
 }
 
 final class FakeMessageReceiptRepository: MessageReceiptRepository {
-    var receipts: [ChatReceiptResponse] = []
+    var receipts: [ChatReceipt] = []
     var loads = 0
 
-    func loadReceipts(chatUuid: String) async throws -> [ChatReceiptResponse] {
+    func loadReceipts(chatUuid: String) async throws -> [ChatReceipt] {
         loads += 1
         return receipts
     }
 }
 
 final class FakeMessageStatusRepository: MessageStatusRepository {
-    var statuses: [String: [MessageStatusResponse]] = [:]
+    var statuses: [String: [MessageStatus]] = [:]
     var loads: [(String, String)] = []
 
     func loadMessageStatuses(
         chatUuid: String,
         messageUuid: String
-    ) async throws -> [MessageStatusResponse] {
+    ) async throws -> [MessageStatus] {
         loads.append((chatUuid, messageUuid))
         return statuses[messageUuid] ?? []
     }
@@ -415,19 +415,19 @@ extension ChatConversationServices {
 }
 
 final class FakeContactRepository: ContactRepository {
-    var contacts: [ContactResponse] = []
+    var contacts: [Contact] = []
     var added: [String] = []
-    var presence: [String: PresenceResponse] = [:]
+    var presence: [String: Presence] = [:]
     var loadError: Error?
 
-    func loadContacts() async throws -> [ContactResponse] {
+    func loadContacts() async throws -> [Contact] {
         if let loadError { throw loadError }
         return contacts
     }
 
-    func addContact(username: String) async throws -> ContactResponse {
+    func addContact(username: String) async throws -> Contact {
         added.append(username)
-        return ContactResponse(
+        return Contact(
             contactUuid: "k-\(username)",
             contactUserId: nil,
             contactUserUuid: "u-\(username)",
@@ -443,7 +443,7 @@ final class FakeContactRepository: ContactRepository {
         )
     }
 
-    func loadPresence(userUuids: [String]) async -> [String: PresenceResponse] { presence }
+    func loadPresence(userUuids: [String]) async -> [String: Presence] { presence }
 }
 
 final class FakeAvatarRepository: AvatarRepository {
@@ -605,8 +605,8 @@ final class FakeAuthRepository: AuthRepositoryProtocol {
 // MARK: - Builders
 
 enum TestData {
-    static func chat(_ uuid: String, type: String = "PRIVATE", title: String? = nil, unread: Int64 = 0) -> ChatResponse {
-        ChatResponse(
+    static func chat(_ uuid: String, type: String = "PRIVATE", title: String? = nil, unread: Int64 = 0) -> Chat {
+        Chat(
             chatUuid: uuid,
             chatType: type,
             title: title,
@@ -619,8 +619,8 @@ enum TestData {
         )
     }
 
-    static func message(_ uuid: String, text: String = "t", createdAt: String? = "2026-01-01T00:00:00", sender: String? = "me") -> MessageResponse {
-        MessageResponse(
+    static func message(_ uuid: String, text: String = "t", createdAt: String? = "2026-01-01T00:00:00", sender: String? = "me") -> ChatMessage {
+        ChatMessage(
             messageUuid: uuid,
             chatUuid: "c-1",
             senderId: nil,
@@ -638,8 +638,8 @@ enum TestData {
         )
     }
 
-    static func contact(_ uuid: String, online: Bool = false) -> ContactResponse {
-        ContactResponse(
+    static func contact(_ uuid: String, online: Bool = false) -> Contact {
+        Contact(
             contactUuid: "k-\(uuid)",
             contactUserId: nil,
             contactUserUuid: uuid,

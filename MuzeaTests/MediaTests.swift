@@ -38,7 +38,7 @@ final class AttachmentPolicyTests: XCTestCase {
     }
 
     func testAttachmentURLsPreferProxyUUID() {
-        let attachment = AttachmentResponse(
+        let attachment = ChatAttachment(
             attachmentUuid: "a-1",
             fileName: "photo.jpg",
             fileUrl: "minio-key",

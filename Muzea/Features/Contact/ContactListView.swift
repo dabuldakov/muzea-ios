@@ -86,7 +86,7 @@ struct ContactListView: View {
         }
     }
 
-    private func openChat(_ contact: ContactResponse) {
+    private func openChat(_ contact: Contact) {
         Task {
             if let chat = await viewModel.openChat(with: contact) {
                 router.push(.conversation(chat))
@@ -96,7 +96,7 @@ struct ContactListView: View {
 }
 
 struct ContactRow: View {
-    let contact: ContactResponse
+    let contact: Contact
 
     var body: some View {
         HStack(spacing: 12) {

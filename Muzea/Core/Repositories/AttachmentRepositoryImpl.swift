@@ -18,7 +18,7 @@ final class AttachmentRepositoryImpl: AttachmentRepository {
         width: Int?,
         height: Int?,
         duration: Int?
-    ) async throws -> AttachmentResponse {
+    ) async throws -> ChatAttachment {
         var fields = ["chatUuid": chatUuid]
         if let width { fields["width"] = String(width) }
         if let height { fields["height"] = String(height) }

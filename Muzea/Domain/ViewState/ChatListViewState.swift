@@ -17,7 +17,7 @@ enum ChatListViewState: Equatable {
 /// `viewState` считается от переданного списка, а не от состояния UI-компонента:
 /// иначе первый же пустой ответ сервера залипал бы в «пусто» навсегда.
 struct ChatListUiState: Equatable {
-    var chats: [ChatResponse] = []
+    var chats: [Chat] = []
     var isLoading = false
     var error: String?
 

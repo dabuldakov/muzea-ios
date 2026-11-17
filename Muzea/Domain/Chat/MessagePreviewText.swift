@@ -3,7 +3,7 @@ import Foundation
 /// Подписи для цитат, ответов, пересылки и панели закреплённых.
 enum MessagePreviewText {
 
-    static func senderName(_ message: MessageResponse?, myUserUuid: String?) -> String {
+    static func senderName(_ message: ChatMessage?, myUserUuid: String?) -> String {
         guard let message else { return "Неизвестный отправитель" }
         if let uuid = message.senderUuid, uuid == myUserUuid { return "Вы" }
         if message.senderDeleted == true { return "Удалённый пользователь" }
@@ -12,7 +12,7 @@ enum MessagePreviewText {
     }
 
     /// Короткий текст цитаты: текст, тип вложения или заглушка.
-    static func preview(_ message: MessageResponse?) -> String {
+    static func preview(_ message: ChatMessage?) -> String {
         guard let message else { return "Сообщение" }
         if message.isDeleted == true { return "Сообщение удалено" }
         if let text = message.text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty {

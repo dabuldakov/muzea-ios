@@ -8,13 +8,14 @@ final class MessageReactionRepositoryImpl: MessageReactionRepository {
         self.auth = auth
     }
 
-    func toggleReaction(messageUuid: String, emoji: String) async throws -> [MessageReactionResponse] {
-        try await auth.authorized {
+    func toggleReaction(messageUuid: String, emoji: String) async throws -> [MessageReaction] {
+        let dtos: [MessageReactionDTO] = try await auth.authorized {
             try await auth.client.request(
                 "POST",
                 "/api/messages/\(messageUuid)/reactions",
                 body: ReactionRequest(emoji: emoji)
             )
         }
+        return dtos.map { $0.toDomain() }
     }
 }

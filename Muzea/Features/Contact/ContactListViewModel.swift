@@ -2,7 +2,7 @@ import Foundation
 
 /// Единое состояние списка контактов.
 struct ContactListUiState: Equatable {
-    var contacts: [ContactResponse] = []
+    var contacts: [Contact] = []
     var isLoading = false
     var error: String?
 }
@@ -62,7 +62,7 @@ final class ContactListViewModel: ObservableObject {
 
     /// Открывает существующую переписку или создаёт новую через use-case:
     /// повторный тап по контакту больше не плодит дубликаты чатов.
-    func openChat(with contact: ContactResponse) async -> ChatResponse? {
+    func openChat(with contact: Contact) async -> Chat? {
         guard let uuid = contact.contactUserUuid, !uuid.isEmpty else {
             state.error = "У контакта нет UUID"
             return nil

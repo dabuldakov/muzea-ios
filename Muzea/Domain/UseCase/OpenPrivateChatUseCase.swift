@@ -13,7 +13,7 @@ final class OpenPrivateChatUseCase {
         self.repository = repository
     }
 
-    func callAsFunction(userUuid: String) async throws -> ChatResponse {
+    func callAsFunction(userUuid: String) async throws -> Chat {
         let existing = try? await repository.findPrivateChatWith(userUuid: userUuid)
         if let existing {
             return existing

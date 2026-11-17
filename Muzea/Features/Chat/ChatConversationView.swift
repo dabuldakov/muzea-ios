@@ -4,7 +4,7 @@ import PhotosUI
 import UniformTypeIdentifiers
 
 struct ChatConversationView: View {
-    let chat: ChatResponse
+    let chat: Chat
 
     @EnvironmentObject private var router: Router
     @EnvironmentObject private var container: AppContainer
@@ -15,7 +15,7 @@ struct ChatConversationView: View {
     @State private var jumpTarget: String?
     @State private var activeAlert: ActiveAlert?
     @State private var activeSheet: ActiveSheet?
-    @State private var forwardTargets: [MessageResponse] = []
+    @State private var forwardTargets: [ChatMessage] = []
     @State private var showAttachMenu = false
     @State private var showPhotoPicker = false
     @State private var showVideoPicker = false
@@ -23,7 +23,7 @@ struct ChatConversationView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var videoItem: PhotosPickerItem?
 
-    init(chat: ChatResponse, myUserUuid: String?, services: ChatConversationServices) {
+    init(chat: Chat, myUserUuid: String?, services: ChatConversationServices) {
         self.chat = chat
         _viewModel = StateObject(wrappedValue: ChatConversationViewModel(
             chatUuid: chat.chatUuid,
@@ -238,7 +238,7 @@ struct ChatConversationView: View {
     // MARK: - Rows
 
     @ViewBuilder
-    private func row(for message: MessageResponse) -> some View {
+    private func row(for message: ChatMessage) -> some View {
         let isMine = message.senderUuid != nil && message.senderUuid == viewModel.myUserUuid
         let selected = viewModel.state.selection.contains(message.messageUuid)
 
@@ -275,7 +275,7 @@ struct ChatConversationView: View {
     }
 
     @ViewBuilder
-    private func contextMenu(for message: MessageResponse, isMine: Bool) -> some View {
+    private func contextMenu(for message: ChatMessage, isMine: Bool) -> some View {
         let result = MessageActionsBuilder.build(
             message: message,
             myUserUuid: viewModel.myUserUuid,
@@ -489,14 +489,14 @@ struct ChatConversationView: View {
         viewModel.cancelComposer()
     }
 
-    private func openForward(_ messages: [MessageResponse]) {
+    private func openForward(_ messages: [ChatMessage]) {
         guard !messages.isEmpty else { return }
         forwardTargets = messages
         activeSheet = .forward
         Task { await viewModel.loadForwardChats() }
     }
 
-    private func replyTarget(for message: MessageResponse) -> MessageResponse? {
+    private func replyTarget(for message: ChatMessage) -> ChatMessage? {
         guard let uuid = message.replyToMessageUuid else { return nil }
         return viewModel.state.messages.first { $0.messageUuid == uuid }
     }
@@ -519,9 +519,9 @@ struct ChatConversationView: View {
 
 private enum ActiveSheet: Identifiable {
     case forward
-    case details(MessageResponse)
-    case reaction(MessageResponse)
-    case report(MessageResponse)
+    case details(ChatMessage)
+    case reaction(ChatMessage)
+    case report(ChatMessage)
     case emojiGif
 
     var id: String {
@@ -538,9 +538,9 @@ private enum ActiveSheet: Identifiable {
 private enum ActiveAlert: Identifiable {
     case error(String)
     case notice(String)
-    case delete(MessageResponse)
+    case delete(ChatMessage)
     case deleteSelected
-    case block(MessageResponse)
+    case block(ChatMessage)
 
     var id: String {
         switch self {

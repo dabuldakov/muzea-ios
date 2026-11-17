@@ -21,7 +21,7 @@ final class AudioPlaybackCenter: NSObject, ObservableObject {
     @MainActor
     func toggle(
         id: String,
-        attachment: AttachmentResponse,
+        attachment: ChatAttachment,
         repository: AttachmentRepository
     ) async {
         if playingId == id, let player {

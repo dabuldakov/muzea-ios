@@ -2,7 +2,7 @@ import Foundation
 
 /// Единое состояние экрана настроек группы (участники).
 struct GroupSettingsUiState: Equatable {
-    var participants: [ChatParticipantResponse] = []
+    var participants: [ChatParticipant] = []
     var isLoading = false
     var isUploading = false
     var error: String?
@@ -11,7 +11,7 @@ struct GroupSettingsUiState: Equatable {
 @MainActor
 final class GroupSettingsViewModel: ObservableObject {
     @Published private(set) var state = GroupSettingsUiState()
-    @Published private(set) var contacts: [ContactResponse] = []
+    @Published private(set) var contacts: [Contact] = []
     @Published private(set) var avatarUrl: String?
 
     let chatUuid: String

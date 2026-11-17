@@ -10,8 +10,8 @@ final class MessageRepositoryImpl: MessageRepository {
         self.cache = cache
     }
 
-    func loadMessages(chatUuid: String) async throws -> [MessageResponse] {
-        let page: PageResponse<MessageResponse> = try await auth.authorized {
+    func loadMessages(chatUuid: String) async throws -> [ChatMessage] {
+        let page: PageResponse<ChatMessageDTO> = try await auth.authorized {
             try await auth.client.request(
                 "GET",
                 "/api/messages/\(chatUuid)",
@@ -21,15 +21,16 @@ final class MessageRepositoryImpl: MessageRepository {
                 ]
             )
         }
-        cache.put(chatUuid: chatUuid, list: page.content)
-        return page.content
+        let messages = page.content.map { $0.toDomain() }
+        cache.put(chatUuid: chatUuid, list: messages)
+        return messages
     }
 
-    func cachedMessages(chatUuid: String) -> [MessageResponse] {
+    func cachedMessages(chatUuid: String) -> [ChatMessage] {
         cache.get(chatUuid: chatUuid)
     }
 
-    func sendMessage(chatUuid: String, text: String) async throws -> MessageResponse {
+    func sendMessage(chatUuid: String, text: String) async throws -> ChatMessage {
         try await sendMessage(
             chatUuid: chatUuid,
             text: text,
@@ -45,7 +46,7 @@ final class MessageRepositoryImpl: MessageRepository {
         replyToMessageUuid: String?,
         clientMessageId: String?,
         power: Int
-    ) async throws -> MessageResponse {
+    ) async throws -> ChatMessage {
         try await sendMessage(
             chatUuid: chatUuid,
             text: text,
@@ -65,8 +66,8 @@ final class MessageRepositoryImpl: MessageRepository {
         clientMessageId: String?,
         attachments: [String],
         power: Int
-    ) async throws -> MessageResponse {
-        try await auth.authorized {
+    ) async throws -> ChatMessage {
+        let dto: ChatMessageDTO = try await auth.authorized {
             try await auth.client.request(
                 "POST",
                 "/api/messages/\(chatUuid)",
@@ -80,14 +81,15 @@ final class MessageRepositoryImpl: MessageRepository {
                 )
             )
         }
+        return dto.toDomain()
     }
 
     func sendGif(
         chatUuid: String,
         gif: Gif,
         replyToMessageUuid: String?
-    ) async throws -> MessageResponse {
-        try await auth.authorized {
+    ) async throws -> ChatMessage {
+        let dto: ChatMessageDTO = try await auth.authorized {
             try await auth.client.request(
                 "POST",
                 "/api/messages/\(chatUuid)",
@@ -111,24 +113,27 @@ final class MessageRepositoryImpl: MessageRepository {
                 )
             )
         }
+        return dto.toDomain()
     }
 
-    func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [MessageResponse] {
-        try await auth.authorized {
+    func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [ChatMessage] {
+        let dtos: [ChatMessageDTO] = try await auth.authorized {
             try await auth.client.request(
                 "GET",
                 "/api/messages/\(chatUuid)/after/\(Self.pathTimestamp(timestamp))"
             )
         }
+        return dtos.map { $0.toDomain() }
     }
 
-    func loadMessagesUpdated(chatUuid: String, timestamp: String) async throws -> [MessageResponse] {
-        try await auth.authorized {
+    func loadMessagesUpdated(chatUuid: String, timestamp: String) async throws -> [ChatMessage] {
+        let dtos: [ChatMessageDTO] = try await auth.authorized {
             try await auth.client.request(
                 "GET",
                 "/api/messages/\(chatUuid)/updated/\(Self.pathTimestamp(timestamp))"
             )
         }
+        return dtos.map { $0.toDomain() }
     }
 
     func markMessagesAsRead(chatUuid: String, upToMessageUuid: String) async {

@@ -3,7 +3,7 @@ import PhotosUI
 
 /// Настройки чата/группы: аватар, список участников и добавление новых.
 struct GroupSettingsView: View {
-    let chat: ChatResponse
+    let chat: Chat
     let container: AppContainer
 
     @StateObject private var viewModel: GroupSettingsViewModel
@@ -11,7 +11,7 @@ struct GroupSettingsView: View {
     @State private var selectedMembers: Set<String> = []
     @State private var showMemberPicker = false
 
-    init(chat: ChatResponse, container: AppContainer) {
+    init(chat: Chat, container: AppContainer) {
         self.chat = chat
         self.container = container
         _viewModel = StateObject(wrappedValue: GroupSettingsViewModel(
@@ -118,7 +118,7 @@ struct GroupSettingsView: View {
 }
 
 struct ParticipantRow: View {
-    let participant: ChatParticipantResponse
+    let participant: ChatParticipant
     let isMe: Bool
 
     var body: some View {

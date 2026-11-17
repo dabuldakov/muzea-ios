@@ -8,19 +8,19 @@ import Foundation
 /// разбиения god-репозитория.
 
 protocol ChatRepository {
-    func loadChats() async throws -> [ChatResponse]
-    func cachedChats() -> [ChatResponse]
-    func loadChatParticipants(chatUuid: String) async throws -> [ChatParticipantResponse]
-    func createPrivateChat(userUuid: String) async throws -> ChatResponse
-    func findPrivateChatWith(userUuid: String) async throws -> ChatResponse?
-    func createGroupChat(title: String, memberUuids: [String]) async throws -> ChatResponse
+    func loadChats() async throws -> [Chat]
+    func cachedChats() -> [Chat]
+    func loadChatParticipants(chatUuid: String) async throws -> [ChatParticipant]
+    func createPrivateChat(userUuid: String) async throws -> Chat
+    func findPrivateChatWith(userUuid: String) async throws -> Chat?
+    func createGroupChat(title: String, memberUuids: [String]) async throws -> Chat
     func addGroupParticipants(chatUuid: String, memberUuids: [String]) async throws
 }
 
 protocol MessageRepository {
-    func loadMessages(chatUuid: String) async throws -> [MessageResponse]
-    func cachedMessages(chatUuid: String) -> [MessageResponse]
-    func sendMessage(chatUuid: String, text: String) async throws -> MessageResponse
+    func loadMessages(chatUuid: String) async throws -> [ChatMessage]
+    func cachedMessages(chatUuid: String) -> [ChatMessage]
+    func sendMessage(chatUuid: String, text: String) async throws -> ChatMessage
     /// Отправка с ответом, ключом идемпотентности и зарядом.
     func sendMessage(
         chatUuid: String,
@@ -28,7 +28,7 @@ protocol MessageRepository {
         replyToMessageUuid: String?,
         clientMessageId: String?,
         power: Int
-    ) async throws -> MessageResponse
+    ) async throws -> ChatMessage
     /// Отправка медиа: тип сообщения и UUID вложений.
     func sendMessage(
         chatUuid: String,
@@ -38,17 +38,17 @@ protocol MessageRepository {
         clientMessageId: String?,
         attachments: [String],
         power: Int
-    ) async throws -> MessageResponse
+    ) async throws -> ChatMessage
     /// GIF: провайдер и метаданные, без idempotency-ключа (как на Android).
     func sendGif(
         chatUuid: String,
         gif: Gif,
         replyToMessageUuid: String?
-    ) async throws -> MessageResponse
+    ) async throws -> ChatMessage
     /// Инкрементальная синхронизация: только новые сообщения после timestamp.
-    func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [MessageResponse]
+    func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [ChatMessage]
     /// Окно правок/закрепов. Удаления сюда не попадают — нужен полный refresh.
-    func loadMessagesUpdated(chatUuid: String, timestamp: String) async throws -> [MessageResponse]
+    func loadMessagesUpdated(chatUuid: String, timestamp: String) async throws -> [ChatMessage]
     func markMessagesAsRead(chatUuid: String, upToMessageUuid: String) async
     func markMessagesAsDelivered(chatUuid: String, upToMessageUuid: String) async
 }
@@ -56,27 +56,27 @@ protocol MessageRepository {
 /// Действия над уже отправленными сообщениями. Отдельный контракт, чтобы
 /// экран не тянул за собой god-репозиторий.
 protocol MessageActionsRepository {
-    func editMessage(messageUuid: String, text: String) async throws -> MessageResponse
+    func editMessage(messageUuid: String, text: String) async throws -> ChatMessage
     func deleteMessage(messageUuid: String) async throws
-    func forwardMessage(messageUuid: String, toChatUuid: String) async throws -> MessageResponse
+    func forwardMessage(messageUuid: String, toChatUuid: String) async throws -> ChatMessage
     func pinMessage(chatUuid: String, messageUuid: String) async throws
     func unpinMessage(chatUuid: String, messageUuid: String) async throws
-    func loadPinned(chatUuid: String) async throws -> [MessageResponse]
+    func loadPinned(chatUuid: String) async throws -> [ChatMessage]
 }
 
 protocol MessageReactionRepository {
     /// Ставит или снимает реакцию; возвращает свежую сводку по сообщению.
-    func toggleReaction(messageUuid: String, emoji: String) async throws -> [MessageReactionResponse]
+    func toggleReaction(messageUuid: String, emoji: String) async throws -> [MessageReaction]
 }
 
 protocol MessageReceiptRepository {
-    func loadReceipts(chatUuid: String) async throws -> [ChatReceiptResponse]
+    func loadReceipts(chatUuid: String) async throws -> [ChatReceipt]
 }
 
 /// Точные отметки доставки/прочтения конкретного сообщения. В отличие от
 /// watermark-квитанций, для старых сообщений не дают ложную дату.
 protocol MessageStatusRepository {
-    func loadMessageStatuses(chatUuid: String, messageUuid: String) async throws -> [MessageStatusResponse]
+    func loadMessageStatuses(chatUuid: String, messageUuid: String) async throws -> [MessageStatus]
 }
 
 /// Жалобы и блокировки в чате.
@@ -97,7 +97,7 @@ protocol AttachmentRepository {
         width: Int?,
         height: Int?,
         duration: Int?
-    ) async throws -> AttachmentResponse
+    ) async throws -> ChatAttachment
     func download(attachmentUuid: String) async throws -> Data
     /// Превью для пузыря: оригинал для изображений, миниатюра для видео.
     func preview(attachmentUuid: String) async throws -> Data
@@ -119,7 +119,7 @@ extension MessageRepository {
         replyToMessageUuid: String?,
         clientMessageId: String?,
         power: Int
-    ) async throws -> MessageResponse {
+    ) async throws -> ChatMessage {
         try await sendMessage(chatUuid: chatUuid, text: text)
     }
 
@@ -132,7 +132,7 @@ extension MessageRepository {
         clientMessageId: String?,
         attachments: [String],
         power: Int
-    ) async throws -> MessageResponse {
+    ) async throws -> ChatMessage {
         try await sendMessage(
             chatUuid: chatUuid,
             text: text,
@@ -147,15 +147,15 @@ extension MessageRepository {
         chatUuid: String,
         gif: Gif,
         replyToMessageUuid: String?
-    ) async throws -> MessageResponse {
+    ) async throws -> ChatMessage {
         try await sendMessage(chatUuid: chatUuid, text: "")
     }
 
-    func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [MessageResponse] {
+    func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [ChatMessage] {
         try await loadMessages(chatUuid: chatUuid)
     }
 
-    func loadMessagesUpdated(chatUuid: String, timestamp: String) async throws -> [MessageResponse] {
+    func loadMessagesUpdated(chatUuid: String, timestamp: String) async throws -> [ChatMessage] {
         []
     }
 
@@ -163,10 +163,10 @@ extension MessageRepository {
 }
 
 protocol ContactRepository {
-    func loadContacts() async throws -> [ContactResponse]
-    func addContact(username: String) async throws -> ContactResponse
+    func loadContacts() async throws -> [Contact]
+    func addContact(username: String) async throws -> Contact
     /// Пакетный статус присутствия. Ошибка отдельного чанка не срывает остальные.
-    func loadPresence(userUuids: [String]) async -> [String: PresenceResponse]
+    func loadPresence(userUuids: [String]) async -> [String: Presence]
 }
 
 protocol AvatarRepository {

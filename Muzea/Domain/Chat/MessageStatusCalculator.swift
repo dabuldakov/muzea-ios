@@ -2,7 +2,7 @@ import Foundation
 
 /// Статус конкретного получателя для выбранного сообщения.
 struct ParticipantDeliveryStatus: Equatable {
-    let receipt: ChatReceiptResponse
+    let receipt: ChatReceipt
     let status: MessageDeliveryStatus
 }
 
@@ -13,8 +13,8 @@ struct ParticipantDeliveryStatus: Equatable {
 enum MessageStatusCalculator {
 
     static func statusOf(
-        message: MessageResponse,
-        receipts: [ChatReceiptResponse],
+        message: ChatMessage,
+        receipts: [ChatReceipt],
         myUserUuid: String?,
         failedMessages: Set<String> = [],
         receiptsLoaded: Bool = true
@@ -53,8 +53,8 @@ enum MessageStatusCalculator {
 
     /// Статусы всех своих сообщений: uuid -> галочка.
     static func statuses(
-        messages: [MessageResponse],
-        receipts: [ChatReceiptResponse],
+        messages: [ChatMessage],
+        receipts: [ChatReceipt],
         myUserUuid: String?,
         failedMessages: Set<String> = [],
         receiptsLoaded: Bool = true
@@ -77,8 +77,8 @@ enum MessageStatusCalculator {
     /// Кто прочитал/получил конкретное сообщение — для экрана «Статус».
     /// Участники, вступившие после сообщения, не показываются.
     static func participantStatuses(
-        message: MessageResponse,
-        receipts: [ChatReceiptResponse],
+        message: ChatMessage,
+        receipts: [ChatReceipt],
         myUserUuid: String?
     ) -> [ParticipantDeliveryStatus] {
         guard let messageId = message.messageId else { return [] }
@@ -109,8 +109,8 @@ enum MessageStatusCalculator {
     }
 
     private static func isRecipient(
-        _ receipt: ChatReceiptResponse,
-        message: MessageResponse,
+        _ receipt: ChatReceipt,
+        message: ChatMessage,
         myUserUuid: String?
     ) -> Bool {
         if receipt.userUuid == myUserUuid { return false }

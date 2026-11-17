@@ -14,32 +14,35 @@ final class ChatRepositoryImpl: ChatRepository {
         self.privateCache = privateCache
     }
 
-    func loadChats() async throws -> [ChatResponse] {
-        let chats: [ChatResponse] = try await auth.authorized {
+    func loadChats() async throws -> [Chat] {
+        let dtos: [ChatDTO] = try await auth.authorized {
             try await auth.client.request("GET", "/api/chats")
         }
+        let chats = dtos.map { $0.toDomain() }
         listCache.put(chats)
         return chats
     }
 
-    func cachedChats() -> [ChatResponse] {
+    func cachedChats() -> [Chat] {
         listCache.get()
     }
 
-    func loadChatParticipants(chatUuid: String) async throws -> [ChatParticipantResponse] {
-        try await auth.authorized {
+    func loadChatParticipants(chatUuid: String) async throws -> [ChatParticipant] {
+        let dtos: [ChatParticipantDTO] = try await auth.authorized {
             try await auth.client.request("GET", "/api/chats/\(chatUuid)/participants")
         }
+        return dtos.map { $0.toDomain() }
     }
 
-    func createPrivateChat(userUuid: String) async throws -> ChatResponse {
-        let chat: ChatResponse = try await auth.authorized {
+    func createPrivateChat(userUuid: String) async throws -> Chat {
+        let dto: ChatDTO = try await auth.authorized {
             try await auth.client.request(
                 "POST",
                 "/api/chats/private",
                 body: CreatePrivateChatRequest(otherUserUuid: userUuid)
             )
         }
+        let chat = dto.toDomain()
         privateCache.put(userUuid: userUuid, chat: chat)
         return chat
     }
@@ -51,13 +54,13 @@ final class ChatRepositoryImpl: ChatRepository {
     /// userUuid. Заодно заполняем кэш по всем найденным парам, чтобы следующие
     /// тапы были мгновенными. Нужен, чтобы повторное нажатие на контакт открывало
     /// существующую переписку, а не создавало дубликат.
-    func findPrivateChatWith(userUuid: String) async throws -> ChatResponse? {
+    func findPrivateChatWith(userUuid: String) async throws -> Chat? {
         if let cached = privateCache.get(userUuid: userUuid) {
             return cached
         }
 
         let chats = try await loadChats()
-        var match: ChatResponse?
+        var match: Chat?
         for chat in chats where chat.chatType?.caseInsensitiveCompare(Self.privateChatType) == .orderedSame {
             let participants = (try? await loadChatParticipants(chatUuid: chat.chatUuid)) ?? []
             for participant in participants {
@@ -71,14 +74,15 @@ final class ChatRepositoryImpl: ChatRepository {
         return match
     }
 
-    func createGroupChat(title: String, memberUuids: [String]) async throws -> ChatResponse {
-        try await auth.authorized {
+    func createGroupChat(title: String, memberUuids: [String]) async throws -> Chat {
+        let dto: ChatDTO = try await auth.authorized {
             try await auth.client.request(
                 "POST",
                 "/api/chats/group",
                 body: CreateGroupChatRequest(title: title, memberUuids: memberUuids)
             )
         }
+        return dto.toDomain()
     }
 
     func addGroupParticipants(chatUuid: String, memberUuids: [String]) async throws {
