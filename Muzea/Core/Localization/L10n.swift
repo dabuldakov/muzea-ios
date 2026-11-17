@@ -385,6 +385,10 @@ enum L10n {
         format("legal.deactivateFallback", email)
     }
 
+    static func consentBody(_ email: String) -> String {
+        format("legal.consent.body", email)
+    }
+
     // MARK: - Private
 
     private static func t(_ key: String) -> String {
