@@ -219,6 +219,7 @@ docs/
 ├── API_CONTRACT.md  контракт бэкенда (auth/chat/makeup) для iOS
 ├── PARITY.md        матрица паритета Android → iOS
 ├── TRANSFER_GUIDE.md правила переноса фич и слоёв
+├── XCODE_CLOUD.md   сборка и TestFlight через Xcode Cloud
 ├── fixtures/chat/   общие JSON-фикстуры для Android и iOS тестов
 └── fixtures/makeup/ фикстуры новостей, видео и профиля
 ```
