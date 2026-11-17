@@ -47,6 +47,7 @@ final class ChatConversationViewModel: ObservableObject {
     private var lastReceiptsRefreshAt: Date?
     private var lastOutboxRetryAt: Date?
     private var retryingPending = false
+    private var retryingAttachments = false
     private var inFlightClientIds: Set<String> = []
     private var pollTick = 0
 
@@ -77,6 +78,17 @@ final class ChatConversationViewModel: ObservableObject {
             incoming: pending.map(pendingResponse)
         )
         state.failedMessages = Set(pending.map(\.localUuid))
+
+        let storedAttachments = services.pendingAttachments.load(chatUuid: chatUuid)
+        state.pendingAttachments = storedAttachments.map {
+            PendingChatAttachment(
+                id: $0.id,
+                fileName: $0.fileName,
+                kind: AttachmentKind(rawValue: $0.kind) ?? .document,
+                uploaded: $0.uploaded
+            )
+        }
+        state.isUploadingAttachments = state.pendingAttachments.contains { !$0.isUploaded }
         recomputeStatuses()
     }
 
@@ -101,6 +113,7 @@ final class ChatConversationViewModel: ObservableObject {
     func start() async {
         await refresh()
         await retryPending(force: true)
+        await retryPendingAttachments()
         await loadParticipantsIfNeeded()
         await refreshPinned()
         await refreshReceipts(force: true)
@@ -207,6 +220,7 @@ final class ChatConversationViewModel: ObservableObject {
             )
             services.outbox.remove(clientMessageId: clientMessageId)
             state.pendingAttachments.removeAll()
+            services.pendingAttachments.clear(chatUuid: chatUuid)
             state.messages = reducer.applyServerEcho(
                 current: state.messages,
                 localUuid: optimistic.messageUuid,
@@ -222,6 +236,7 @@ final class ChatConversationViewModel: ObservableObject {
             // в дисковую очередь: повтор идемпотентен по clientMessageId.
             services.outbox.save(pending)
             state.pendingAttachments.removeAll()
+            services.pendingAttachments.clear(chatUuid: chatUuid)
             state.failedMessages.insert(optimistic.messageUuid)
             state.error = error.localizedDescription
             recomputeStatuses()
@@ -437,7 +452,52 @@ final class ChatConversationViewModel: ObservableObject {
     }
 
     func removePendingAttachment(_ id: String) {
+        services.pendingAttachments.remove(id: id)
         state.pendingAttachments.removeAll { $0.id == id }
+    }
+
+    /// Догружает вложения, которые были выбраны до перезапуска приложения.
+    func retryPendingAttachments() async {
+        guard !retryingAttachments else { return }
+        let stored = services.pendingAttachments.load(chatUuid: chatUuid)
+            .filter { $0.uploaded == nil }
+        guard !stored.isEmpty else { return }
+        retryingAttachments = true
+        defer { retryingAttachments = false }
+        state.isUploadingAttachments = true
+
+        for item in stored {
+            guard let data = try? Data(contentsOf: URL(fileURLWithPath: item.filePath)) else {
+                services.pendingAttachments.remove(id: item.id)
+                state.pendingAttachments.removeAll { $0.id == item.id }
+                continue
+            }
+            let thumbnail = item.thumbnailPath.flatMap { path in
+                try? Data(contentsOf: URL(fileURLWithPath: path))
+            }
+            do {
+                let uploaded = try await services.attachments.upload(
+                    chatUuid: chatUuid,
+                    data: data,
+                    fileName: item.fileName,
+                    mimeType: item.mimeType,
+                    kind: AttachmentKind(rawValue: item.kind) ?? .document,
+                    thumbnail: thumbnail,
+                    width: item.width,
+                    height: item.height,
+                    duration: item.duration
+                )
+                var updated = item
+                updated.uploaded = uploaded
+                services.pendingAttachments.update(updated)
+                if let index = state.pendingAttachments.firstIndex(where: { $0.id == item.id }) {
+                    state.pendingAttachments[index].uploaded = uploaded
+                }
+            } catch {
+                state.error = error.localizedDescription
+            }
+        }
+        state.isUploadingAttachments = state.pendingAttachments.contains { !$0.isUploaded }
     }
 
     private func upload(
@@ -462,14 +522,36 @@ final class ChatConversationViewModel: ObservableObject {
             return
         }
 
+        let id = UUID().uuidString
         let pending = PendingChatAttachment(
-            id: UUID().uuidString,
+            id: id,
             fileName: fileName,
             kind: kind,
             uploaded: nil
         )
         state.pendingAttachments.append(pending)
         state.isUploadingAttachments = true
+
+        let record = StoredPendingAttachment(
+            id: id,
+            chatUuid: chatUuid,
+            fileName: fileName,
+            mimeType: mimeType,
+            kind: kind.rawValue,
+            width: width,
+            height: height,
+            duration: duration,
+            filePath: "",
+            thumbnailPath: nil,
+            uploaded: nil
+        )
+        try? services.pendingAttachments.save(
+            record: record,
+            data: data,
+            thumbnail: thumbnail
+        )
+        var stored = services.pendingAttachments.load(chatUuid: chatUuid)
+            .first { $0.id == id } ?? record
 
         do {
             let uploaded = try await services.attachments.upload(
@@ -483,11 +565,13 @@ final class ChatConversationViewModel: ObservableObject {
                 height: height,
                 duration: duration
             )
-            if let index = state.pendingAttachments.firstIndex(where: { $0.id == pending.id }) {
+            stored.uploaded = uploaded
+            services.pendingAttachments.update(stored)
+            if let index = state.pendingAttachments.firstIndex(where: { $0.id == id }) {
                 state.pendingAttachments[index].uploaded = uploaded
             }
         } catch {
-            state.pendingAttachments.removeAll { $0.id == pending.id }
+            // Файл остаётся в дисковой очереди и повторится позже.
             state.error = error.localizedDescription
         }
         state.isUploadingAttachments = state.pendingAttachments.contains { !$0.isUploaded }

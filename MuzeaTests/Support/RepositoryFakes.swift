@@ -346,6 +346,63 @@ final class FakeGifRepository: GifRepository {
     }
 }
 
+final class FakePendingAttachmentStore: PendingAttachmentStore {
+    var records: [StoredPendingAttachment] = []
+    var dataByID: [String: Data] = [:]
+    var thumbByID: [String: Data] = [:]
+
+    func load(chatUuid: String) -> [StoredPendingAttachment] {
+        records.filter { $0.chatUuid == chatUuid }
+    }
+
+    func save(record: StoredPendingAttachment, data: Data, thumbnail: Data?) throws {
+        dataByID[record.id] = data
+        thumbByID[record.id] = thumbnail
+        var stored = record
+        stored = StoredPendingAttachment(
+            id: record.id,
+            chatUuid: record.chatUuid,
+            fileName: record.fileName,
+            mimeType: record.mimeType,
+            kind: record.kind,
+            width: record.width,
+            height: record.height,
+            duration: record.duration,
+            filePath: record.filePath,
+            thumbnailPath: record.thumbnailPath,
+            uploaded: record.uploaded
+        )
+        records.removeAll { $0.id == record.id }
+        records.append(stored)
+    }
+
+    func update(_ record: StoredPendingAttachment) {
+        records.removeAll { $0.id == record.id }
+        records.append(record)
+    }
+
+    func remove(id: String) {
+        records.removeAll { $0.id == id }
+        dataByID[id] = nil
+        thumbByID[id] = nil
+    }
+
+    func clear(chatUuid: String) {
+        let ids = records.filter { $0.chatUuid == chatUuid }.map(\.id)
+        records.removeAll { $0.chatUuid == chatUuid }
+        for id in ids {
+            dataByID[id] = nil
+            thumbByID[id] = nil
+        }
+    }
+
+    func clearAll() {
+        records.removeAll()
+        dataByID.removeAll()
+        thumbByID.removeAll()
+    }
+}
+
 final class FakeChatOutboxStore: ChatOutboxStore {    var items: [PendingChatMessage] = []
 
     func pending(chatUuid: String) -> [PendingChatMessage] {
@@ -396,6 +453,7 @@ extension ChatConversationServices {
         drafts: FakeChatDraftStore = FakeChatDraftStore(),
         reactionHistory: FakeReactionHistoryStore = FakeReactionHistoryStore(),
         outbox: FakeChatOutboxStore = FakeChatOutboxStore(),
+        pendingAttachments: FakePendingAttachmentStore = FakePendingAttachmentStore(),
         chats: FakeChatRepository = FakeChatRepository()
     ) -> ChatConversationServices {
         ChatConversationServices(
@@ -409,6 +467,7 @@ extension ChatConversationServices {
             drafts: drafts,
             reactionHistory: reactionHistory,
             outbox: outbox,
+            pendingAttachments: pendingAttachments,
             chats: chats
         )
     }

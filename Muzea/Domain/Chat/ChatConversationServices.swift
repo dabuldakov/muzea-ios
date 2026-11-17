@@ -14,5 +14,6 @@ struct ChatConversationServices {
     let drafts: ChatDraftStore
     let reactionHistory: ReactionHistoryStore
     let outbox: ChatOutboxStore
+    let pendingAttachments: PendingAttachmentStore
     let chats: ChatRepository
 }

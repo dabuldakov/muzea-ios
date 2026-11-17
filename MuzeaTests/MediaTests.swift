@@ -375,4 +375,94 @@ final class ChatMediaViewModelTests: XCTestCase {
         XCTAssertEqual(VideoNoteLimits.clampedDuration(90), 60)
         XCTAssertEqual(VideoNoteLimits.clampedDuration(-1), 0)
     }
+
+    func testPendingAttachmentStoreRoundTrip() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("pending-\(UUID().uuidString)", isDirectory: true)
+        let store = FilePendingAttachmentStore(root: root)
+        let record = StoredPendingAttachment(
+            id: "p1",
+            chatUuid: "c1",
+            fileName: "photo.jpg",
+            mimeType: "image/jpeg",
+            kind: AttachmentKind.image.rawValue,
+            width: 10,
+            height: 20,
+            duration: nil,
+            filePath: "",
+            thumbnailPath: nil,
+            uploaded: nil
+        )
+
+        try store.save(record: record, data: Data([1, 2, 3]), thumbnail: Data([4]))
+        let loaded = try XCTUnwrap(store.load(chatUuid: "c1").first)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: loaded.filePath))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: loaded.thumbnailPath ?? ""))
+
+        var updated = loaded
+        updated.uploaded = ChatAttachment(
+            attachmentUuid: "a1",
+            fileName: "photo.jpg",
+            fileUrl: "key",
+            thumbnailUrl: nil,
+            mp4Url: nil,
+            fileSize: 3,
+            mimeType: "image/jpeg",
+            type: "IMAGE",
+            width: 10,
+            height: 20,
+            duration: nil,
+            gifKey: nil
+        )
+        store.update(updated)
+        XCTAssertEqual(store.load(chatUuid: "c1").first?.uploaded?.attachmentUuid, "a1")
+
+        store.clear(chatUuid: "c1")
+        XCTAssertTrue(store.load(chatUuid: "c1").isEmpty)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: loaded.filePath))
+    }
+
+    func testRestoresAndRetriesPendingAttachment() async throws {
+        let store = FakePendingAttachmentStore()
+        let file = FileManager.default.temporaryDirectory
+            .appendingPathComponent("pending-\(UUID().uuidString).jpg")
+        try Data([9, 9]).write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        store.records = [
+            StoredPendingAttachment(
+                id: "p1",
+                chatUuid: "c-1",
+                fileName: "photo.jpg",
+                mimeType: "image/jpeg",
+                kind: AttachmentKind.image.rawValue,
+                width: 1,
+                height: 1,
+                duration: nil,
+                filePath: file.path,
+                thumbnailPath: nil,
+                uploaded: nil
+            )
+        ]
+        let attachments = FakeAttachmentRepository()
+        let messages = FakeMessageRepository()
+        let services = ChatConversationServices.fake(
+            messages: messages,
+            attachments: attachments,
+            pendingAttachments: store
+        )
+        let viewModel = ChatConversationViewModel(
+            chatUuid: "c-1",
+            myUserUuid: "me",
+            isGroupChat: false,
+            services: services
+        )
+
+        XCTAssertEqual(viewModel.state.pendingAttachments.count, 1)
+        XCTAssertFalse(viewModel.state.pendingAttachments[0].isUploaded)
+
+        await viewModel.retryPendingAttachments()
+
+        XCTAssertTrue(viewModel.state.pendingAttachments[0].isUploaded)
+        XCTAssertEqual(store.records.first?.uploaded?.attachmentUuid, "a-1")
+    }
 }

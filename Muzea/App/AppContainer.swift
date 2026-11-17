@@ -26,6 +26,7 @@ final class AppContainer: ObservableObject {
     let chatDraftStore: ChatDraftStore
     let reactionHistoryStore: ReactionHistoryStore
     let chatOutboxStore: ChatOutboxStore
+    let pendingAttachmentStore: PendingAttachmentStore
     let chatConversationServices: ChatConversationServices
     let contactRepository: ContactRepository
     let avatarRepository: AvatarRepository
@@ -93,6 +94,8 @@ final class AppContainer: ObservableObject {
         reactionHistoryStore = reactionHistory
         let outbox = FileChatOutboxStore()
         chatOutboxStore = outbox
+        let pendingAttachments = FilePendingAttachmentStore()
+        pendingAttachmentStore = pendingAttachments
         chatConversationServices = ChatConversationServices(
             messages: messages,
             actions: actions,
@@ -104,6 +107,7 @@ final class AppContainer: ObservableObject {
             drafts: drafts,
             reactionHistory: reactionHistory,
             outbox: outbox,
+            pendingAttachments: pendingAttachments,
             chats: chats
         )
         contactRepository = ContactRepositoryImpl(auth: authorization)
@@ -199,5 +203,6 @@ final class AppContainer: ObservableObject {
         // не должно.
         chatDraftStore.clearAll()
         chatOutboxStore.clearAll()
+        pendingAttachmentStore.clearAll()
     }
 }
