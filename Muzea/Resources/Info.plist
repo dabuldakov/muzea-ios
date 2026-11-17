@@ -50,5 +50,9 @@
 	<string>Нужен доступ к камере, чтобы записывать видео-кружки.</string>
 	<key>KLIPY_APP_KEY</key>
 	<string>$(KLIPY_APP_KEY)</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

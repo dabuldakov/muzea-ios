@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UserNotifications
 import PhotosUI
 import UniformTypeIdentifiers
 
@@ -117,7 +118,14 @@ struct ChatConversationView: View {
             }
         }
         .task { await viewModel.start() }
+        .onAppear {
+            ActiveChatTracker.shared.enter(chat.chatUuid)
+            UNUserNotificationCenter.current().removeDeliveredNotifications(
+                withIdentifiers: ["chat_\(chat.chatUuid)"]
+            )
+        }
         .onDisappear {
+            ActiveChatTracker.shared.leave(chat.chatUuid)
             viewModel.saveDraft(input)
             viewModel.exitSelection()
         }

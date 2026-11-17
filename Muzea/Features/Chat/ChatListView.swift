@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ChatListView: View {
     @EnvironmentObject private var container: AppContainer
+    @EnvironmentObject private var appRouter: AppRouter
     @StateObject private var viewModel: ChatListViewModel
     @StateObject private var router = Router()
     @State private var showCreateGroup = false
@@ -33,6 +34,8 @@ struct ChatListView: View {
         }
         .environmentObject(router)
         .task { await viewModel.startAutoRefresh() }
+        .onAppear { openPendingChat() }
+        .onChange(of: appRouter.chatTarget) { _ in openPendingChat() }
         .onChange(of: router.path.count) { count in
             // Вернулись из переписки: не ждём 8-секундный опрос, сразу
             // подтягиваем счётчики непрочитанных и последние сообщения.
@@ -42,9 +45,14 @@ struct ChatListView: View {
         }
     }
 
+    private func openPendingChat() {
+        guard let chat = appRouter.consumeChatTarget() else { return }
+        router.push(.conversation(chat))
+        Task { await viewModel.load() }
+    }
+
     @ViewBuilder
-    private var content: some View {
-        switch viewModel.state.viewState {
+    private var content: some View {        switch viewModel.state.viewState {
         case .list:
             List(viewModel.state.chats) { chat in
                 NavigationLink(value: Route.conversation(chat)) {

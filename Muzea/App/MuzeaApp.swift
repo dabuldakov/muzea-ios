@@ -21,17 +21,31 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         print("[Push] APNs registration failed: \(error)")
     }
+
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        if FirebaseApp.app() != nil {
+            Messaging.messaging().appDidReceiveMessage(userInfo)
+        }
+        PushManager.shared.handleRemote(userInfo: userInfo)
+        completionHandler(.newData)
+    }
 }
 
 @main
 struct MuzeaApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var container = AppContainer()
+    @StateObject private var appRouter = AppRouter()
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(container)
+                .environmentObject(appRouter)
         }
     }
 }

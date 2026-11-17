@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NewsListView: View {
     @EnvironmentObject private var container: AppContainer
+    @EnvironmentObject private var appRouter: AppRouter
     @StateObject private var viewModel: NewsListViewModel
     @StateObject private var router = Router()
     @State private var showCreate = false
@@ -33,6 +34,13 @@ struct NewsListView: View {
         .task {
             if viewModel.state.news.isEmpty { await viewModel.load() }
         }
+        .onAppear { openPendingNews() }
+        .onChange(of: appRouter.newsTarget) { _ in openPendingNews() }
+    }
+
+    private func openPendingNews() {
+        guard let id = appRouter.consumeNewsTarget() else { return }
+        router.push(.newsDetail(id))
     }
 
     @ViewBuilder

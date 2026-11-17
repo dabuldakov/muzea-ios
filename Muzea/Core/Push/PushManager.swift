@@ -4,7 +4,8 @@ import UserNotifications
 import FirebaseCore
 import FirebaseMessaging
 
-/// Единая точка настройки FCM и приёма токена.
+/// Единая точка настройки FCM, приёма токена и построения локальных
+/// уведомлений из data-only push.
 final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDelegate {
     static let shared = PushManager()
 
@@ -19,7 +20,9 @@ final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDe
         FirebaseApp.configure()
         Messaging.messaging().delegate = self
         UNUserNotificationCenter.current().delegate = self
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+        UNUserNotificationCenter.current().requestAuthorization(
+            options: [.alert, .badge, .sound]
+        ) { granted, _ in
             guard granted else { return }
             DispatchQueue.main.async { UIApplication.shared.registerForRemoteNotifications() }
         }
@@ -34,6 +37,61 @@ final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDe
         if let lastToken { onToken?(lastToken) }
     }
 
+    /// Data-only FCM: приложение строит уведомление само. Если этот чат уже
+    /// открыт, уведомление не создаём и снимаем старое.
+    func handleRemote(userInfo: [AnyHashable: Any]) {
+        guard let route = PushPayload.route(from: userInfo) else { return }
+
+        if case .chat(let target) = route, ActiveChatTracker.shared.chatUuid == target.chatUuid {
+            UNUserNotificationCenter.current().removeDeliveredNotifications(
+                withIdentifiers: [Self.identifier(for: route)]
+            )
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = title(for: route, data: userInfo)
+        content.body = PushPayload.body(for: userInfo) ?? ""
+        content.sound = .default
+        content.badge = 1
+        content.userInfo = sanitize(userInfo)
+
+        let request = UNNotificationRequest(
+            identifier: Self.identifier(for: route),
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private func title(for route: PushRoute, data: [AnyHashable: Any]) -> String {
+        switch route {
+        case .chat:
+            return PushPayload.title(for: data) ?? "Новое сообщение"
+        case .news:
+            return PushPayload.title(for: data) ?? "Новости"
+        }
+    }
+
+    private static func identifier(for route: PushRoute) -> String {
+        switch route {
+        case .chat(let target): return "chat_\(target.chatUuid)"
+        case .news(let id): return "news_\(id)"
+        }
+    }
+
+    /// FCM data приходит как [AnyHashable: Any]; UNNotificationContent требует
+    /// PropertyList-совместимые значения.
+    private func sanitize(_ data: [AnyHashable: Any]) -> [AnyHashable: Any] {
+        var result: [AnyHashable: Any] = [:]
+        for (key, value) in data {
+            if value is String || value is NSNumber || value is Bool {
+                result[key] = value
+            }
+        }
+        return result
+    }
+
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         guard let fcmToken else { return }
         handleToken(fcmToken)
@@ -44,6 +102,13 @@ final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDe
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        let userInfo = notification.request.content.userInfo
+        if let route = PushPayload.route(from: userInfo),
+           case .chat(let target) = route,
+           ActiveChatTracker.shared.chatUuid == target.chatUuid {
+            completionHandler([])
+            return
+        }
         completionHandler([.banner, .sound, .badge])
     }
 
@@ -52,6 +117,12 @@ final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDe
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
+        let userInfo = response.notification.request.content.userInfo
+        if let route = PushPayload.route(from: userInfo) {
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: PushRouteNotification.name, object: route)
+            }
+        }
         completionHandler()
     }
 }

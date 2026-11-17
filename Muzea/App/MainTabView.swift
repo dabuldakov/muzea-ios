@@ -2,12 +2,12 @@ import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject private var container: AppContainer
+    @EnvironmentObject private var appRouter: AppRouter
     @Environment(\.scenePhase) private var scenePhase
-    @State private var selection = 0
     @State private var unreadCount: Int64 = 0
 
     var body: some View {
-        TabView(selection: $selection) {
+        TabView(selection: $appRouter.selectedTab) {
             NewsListView(container: container)
                 .tabItem { Label("Новости", systemImage: "newspaper") }
                 .tag(0)
