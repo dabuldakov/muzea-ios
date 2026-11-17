@@ -46,16 +46,37 @@ final class MessageRepositoryImpl: MessageRepository {
         clientMessageId: String?,
         power: Int
     ) async throws -> MessageResponse {
+        try await sendMessage(
+            chatUuid: chatUuid,
+            text: text,
+            messageType: "TEXT",
+            replyToMessageUuid: replyToMessageUuid,
+            clientMessageId: clientMessageId,
+            attachments: [],
+            power: power
+        )
+    }
+
+    func sendMessage(
+        chatUuid: String,
+        text: String,
+        messageType: String,
+        replyToMessageUuid: String?,
+        clientMessageId: String?,
+        attachments: [String],
+        power: Int
+    ) async throws -> MessageResponse {
         try await auth.authorized {
             try await auth.client.request(
                 "POST",
                 "/api/messages/\(chatUuid)",
                 body: SendMessageRequest(
                     text: text,
-                    messageType: "TEXT",
+                    messageType: messageType,
                     replyToMessageUuid: replyToMessageUuid,
                     clientMessageId: clientMessageId,
-                    power: power > 0 ? min(power, 100) : nil
+                    power: power > 0 ? min(power, 100) : nil,
+                    attachments: attachments.isEmpty ? nil : attachments
                 )
             )
         }

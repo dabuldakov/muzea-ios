@@ -1,5 +1,7 @@
 import SwiftUI
 import UIKit
+import PhotosUI
+import UniformTypeIdentifiers
 
 struct ChatConversationView: View {
     let chat: ChatResponse
@@ -13,6 +15,12 @@ struct ChatConversationView: View {
     @State private var activeAlert: ActiveAlert?
     @State private var activeSheet: ActiveSheet?
     @State private var forwardTargets: [MessageResponse] = []
+    @State private var showAttachMenu = false
+    @State private var showPhotoPicker = false
+    @State private var showVideoPicker = false
+    @State private var showFilePicker = false
+    @State private var photoItem: PhotosPickerItem?
+    @State private var videoItem: PhotosPickerItem?
 
     init(chat: ChatResponse, myUserUuid: String?, services: ChatConversationServices) {
         self.chat = chat
@@ -78,6 +86,10 @@ struct ChatConversationView: View {
                     editing: viewModel.state.editing,
                     myUserUuid: viewModel.myUserUuid,
                     usernames: viewModel.mentionCandidates,
+                    pendingAttachments: viewModel.state.pendingAttachments,
+                    isUploadingAttachments: viewModel.state.isUploadingAttachments,
+                    onAttach: { showAttachMenu = true },
+                    onRemoveAttachment: { viewModel.removePendingAttachment($0) },
                     onSend: { power in send(power: power) },
                     onCancel: cancelComposer
                 )
@@ -152,6 +164,31 @@ struct ChatConversationView: View {
                     },
                     secondaryButton: .cancel()
                 )
+            }
+        }
+        .onChange(of: photoItem) { item in
+            guard let item else { return }
+            Task { await addPhoto(item) }
+        }
+        .onChange(of: videoItem) { item in
+            guard let item else { return }
+            Task { await addVideo(item) }
+        }
+        .confirmationDialog("Вложение", isPresented: $showAttachMenu) {
+            Button("Фото") { showPhotoPicker = true }
+            Button("Видео") { showVideoPicker = true }
+            Button("Файл") { showFilePicker = true }
+            Button("Отмена", role: .cancel) {}
+        }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $photoItem, matching: .images)
+        .photosPicker(isPresented: $showVideoPicker, selection: $videoItem, matching: .videos)
+        .fileImporter(
+            isPresented: $showFilePicker,
+            allowedContentTypes: [.data, .content],
+            allowsMultipleSelection: false
+        ) { result in
+            if case .success(let urls) = result, let url = urls.first {
+                Task { await addFile(url) }
             }
         }
         .sheet(item: $activeSheet) { sheet in
@@ -357,9 +394,64 @@ struct ChatConversationView: View {
 
     // MARK: - Actions
 
+    private func addPhoto(_ item: PhotosPickerItem) async {
+        defer { photoItem = nil }
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            viewModel.reportValidationError("Не удалось прочитать изображение")
+            return
+        }
+        guard let prepared = ImagePreparation.jpeg(from: data) else {
+            viewModel.reportValidationError("Это изображение не поддерживается")
+            return
+        }
+        await viewModel.addImage(
+            data: prepared.data,
+            fileName: "photo_\(Int(Date().timeIntervalSince1970)).jpg",
+            width: prepared.width,
+            height: prepared.height
+        )
+    }
+
+    private func addVideo(_ item: PhotosPickerItem) async {
+        defer { videoItem = nil }
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            viewModel.reportValidationError("Не удалось прочитать видео")
+            return
+        }
+        let ext = item.supportedContentTypes.first?.preferredFilenameExtension ?? "mov"
+        await viewModel.addVideo(
+            data: data,
+            fileName: "video_\(Int(Date().timeIntervalSince1970)).\(ext)",
+            duration: nil
+        )
+    }
+
+    private func addFile(_ url: URL) async {
+        let access = url.startAccessingSecurityScopedResource()
+        defer { if access { url.stopAccessingSecurityScopedResource() } }
+
+        guard let data = try? Data(contentsOf: url) else {
+            viewModel.reportValidationError("Не удалось прочитать файл")
+            return
+        }
+        let fileName = url.lastPathComponent
+        let mime = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType
+            ?? "application/octet-stream"
+
+        let kind = AttachmentPolicy.rule(for: fileName)?.kind ?? .document
+        if kind == .video {
+            await viewModel.addVideo(data: data, fileName: fileName, duration: nil)
+        } else if kind == .audio {
+            await viewModel.addAudio(data: data, fileName: fileName, duration: nil)
+        } else {
+            await viewModel.addFile(data: data, fileName: fileName, mimeType: mime)
+        }
+    }
+
     private func send(power: Int) {
         let text = input
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !viewModel.state.pendingAttachments.isEmpty else { return }
         let wasEditing = viewModel.state.editing != nil
         input = ""
         Task {

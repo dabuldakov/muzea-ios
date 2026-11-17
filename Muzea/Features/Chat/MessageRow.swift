@@ -34,23 +34,29 @@ struct MessageRow: View {
                         .foregroundColor(.secondary)
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    if message.replyToMessageUuid != nil {
-                        replyQuote
+                if hasBubble {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if message.replyToMessageUuid != nil {
+                            replyQuote
+                        }
+                        if let text = message.text, !text.isEmpty {
+                            Text(text)
+                        }
                     }
-                    if let text = message.text, !text.isEmpty {
-                        Text(text)
-                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(bubbleColor)
+                    .foregroundColor(isMine ? .white : .primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.accentColor, lineWidth: isSelected ? 2 : 0)
+                    )
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(bubbleColor)
-                .foregroundColor(isMine ? .white : .primary)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.accentColor, lineWidth: isSelected ? 2 : 0)
-                )
+
+                if let attachments = message.attachments, !attachments.isEmpty {
+                    MessageAttachmentsView(attachments: attachments, isMine: isMine)
+                }
 
                 if let url = LinkPreviewExtractor.firstURL(in: message.text) {
                     LinkPreviewView(url: url)
@@ -131,6 +137,11 @@ struct MessageRow: View {
 
     private var bubbleColor: Color {
         isMine ? Color.accentColor.opacity(0.85) : Color(.secondarySystemBackground)
+    }
+
+    private var hasBubble: Bool {
+        if message.replyToMessageUuid != nil { return true }
+        return !(message.text ?? "").isEmpty
     }
 
     private var senderName: String {

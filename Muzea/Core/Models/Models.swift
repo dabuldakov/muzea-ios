@@ -223,6 +223,8 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
     var reactions: [MessageReactionResponse]? = nil
     /// Сила «заряда» отправителя, 0...100 (0 — обычное сообщение).
     var power: Int? = nil
+    /// Вложения сообщения: фото, видео, аудио, документы, GIF.
+    var attachments: [AttachmentResponse]? = nil
     /// Автор удалён: имя/аватар скрываются, показываем «Удалённый пользователь».
     var senderDeleted: Bool? = nil
 
@@ -246,6 +248,7 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
         isPinned: Bool? = nil,
         reactions: [MessageReactionResponse]? = nil,
         power: Int? = nil,
+        attachments: [AttachmentResponse]? = nil,
         senderDeleted: Bool? = nil
     ) -> MessageResponse {
         MessageResponse(
@@ -268,13 +271,32 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
             updatedAt: updatedAt,
             reactions: reactions ?? self.reactions,
             power: power ?? self.power,
+            attachments: attachments ?? self.attachments,
             senderDeleted: senderDeleted ?? self.senderDeleted
         )
     }
 }
 
-struct MessageReactionResponse: Decodable, Hashable {
-    let emoji: String
+/// Вложение сообщения. `fileUrl` — ключ в MinIO, а не готовый URL; скачивание
+/// идёт через `/api/attachments/{attachmentUuid}`.
+struct AttachmentResponse: Decodable, Hashable, Identifiable {
+    var id: String { attachmentUuid ?? fileUrl ?? fileName ?? "attachment" }
+
+    let attachmentUuid: String?
+    let fileName: String?
+    let fileUrl: String?
+    let thumbnailUrl: String?
+    let mp4Url: String?
+    let fileSize: Int64?
+    let mimeType: String?
+    let type: String?
+    let width: Int?
+    let height: Int?
+    let duration: Int?
+    let gifKey: String?
+}
+
+struct MessageReactionResponse: Decodable, Hashable {    let emoji: String
     let count: Int
     let mine: Bool
     let users: [ReactionUserResponse]?
@@ -385,6 +407,8 @@ struct SendMessageRequest: Encodable {
     var clientMessageId: String? = nil
     /// Сила заряда кнопки отправки, 0...100.
     var power: Int? = nil
+    /// UUID загруженных вложений (до 10).
+    var attachments: [String]? = nil
 }
 
 struct EditMessageRequest: Encodable {

@@ -17,6 +17,7 @@ final class AppContainer: ObservableObject {
     let chatRepository: ChatRepository
     let messageRepository: MessageRepository
     let messageActionsRepository: MessageActionsRepository
+    let attachmentRepository: AttachmentRepository
     let messageReactionRepository: MessageReactionRepository
     let messageReceiptRepository: MessageReceiptRepository
     let messageStatusRepository: MessageStatusRepository
@@ -74,6 +75,8 @@ final class AppContainer: ObservableObject {
         messageRepository = messages
         let actions = MessageActionsRepositoryImpl(auth: authorization)
         messageActionsRepository = actions
+        let attachments = AttachmentRepositoryImpl(auth: authorization)
+        attachmentRepository = attachments
         let reactions = MessageReactionRepositoryImpl(auth: authorization)
         messageReactionRepository = reactions
         let receipts = MessageReceiptRepositoryImpl(auth: authorization)
@@ -91,6 +94,7 @@ final class AppContainer: ObservableObject {
         chatConversationServices = ChatConversationServices(
             messages: messages,
             actions: actions,
+            attachments: attachments,
             reactions: reactions,
             receipts: receipts,
             statuses: statuses,

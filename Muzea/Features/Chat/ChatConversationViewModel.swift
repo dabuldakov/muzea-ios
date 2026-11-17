@@ -25,6 +25,9 @@ struct ChatConversationUiState: Equatable {
     var selection: Set<String> = []
     var participants: [ChatParticipantResponse] = []
     var forwardChats: [ChatResponse] = []
+    /// Выбранные вложения, ожидающие загрузки или уже загруженные.
+    var pendingAttachments: [PendingChatAttachment] = []
+    var isUploadingAttachments = false
 
     var isSelecting: Bool { !selection.isEmpty }
 }
@@ -131,7 +134,15 @@ final class ChatConversationViewModel: ObservableObject {
         }
 
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return false }
+        let uploaded = state.pendingAttachments.compactMap(\.uploaded)
+        guard !trimmed.isEmpty || !uploaded.isEmpty else { return false }
+        guard state.pendingAttachments.allSatisfy(\.isUploaded) else {
+            state.error = "Дождитесь загрузки вложений"
+            return false
+        }
+        let kinds = state.pendingAttachments.map(\.kind)
+        let messageType = AttachmentPolicy.messageType(for: kinds)
+        let attachmentUuids = uploaded.compactMap(\.attachmentUuid)
         let clampedPower = min(max(power, 0), 100)
 
         let replyToUuid = state.replyTo.map { reducer.serverUuid($0.messageUuid) }
@@ -144,8 +155,8 @@ final class ChatConversationViewModel: ObservableObject {
             senderUuid: myUserUuid,
             senderName: nil,
             senderAvatar: nil,
-            text: trimmed,
-            messageType: "TEXT",
+            text: trimmed.isEmpty ? nil : trimmed,
+            messageType: messageType,
             replyToMessageUuid: replyToUuid,
             forwardedFromMessageUuid: nil,
             forwardedFromUserUuid: nil,
@@ -155,7 +166,8 @@ final class ChatConversationViewModel: ObservableObject {
             createdAt: Self.pendingDateFormatter.string(from: Date()),
             updatedAt: nil,
             reactions: [],
-            power: clampedPower
+            power: clampedPower,
+            attachments: uploaded
         )
         let pending = PendingChatMessage(
             clientMessageId: clientMessageId,
@@ -164,7 +176,9 @@ final class ChatConversationViewModel: ObservableObject {
             text: trimmed,
             replyToMessageUuid: replyToUuid,
             power: clampedPower,
-            createdAt: optimistic.createdAt ?? ""
+            createdAt: optimistic.createdAt ?? "",
+            messageType: messageType,
+            attachments: uploaded
         )
         merge([optimistic])
         state.replyTo = nil
@@ -176,11 +190,14 @@ final class ChatConversationViewModel: ObservableObject {
             let sent = try await services.messages.sendMessage(
                 chatUuid: chatUuid,
                 text: trimmed,
+                messageType: messageType,
                 replyToMessageUuid: replyToUuid,
                 clientMessageId: clientMessageId,
+                attachments: attachmentUuids,
                 power: clampedPower
             )
             services.outbox.remove(clientMessageId: clientMessageId)
+            state.pendingAttachments.removeAll()
             state.messages = reducer.applyServerEcho(
                 current: state.messages,
                 localUuid: optimistic.messageUuid,
@@ -195,6 +212,7 @@ final class ChatConversationViewModel: ObservableObject {
             // Сообщение остаётся в ленте с пометкой «не отправлено» и попадает
             // в дисковую очередь: повтор идемпотентен по clientMessageId.
             services.outbox.save(pending)
+            state.pendingAttachments.removeAll()
             state.failedMessages.insert(optimistic.messageUuid)
             state.error = error.localizedDescription
             recomputeStatuses()
@@ -240,8 +258,10 @@ final class ChatConversationViewModel: ObservableObject {
             let sent = try await services.messages.sendMessage(
                 chatUuid: chatUuid,
                 text: pending.text,
+                messageType: pending.messageType ?? "TEXT",
                 replyToMessageUuid: pending.replyToMessageUuid,
                 clientMessageId: pending.clientMessageId,
+                attachments: (pending.attachments ?? []).compactMap(\.attachmentUuid),
                 power: pending.power
             )
             services.outbox.remove(clientMessageId: pending.clientMessageId)
@@ -262,6 +282,119 @@ final class ChatConversationViewModel: ObservableObject {
     func beginReply(to message: MessageResponse) {
         state.replyTo = message
         state.editing = nil
+    }
+
+    // MARK: - Attachments
+
+    func addImage(data: Data, fileName: String = "photo.jpg", width: Int?, height: Int?) async {
+        await upload(
+            data: data,
+            fileName: fileName,
+            mimeType: "image/jpeg",
+            kind: .image,
+            thumbnail: nil,
+            width: width,
+            height: height,
+            duration: nil
+        )
+    }
+
+    func addFile(data: Data, fileName: String, mimeType: String) async {
+        await upload(
+            data: data,
+            fileName: fileName,
+            mimeType: mimeType,
+            kind: .document,
+            thumbnail: nil,
+            width: nil,
+            height: nil,
+            duration: nil
+        )
+    }
+
+    func addVideo(data: Data, fileName: String, duration: Int?) async {
+        let rule = AttachmentPolicy.rule(for: fileName)
+        await upload(
+            data: data,
+            fileName: fileName,
+            mimeType: rule?.mimeType ?? "video/mp4",
+            kind: .video,
+            thumbnail: nil,
+            width: nil,
+            height: nil,
+            duration: duration
+        )
+    }
+
+    func addAudio(data: Data, fileName: String, duration: Int?) async {
+        let rule = AttachmentPolicy.rule(for: fileName)
+        await upload(
+            data: data,
+            fileName: fileName,
+            mimeType: rule?.mimeType ?? "audio/mpeg",
+            kind: .audio,
+            thumbnail: nil,
+            width: nil,
+            height: nil,
+            duration: duration
+        )
+    }
+
+    func removePendingAttachment(_ id: String) {
+        state.pendingAttachments.removeAll { $0.id == id }
+    }
+
+    private func upload(
+        data: Data,
+        fileName: String,
+        mimeType: String,
+        kind: AttachmentKind,
+        thumbnail: Data?,
+        width: Int?,
+        height: Int?,
+        duration: Int?
+    ) async {
+        guard state.pendingAttachments.count < AttachmentPolicy.maxAttachmentsPerMessage else {
+            state.error = "Можно прикрепить не больше \(AttachmentPolicy.maxAttachmentsPerMessage) файлов"
+            return
+        }
+        if let message = AttachmentPolicy.validationError(
+            fileName: fileName,
+            size: Int64(data.count)
+        ) {
+            state.error = message
+            return
+        }
+
+        let pending = PendingChatAttachment(
+            id: UUID().uuidString,
+            fileName: fileName,
+            kind: kind,
+            uploaded: nil
+        )
+        state.pendingAttachments.append(pending)
+        state.isUploadingAttachments = true
+
+        do {
+            let uploaded = try await services.attachments.upload(
+                chatUuid: chatUuid,
+                data: data,
+                fileName: fileName,
+                mimeType: mimeType,
+                kind: kind,
+                thumbnail: thumbnail,
+                width: width,
+                height: height,
+                duration: duration
+            )
+            if let index = state.pendingAttachments.firstIndex(where: { $0.id == pending.id }) {
+                state.pendingAttachments[index].uploaded = uploaded
+            }
+        } catch {
+            state.pendingAttachments.removeAll { $0.id == pending.id }
+            state.error = error.localizedDescription
+        }
+        state.isUploadingAttachments = state.pendingAttachments.contains { !$0.isUploaded }
     }
 
     func beginEdit(_ message: MessageResponse) {
@@ -587,7 +720,7 @@ final class ChatConversationViewModel: ObservableObject {
             senderName: nil,
             senderAvatar: nil,
             text: item.text,
-            messageType: "TEXT",
+            messageType: item.messageType ?? "TEXT",
             replyToMessageUuid: item.replyToMessageUuid,
             forwardedFromMessageUuid: nil,
             forwardedFromUserUuid: nil,
@@ -597,7 +730,8 @@ final class ChatConversationViewModel: ObservableObject {
             createdAt: item.createdAt,
             updatedAt: nil,
             reactions: [],
-            power: item.power
+            power: item.power,
+            attachments: item.attachments
         )
     }
 

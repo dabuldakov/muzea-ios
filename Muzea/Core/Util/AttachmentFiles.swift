@@ -1,0 +1,30 @@
+import Foundation
+
+/// Временные файлы для шаринга скачанных вложений.
+enum AttachmentFiles {
+    static func write(data: Data, fileName: String) -> URL? {
+        let safeName = sanitize(fileName)
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("attachments", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(
+                at: directory,
+                withIntermediateDirectories: true
+            )
+            let url = directory.appendingPathComponent(safeName)
+            try data.write(to: url, options: .atomic)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    static func sanitize(_ fileName: String) -> String {
+        let allowed = CharacterSet.alphanumerics
+            .union(CharacterSet(charactersIn: "._- ()"))
+        let cleaned = fileName.unicodeScalars
+            .map { allowed.contains($0) ? Character($0) : "_" }
+        let result = String(cleaned)
+        return result.isEmpty ? "attachment" : result
+    }
+}

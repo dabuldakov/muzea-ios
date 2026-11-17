@@ -11,6 +11,9 @@ struct PendingChatMessage: Codable, Identifiable, Equatable {
     let replyToMessageUuid: String?
     let power: Int
     let createdAt: String
+    /// Медиа-сообщение: тип и уже загруженные вложения.
+    var messageType: String? = nil
+    var attachments: [AttachmentResponse]? = nil
 }
 
 /// Дисковая очередь исходящих по чатам. Аналог `outbox_v2.json` на Android.

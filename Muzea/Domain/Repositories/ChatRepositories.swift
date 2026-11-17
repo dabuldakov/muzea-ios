@@ -29,6 +29,16 @@ protocol MessageRepository {
         clientMessageId: String?,
         power: Int
     ) async throws -> MessageResponse
+    /// Отправка медиа: тип сообщения и UUID вложений.
+    func sendMessage(
+        chatUuid: String,
+        text: String,
+        messageType: String,
+        replyToMessageUuid: String?,
+        clientMessageId: String?,
+        attachments: [String],
+        power: Int
+    ) async throws -> MessageResponse
     /// Инкрементальная синхронизация: только новые сообщения после timestamp.
     func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [MessageResponse]
     /// Окно правок/закрепов. Удаления сюда не попадают — нужен полный refresh.
@@ -69,6 +79,24 @@ protocol ModerationRepository {
     func block(userUuid: String, reason: String?) async throws
 }
 
+/// Вложения: загрузка orphan-файла и скачивание через бэкенд.
+protocol AttachmentRepository {
+    func upload(
+        chatUuid: String,
+        data: Data,
+        fileName: String,
+        mimeType: String,
+        kind: AttachmentKind,
+        thumbnail: Data?,
+        width: Int?,
+        height: Int?,
+        duration: Int?
+    ) async throws -> AttachmentResponse
+    func download(attachmentUuid: String) async throws -> Data
+    /// Превью для пузыря: оригинал для изображений, миниатюра для видео.
+    func preview(attachmentUuid: String) async throws -> Data
+}
+
 /// Черновики по чатам. Хранятся локально и не отправляются автоматически.
 protocol ChatDraftStore {
     func draft(chatUuid: String) -> String?
@@ -87,6 +115,25 @@ extension MessageRepository {
         power: Int
     ) async throws -> MessageResponse {
         try await sendMessage(chatUuid: chatUuid, text: text)
+    }
+
+    /// Запасная реализация для тест-дублей: медиа без вложений.
+    func sendMessage(
+        chatUuid: String,
+        text: String,
+        messageType: String,
+        replyToMessageUuid: String?,
+        clientMessageId: String?,
+        attachments: [String],
+        power: Int
+    ) async throws -> MessageResponse {
+        try await sendMessage(
+            chatUuid: chatUuid,
+            text: text,
+            replyToMessageUuid: replyToMessageUuid,
+            clientMessageId: clientMessageId,
+            power: power
+        )
     }
 
     func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [MessageResponse] {

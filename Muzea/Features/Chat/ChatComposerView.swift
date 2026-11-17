@@ -8,6 +8,10 @@ struct ChatComposerView: View {
     let editing: MessageResponse?
     let myUserUuid: String?
     let usernames: [String]
+    let pendingAttachments: [PendingChatAttachment]
+    let isUploadingAttachments: Bool
+    let onAttach: () -> Void
+    let onRemoveAttachment: (String) -> Void
     let onSend: (Int) -> Void
     let onCancel: () -> Void
 
@@ -58,7 +62,43 @@ struct ChatComposerView: View {
                 }
             }
 
+            if !pendingAttachments.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(pendingAttachments) { attachment in
+                            HStack(spacing: 4) {
+                                Image(systemName: icon(for: attachment.kind))
+                                Text(attachment.fileName)
+                                    .lineLimit(1)
+                                if !attachment.isUploaded {
+                                    ProgressView().scaleEffect(0.7)
+                                }
+                                Button {
+                                    onRemoveAttachment(attachment.id)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(Capsule())
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                }
+            }
+
             HStack(alignment: .bottom, spacing: 8) {
+                Button(action: onAttach) {
+                    Image(systemName: "paperclip")
+                        .font(.title3)
+                }
+                .disabled(editing != nil || (isUploadingAttachments && pendingAttachments.isEmpty))
+
                 ZStack(alignment: .topLeading) {
                     MentionTextEditor(text: $text, selection: $selection)
                     if text.isEmpty {
@@ -77,7 +117,10 @@ struct ChatComposerView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
 
                 ChargeSendButton(
-                    isEnabled: !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    isEnabled: !isUploadingAttachments
+                        && (!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            || (!pendingAttachments.isEmpty
+                                && pendingAttachments.allSatisfy(\.isUploaded))),
                     icon: editing == nil ? "paperplane.fill" : "checkmark"
                 ) { power in
                     onSend(power)
@@ -106,5 +149,15 @@ struct ChatComposerView: View {
         .frame(height: 40)
         .padding(.horizontal, 12)
         .background(Color(.secondarySystemBackground))
+    }
+
+    private func icon(for kind: AttachmentKind) -> String {
+        switch kind {
+        case .image: return "photo"
+        case .video: return "play.rectangle"
+        case .audio: return "waveform"
+        case .gif: return "sparkles"
+        case .document: return "doc"
+        }
     }
 }

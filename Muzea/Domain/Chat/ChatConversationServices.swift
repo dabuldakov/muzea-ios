@@ -6,6 +6,7 @@ import Foundation
 struct ChatConversationServices {
     let messages: MessageRepository
     let actions: MessageActionsRepository
+    let attachments: AttachmentRepository
     let reactions: MessageReactionRepository
     let receipts: MessageReceiptRepository
     let statuses: MessageStatusRepository

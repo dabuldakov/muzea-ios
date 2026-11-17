@@ -69,6 +69,7 @@ final class FakeMessageRepository: MessageRepository {
     var cached: [MessageResponse] = []
     var sentTexts: [String] = []
     var sentRequests: [(text: String, replyTo: String?, clientId: String?, power: Int)] = []
+    var sentMedia: [(messageType: String, attachments: [String])] = []
     var sendResult: MessageResponse?
     var sendError: Error?
     var loadError: Error?
@@ -99,8 +100,29 @@ final class FakeMessageRepository: MessageRepository {
         clientMessageId: String?,
         power: Int
     ) async throws -> MessageResponse {
+        try await sendMessage(
+            chatUuid: chatUuid,
+            text: text,
+            messageType: "TEXT",
+            replyToMessageUuid: replyToMessageUuid,
+            clientMessageId: clientMessageId,
+            attachments: [],
+            power: power
+        )
+    }
+
+    func sendMessage(
+        chatUuid: String,
+        text: String,
+        messageType: String,
+        replyToMessageUuid: String?,
+        clientMessageId: String?,
+        attachments: [String],
+        power: Int
+    ) async throws -> MessageResponse {
         sentTexts.append(text)
         sentRequests.append((text, replyToMessageUuid, clientMessageId, power))
+        sentMedia.append((messageType, attachments))
         if let sendError { throw sendError }
         return sendResult ?? MessageResponse(
             messageUuid: "server-1",
@@ -110,7 +132,7 @@ final class FakeMessageRepository: MessageRepository {
             senderName: nil,
             senderAvatar: nil,
             text: text,
-            messageType: "TEXT",
+            messageType: messageType,
             replyToMessageUuid: replyToMessageUuid,
             isEdited: false,
             isDeleted: false,
@@ -130,8 +152,51 @@ final class FakeMessageRepository: MessageRepository {
     }
 }
 
-final class FakeMessageActionsRepository: MessageActionsRepository {
-    var edited: [(String, String)] = []
+final class FakeAttachmentRepository: AttachmentRepository {
+    var uploads: [(String, String, AttachmentKind)] = []
+    var response: AttachmentResponse?
+    var downloadData = Data([1, 2, 3])
+
+    func upload(
+        chatUuid: String,
+        data: Data,
+        fileName: String,
+        mimeType: String,
+        kind: AttachmentKind,
+        thumbnail: Data?,
+        width: Int?,
+        height: Int?,
+        duration: Int?
+    ) async throws -> AttachmentResponse {
+        uploads.append((chatUuid, fileName, kind))
+        let result = response ?? AttachmentResponse(
+            attachmentUuid: "a-1",
+            fileName: fileName,
+            fileUrl: "stored-key",
+            thumbnailUrl: nil,
+            mp4Url: nil,
+            fileSize: Int64(data.count),
+            mimeType: mimeType,
+            type: kind.rawValue,
+            width: width,
+            height: height,
+            duration: duration,
+            gifKey: nil
+        )
+        response = result
+        return result
+    }
+
+    func download(attachmentUuid: String) async throws -> Data {
+        downloadData
+    }
+
+    func preview(attachmentUuid: String) async throws -> Data {
+        downloadData
+    }
+}
+
+final class FakeMessageActionsRepository: MessageActionsRepository {    var edited: [(String, String)] = []
     var deleted: [String] = []
     var forwarded: [(String, String)] = []
     var pinned: [(String, String)] = []
@@ -268,6 +333,7 @@ extension ChatConversationServices {
     static func fake(
         messages: FakeMessageRepository = FakeMessageRepository(),
         actions: FakeMessageActionsRepository = FakeMessageActionsRepository(),
+        attachments: FakeAttachmentRepository = FakeAttachmentRepository(),
         reactions: FakeMessageReactionRepository = FakeMessageReactionRepository(),
         receipts: FakeMessageReceiptRepository = FakeMessageReceiptRepository(),
         statuses: FakeMessageStatusRepository = FakeMessageStatusRepository(),
@@ -280,6 +346,7 @@ extension ChatConversationServices {
         ChatConversationServices(
             messages: messages,
             actions: actions,
+            attachments: attachments,
             reactions: reactions,
             receipts: receipts,
             statuses: statuses,

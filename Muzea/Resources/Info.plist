@@ -42,5 +42,9 @@
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Нужен доступ к фото, чтобы загружать изображения и видео.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Нужен доступ к микрофону, чтобы записывать голосовые сообщения.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Нужен доступ к камере, чтобы записывать видео-кружки.</string>
 </dict>
 </plist>
