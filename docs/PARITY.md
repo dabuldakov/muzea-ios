@@ -83,11 +83,11 @@ the iOS backlog: update the status as work lands. Status values:
 | FEED.04 | Author subscriptions | missing | |
 | FEED.05 | Feed periods | missing | |
 | FEED.06 | Rename to “Blams” | n/a | product decision |
-| — | Video feed/upload/delete/playback | partial | verify live contract; report/block missing |
-| — | News report (UGC) | missing | `/api/reports` |
+| — | Video feed/upload/delete/playback | partial | upload/delete/playback/report; block UI и device smoke pending |
+| — | News report (UGC) | done | `/api/reports`, кнопка в деталях новости |
 | — | Profile edit/avatar | done | |
 | — | Account delete/deactivation | done | deactivation in chat + auth + makeup (SEC.06) |
-| — | Cache clear | missing | |
+| — | Cache clear | done | размер и очистка кэша в профиле |
 | — | App update check | n/a | no self-update on iOS; link to TestFlight/App Store |
 
 ## NET — network, sync, notifications
@@ -95,9 +95,9 @@ the iOS backlog: update the status as work lands. Status values:
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
 | NET.01 | Auth | partial | ported to `auth.muzea.su` OTP + refresh (single-flight); device/TestFlight smoke pending |
-| NET.02 | Sync | missing | `/after` 3 s, `/updated` 15 s, `/before` |
+| NET.02 | Sync | partial | `/after` 3 s, full refresh 15 s; `/before`/older pages pending |
 | NET.03 | Push (FCM/APNs) | partial | data-only FCM, локальные уведомления, чат/новость, подавление открытого чата; APNs background задеплоен; device smoke pending |
-| NET.04 | Offline + retry | missing | outbox, network banner |
+| NET.04 | Offline + retry | partial | disk outbox, вложения, офлайн-баннер, retry при возврате сети; background sync pending |
 | NET.05 | Invites | n/a | not in code |
 | NET.06 | Deep links | partial | muzea://chat/news/share + https://muzea.su/...; Universal Links entitlement/AASA pending |
 | NET.07 | No-flicker sync | partial | keep cached list while refreshing |
@@ -110,7 +110,7 @@ the iOS backlog: update the status as work lands. Status values:
 | SEC.01 | Transport | done | ATS, HTTPS only |
 | SEC.02 | Tokens on device | partial | access+refresh in Keychain, no password; legacy purge implemented |
 | SEC.03 | Message cache | partial | in-memory; no encryption |
-| SEC.04 | Anti-abuse (report/block) | partial | chat report/block implemented; news/video reports missing |
+| SEC.04 | Anti-abuse (report/block) | partial | report чата/новости/видео + block в чате; block UI для контента pending |
 | SEC.05 | Admin panel | n/a | web product |
 | SEC.06 | Account deletion | done | deactivation in all three services: data kept, login closed, names hidden, private chats read-only, support restore via `X-Support-Token` |
 
@@ -118,16 +118,16 @@ the iOS backlog: update the status as work lands. Status values:
 
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
-| QA.01 | Unit tests | partial | 298 vs 1151 on Android (1 Keychain test skipped on unsigned simulator); chat text + media + push |
+| QA.01 | Unit tests | partial | 300 vs 1151 on Android (1 Keychain test skipped); contract fixtures chat/makeup; UI/device tests pending |
 | QA.02 | Robolectric | n/a | |
 | QA.03 | Integration (mock network) | partial | `MockURLProtocol`; add shared fixtures |
 | QA.04 | Device tests | missing | XCUITest for 4 critical paths |
 | QA.05 | Coverage gate | missing | per-layer targets in CI |
 | QA.06 | Mutation testing | n/a | |
-| DIST.01 | Signing | missing | TestFlight: cert/profile/App Store Connect key |
+| DIST.01 | Signing | done | distribution cert, App Store profiles, signed TestFlight build 1.1 (2) |
 | DIST.02 | Self-update | n/a | App Store/TestFlight |
-| DIST.03 | Store publishing | planned | TestFlight first |
-| DIST.04 | Betas | planned | TestFlight |
+| DIST.03 | Store publishing | partial | TestFlight build загружен; App Store review не запускался |
+| DIST.04 | Betas | partial | внутренняя группа TestFlight получает сборки |
 | DIST.05 | Changelog | missing | generate from commits |
 | DIST.06 | Staged rollout | planned | TestFlight groups |
 | OBS.01 | Crash reporting | missing | Firebase Crashlytics or telemetry upload |
