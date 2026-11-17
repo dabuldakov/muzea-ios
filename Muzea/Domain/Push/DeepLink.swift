@@ -19,7 +19,12 @@ enum DeepLink: Equatable {
     }
 
     private static func parsePath(_ url: URL) -> DeepLink? {
-        let components = url.pathComponents.filter { $0 != "/" }
+        var components = url.pathComponents.filter { $0 != "/" }
+        if url.scheme?.lowercased() == "muzea",
+           let host = url.host,
+           !host.isEmpty {
+            components.insert(host, at: 0)
+        }
         guard let first = components.first?.lowercased() else { return nil }
 
         switch first {
