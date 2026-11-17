@@ -18,4 +18,6 @@ Package.resolved
 GoogleService-Info.plist
 **/GoogleService-Info.plist
 *.p12
+*.p8
+AuthKey_*.p8
 *.mobileprovision
