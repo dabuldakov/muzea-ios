@@ -32,7 +32,7 @@ final class AttachmentRepositoryImpl: AttachmentRepository {
                 data: data
             )
         ]
-        if let thumbnail, kind == .image {
+        if let thumbnail, kind == .image || kind == .video {
             files.append(MultipartFile(
                 field: "thumbnail",
                 fileName: "thumb.jpg",

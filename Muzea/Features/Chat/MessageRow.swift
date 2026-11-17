@@ -55,7 +55,11 @@ struct MessageRow: View {
                 }
 
                 if let attachments = message.attachments, !attachments.isEmpty {
-                    MessageAttachmentsView(attachments: attachments, isMine: isMine)
+                    MessageAttachmentsView(
+                        attachments: attachments,
+                        isMine: isMine,
+                        messageType: message.messageType
+                    )
                 }
 
                 if let url = LinkPreviewExtractor.firstURL(in: message.text) {

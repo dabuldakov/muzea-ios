@@ -22,6 +22,7 @@ struct ChatConversationView: View {
     @State private var showFilePicker = false
     @State private var photoItem: PhotosPickerItem?
     @State private var videoItem: PhotosPickerItem?
+    @State private var showVideoNoteRecorder = false
 
     init(chat: Chat, myUserUuid: String?, services: ChatConversationServices) {
         self.chat = chat
@@ -97,6 +98,7 @@ struct ChatConversationView: View {
                         Task { _ = await viewModel.sendVoice(recorded) }
                     },
                     onVoiceError: { viewModel.reportValidationError($0) },
+                    onVideoNote: { showVideoNoteRecorder = true },
                     onCancel: cancelComposer
                 )
             }
@@ -183,6 +185,7 @@ struct ChatConversationView: View {
         .confirmationDialog("Вложение", isPresented: $showAttachMenu) {
             Button("Фото") { showPhotoPicker = true }
             Button("Видео") { showVideoPicker = true }
+            Button("Видео-кружок") { showVideoNoteRecorder = true }
             Button("Файл") { showFilePicker = true }
             Button("Отмена", role: .cancel) {}
         }
@@ -198,8 +201,7 @@ struct ChatConversationView: View {
             }
         }
         .sheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .forward:
+            switch sheet {            case .forward:
                 ForwardChatPickerView(chats: viewModel.state.forwardChats) { chatUuid, comment in
                     let targets = forwardTargets
                     forwardTargets = []
@@ -231,6 +233,11 @@ struct ChatConversationView: View {
                     onEmoji: { emoji in input += emoji },
                     onGif: { gif in Task { await viewModel.sendGif(gif) } }
                 )
+            }
+        }
+        .fullScreenCover(isPresented: $showVideoNoteRecorder) {
+            VideoNoteRecorderSheet { note in
+                Task { _ = await viewModel.sendVideoNote(note) }
             }
         }
     }

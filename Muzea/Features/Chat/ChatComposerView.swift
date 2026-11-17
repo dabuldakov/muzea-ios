@@ -16,6 +16,7 @@ struct ChatComposerView: View {
     let onSend: (Int) -> Void
     let onVoiceRecorded: (RecordedVoice) -> Void
     let onVoiceError: (String) -> Void
+    let onVideoNote: () -> Void
     let onCancel: () -> Void
 
     @State private var selection = NSRange(location: 0, length: 0)
@@ -136,10 +137,19 @@ struct ChatComposerView: View {
                         onSend(power)
                     }
                 } else {
-                    VoiceRecordButton(
-                        onRecorded: onVoiceRecorded,
-                        onError: onVoiceError
-                    )
+                    HStack(spacing: 6) {
+                        VoiceRecordButton(
+                            onRecorded: onVoiceRecorded,
+                            onError: onVoiceError
+                        )
+                        Button(action: onVideoNote) {
+                            Image(systemName: "video.fill")
+                                .font(.title3)
+                                .frame(width: 44, height: 44)
+                                .background(Color.accentColor.opacity(0.12))
+                                .clipShape(Circle())
+                        }
+                    }
                 }
             }
             .padding(8)

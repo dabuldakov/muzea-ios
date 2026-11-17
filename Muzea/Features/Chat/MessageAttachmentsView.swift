@@ -22,6 +22,7 @@ final class AttachmentImageCache {
 struct MessageAttachmentsView: View {
     let attachments: [ChatAttachment]
     let isMine: Bool
+    let messageType: String?
 
     private var images: [ChatAttachment] {
         attachments.filter { kind($0) == .image }
@@ -48,15 +49,19 @@ struct MessageAttachmentsView: View {
             }
 
             ForEach(others) { attachment in
-                switch kind(attachment) {
-                case .video:
-                    VideoAttachmentView(attachment: attachment, isMine: isMine)
-                case .audio:
-                    AudioAttachmentView(attachment: attachment, isMine: isMine)
-                case .gif:
-                    GifAttachmentView(attachment: attachment)
-                default:
-                    FileAttachmentView(attachment: attachment, isMine: isMine)
+                if messageType == "VIDEO_NOTE", kind(attachment) == .video {
+                    VideoNoteAttachmentView(attachment: attachment)
+                } else {
+                    switch kind(attachment) {
+                    case .video:
+                        VideoAttachmentView(attachment: attachment, isMine: isMine)
+                    case .audio:
+                        AudioAttachmentView(attachment: attachment, isMine: isMine)
+                    case .gif:
+                        GifAttachmentView(attachment: attachment)
+                    default:
+                        FileAttachmentView(attachment: attachment, isMine: isMine)
+                    }
                 }
             }
         }
@@ -162,6 +167,84 @@ struct ImageAttachmentViewer: View {
         .sheet(item: $shareFile) { item in
             ActivityView(items: [item.url])
         }
+    }
+}
+
+// MARK: - Video note
+
+private struct VideoNoteAttachmentView: View {
+    let attachment: ChatAttachment
+
+    @EnvironmentObject private var container: AppContainer
+    @State private var image: UIImage?
+    @State private var player: AVPlayer?
+    @State private var showPlayer = false
+    @State private var isLoading = false
+
+    var body: some View {
+        ZStack {
+            Circle().fill(Color.black.opacity(0.25))
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: "person.crop.circle")
+                    .font(.largeTitle)
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            Image(systemName: isLoading ? "hourglass" : "play.fill")
+                .font(.title3)
+                .foregroundColor(.white)
+                .padding(10)
+                .background(Color.black.opacity(0.45))
+                .clipShape(Circle())
+        }
+        .frame(width: 180, height: 180)
+        .clipShape(Circle())
+        .contentShape(Circle())
+        .task(id: attachment.id) { await loadPreview() }
+        .onTapGesture { Task { await play() } }
+        .fullScreenCover(isPresented: $showPlayer) {
+            if let player {
+                VideoPlayer(player: player)
+                    .ignoresSafeArea()
+                    .onDisappear { player.pause() }
+            }
+        }
+    }
+
+    private func loadPreview() async {
+        guard let uuid = attachment.attachmentUuid else { return }
+        let key = "preview-\(uuid)"
+        if let cached = AttachmentImageCache.shared.cached(key: key) {
+            image = cached
+            return
+        }
+        guard let data = try? await container.attachmentRepository.preview(attachmentUuid: uuid),
+              let loaded = UIImage(data: data) else { return }
+        AttachmentImageCache.shared.store(loaded, key: key)
+        image = loaded
+    }
+
+    private func play() async {
+        guard let uuid = attachment.attachmentUuid else { return }
+        if let player {
+            showPlayer = true
+            player.play()
+            return
+        }
+        isLoading = true
+        defer { isLoading = false }
+        guard let url = await AttachmentFileCache.shared.localURL(
+            attachmentUuid: uuid,
+            fileName: attachment.fileName ?? "video-note.mp4",
+            repository: container.attachmentRepository
+        ) else { return }
+        let player = AVPlayer(url: url)
+        self.player = player
+        showPlayer = true
+        player.play()
     }
 }
 

@@ -341,4 +341,38 @@ final class ChatMediaViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.state.messages.first?.messageType, "GIF")
         XCTAssertEqual(viewModel.state.messages.first?.attachments?.first?.type, "GIF")
     }
+
+    func testSendVideoNoteUsesVideoNoteMessageType() async throws {
+        let attachments = FakeAttachmentRepository()
+        let (viewModel, messages) = makeViewModel(attachmentRepository: attachments)
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("note-\(UUID().uuidString).mp4")
+        try Data([1, 2, 3]).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let note = RecordedVideoNote(
+            url: url,
+            data: Data([1, 2, 3]),
+            thumbnail: Data([4, 5]),
+            duration: 5,
+            width: 480,
+            height: 480,
+            fileName: url.lastPathComponent
+        )
+
+        let ok = await viewModel.sendVideoNote(note)
+
+        XCTAssertTrue(ok)
+        XCTAssertEqual(attachments.uploads.first?.2, .video)
+        XCTAssertEqual(messages.sentMedia.first?.messageType, "VIDEO_NOTE")
+        XCTAssertEqual(messages.sentMedia.first?.attachments, ["a-1"])
+    }
+
+    func testVideoNoteLimits() {
+        XCTAssertFalse(VideoNoteLimits.isValid(duration: 0))
+        XCTAssertTrue(VideoNoteLimits.isValid(duration: 1))
+        XCTAssertTrue(VideoNoteLimits.isValid(duration: 60))
+        XCTAssertFalse(VideoNoteLimits.isValid(duration: 62))
+        XCTAssertEqual(VideoNoteLimits.clampedDuration(90), 60)
+        XCTAssertEqual(VideoNoteLimits.clampedDuration(-1), 0)
+    }
 }

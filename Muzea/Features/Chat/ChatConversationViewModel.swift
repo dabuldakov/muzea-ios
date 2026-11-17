@@ -129,6 +129,15 @@ final class ChatConversationViewModel: ObservableObject {
 
     @discardableResult
     func send(_ text: String, power: Int = 0) async -> Bool {
+        await send(text, power: power, forcedMessageType: nil)
+    }
+
+    @discardableResult
+    private func send(
+        _ text: String,
+        power: Int,
+        forcedMessageType: String?
+    ) async -> Bool {
         if let editing = state.editing {
             return await submitEdit(editing, text: text)
         }
@@ -141,7 +150,7 @@ final class ChatConversationViewModel: ObservableObject {
             return false
         }
         let kinds = state.pendingAttachments.map(\.kind)
-        let messageType = AttachmentPolicy.messageType(for: kinds)
+        let messageType = forcedMessageType ?? AttachmentPolicy.messageType(for: kinds)
         let attachmentUuids = uploaded.compactMap(\.attachmentUuid)
         let clampedPower = min(max(power, 0), 100)
 
@@ -349,6 +358,22 @@ final class ChatConversationViewModel: ObservableObject {
         )
         guard state.pendingAttachments.contains(where: \.isUploaded) else { return false }
         return await send("")
+    }
+
+    @discardableResult
+    func sendVideoNote(_ recorded: RecordedVideoNote) async -> Bool {
+        await upload(
+            data: recorded.data,
+            fileName: recorded.fileName,
+            mimeType: "video/mp4",
+            kind: .video,
+            thumbnail: recorded.thumbnail,
+            width: recorded.width,
+            height: recorded.height,
+            duration: recorded.duration
+        )
+        guard state.pendingAttachments.contains(where: \.isUploaded) else { return false }
+        return await send("", power: 0, forcedMessageType: "VIDEO_NOTE")
     }
 
     func sendGif(_ gif: Gif) async {
