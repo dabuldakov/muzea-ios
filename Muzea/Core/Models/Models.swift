@@ -279,7 +279,7 @@ struct MessageResponse: Decodable, Identifiable, Hashable {
 
 /// Вложение сообщения. `fileUrl` — ключ в MinIO, а не готовый URL; скачивание
 /// идёт через `/api/attachments/{attachmentUuid}`.
-struct AttachmentResponse: Decodable, Hashable, Identifiable {
+struct AttachmentResponse: Codable, Hashable, Identifiable {
     var id: String { attachmentUuid ?? fileUrl ?? fileName ?? "attachment" }
 
     let attachmentUuid: String?
