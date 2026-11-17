@@ -94,6 +94,36 @@ final class AttachmentPolicyTests: XCTestCase {
         XCTAssertEqual(AttachmentFiles.sanitize("../etc/passwd"), ".._etc_passwd")
         XCTAssertEqual(AttachmentFiles.sanitize(""), "attachment")
     }
+
+    func testDurationFormatting() {
+        XCTAssertEqual(DurationFormatter.mmss(0), "0:00")
+        XCTAssertEqual(DurationFormatter.mmss(65), "1:05")
+        XCTAssertEqual(DurationFormatter.mmss(3661), "1:01:01")
+        XCTAssertEqual(DurationFormatter.mmss(-5), "0:00")
+    }
+
+    func testFileCacheDownloadsOnceAndReusesLocalURL() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cache-\(UUID().uuidString)", isDirectory: true)
+        let cache = AttachmentFileCache(directory: directory)
+        let repository = FakeAttachmentRepository()
+        repository.downloadData = Data([1, 2, 3, 4])
+
+        let first = await cache.localURL(
+            attachmentUuid: "a-1",
+            fileName: "clip.mp4",
+            repository: repository
+        )
+        let second = await cache.localURL(
+            attachmentUuid: "a-1",
+            fileName: "clip.mp4",
+            repository: repository
+        )
+
+        XCTAssertEqual(first, second)
+        XCTAssertEqual(repository.downloads, 1)
+        XCTAssertEqual(try Data(contentsOf: try XCTUnwrap(first)), Data([1, 2, 3, 4]))
+    }
 }
 
 final class AttachmentRepositoryTests: XCTestCase {

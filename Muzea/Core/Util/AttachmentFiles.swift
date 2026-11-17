@@ -2,16 +2,16 @@ import Foundation
 
 /// Временные файлы для шаринга скачанных вложений.
 enum AttachmentFiles {
-    static func write(data: Data, fileName: String) -> URL? {
+    static func write(data: Data, fileName: String, directory: URL? = nil) -> URL? {
         let safeName = sanitize(fileName)
-        let directory = FileManager.default.temporaryDirectory
+        let targetDirectory = directory ?? FileManager.default.temporaryDirectory
             .appendingPathComponent("attachments", isDirectory: true)
         do {
             try FileManager.default.createDirectory(
-                at: directory,
+                at: targetDirectory,
                 withIntermediateDirectories: true
             )
-            let url = directory.appendingPathComponent(safeName)
+            let url = targetDirectory.appendingPathComponent(safeName)
             try data.write(to: url, options: .atomic)
             return url
         } catch {

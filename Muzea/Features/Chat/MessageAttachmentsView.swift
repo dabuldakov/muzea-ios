@@ -1,3 +1,4 @@
+import AVKit
 import SwiftUI
 import UIKit
 
@@ -16,17 +17,19 @@ final class AttachmentImageCache {
     }
 }
 
-/// Вложения в пузыре: сетка фото, карточки видео/аудио/документов.
+/// Вложения в пузыре: сетка фото, видео, аудио и документы. Каждый тип — свой
+/// компонент, чтобы плееры и загрузки не смешивались в одном god-view.
 struct MessageAttachmentsView: View {
     let attachments: [AttachmentResponse]
     let isMine: Bool
 
-    @EnvironmentObject private var container: AppContainer
-    @State private var viewer: ImageViewerItem?
-    @State private var shareFile: ShareFileItem?
+    private var images: [AttachmentResponse] {
+        attachments.filter { kind($0) == .image }
+    }
 
-    private var images: [AttachmentResponse] { attachments.filter { kind($0) == .image } }
-    private var others: [AttachmentResponse] { attachments.filter { kind($0) != .image } }
+    private var others: [AttachmentResponse] {
+        attachments.filter { kind($0) != .image }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -38,29 +41,22 @@ struct MessageAttachmentsView: View {
                     spacing: 4
                 ) {
                     ForEach(images) { attachment in
-                        AttachmentImageCell(
-                            attachment: attachment,
-                            large: images.count == 1,
-                            onOpen: { image in viewer = ImageViewerItem(image: image) }
-                        )
+                        AttachmentImageCell(attachment: attachment, large: images.count == 1)
                     }
                 }
                 .frame(maxWidth: 250)
             }
 
             ForEach(others) { attachment in
-                AttachmentCard(
-                    attachment: attachment,
-                    isMine: isMine,
-                    onShare: { url in shareFile = ShareFileItem(url: url) }
-                )
+                switch kind(attachment) {
+                case .video:
+                    VideoAttachmentView(attachment: attachment, isMine: isMine)
+                case .audio:
+                    AudioAttachmentView(attachment: attachment, isMine: isMine)
+                default:
+                    FileAttachmentView(attachment: attachment, isMine: isMine)
+                }
             }
-        }
-        .sheet(item: $viewer) { item in
-            ImageAttachmentViewer(image: item.image)
-        }
-        .sheet(item: $shareFile) { item in
-            ActivityView(items: [item.url])
         }
     }
 
@@ -71,13 +67,15 @@ struct MessageAttachmentsView: View {
     }
 }
 
+// MARK: - Images
+
 private struct AttachmentImageCell: View {
     let attachment: AttachmentResponse
     let large: Bool
-    let onOpen: (UIImage) -> Void
 
     @EnvironmentObject private var container: AppContainer
     @State private var image: UIImage?
+    @State private var viewer: ImageViewerItem?
 
     var body: some View {
         ZStack {
@@ -85,7 +83,7 @@ private struct AttachmentImageCell: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
-                    .onTapGesture { onOpen(image) }
+                    .onTapGesture { viewer = ImageViewerItem(image: image) }
             } else {
                 Color(.tertiarySystemBackground)
                 ProgressView()
@@ -97,6 +95,9 @@ private struct AttachmentImageCell: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .task(id: attachment.id) {
             image = await loadImage()
+        }
+        .sheet(item: $viewer) { item in
+            ImageAttachmentViewer(image: item.image)
         }
     }
 
@@ -111,20 +112,201 @@ private struct AttachmentImageCell: View {
     }
 }
 
-private struct AttachmentCard: View {
+private struct ImageViewerItem: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
+struct ImageAttachmentViewer: View {
+    let image: UIImage
+    @Environment(\.dismiss) private var dismiss
+    @State private var shareFile: ShareFileItem?
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.white)
+                    }
+                    .padding()
+                }
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button {
+                        if let data = image.jpegData(compressionQuality: 0.95),
+                           let url = AttachmentFiles.write(data: data, fileName: "photo.jpg") {
+                            shareFile = ShareFileItem(url: url)
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                    }
+                    .padding()
+                }
+            }
+        }
+        .sheet(item: $shareFile) { item in
+            ActivityView(items: [item.url])
+        }
+    }
+}
+
+// MARK: - Video
+private struct VideoAttachmentView: View {
     let attachment: AttachmentResponse
     let isMine: Bool
-    let onShare: (URL) -> Void
 
     @EnvironmentObject private var container: AppContainer
-    @State private var isDownloading = false
+    @State private var player: AVPlayer?
+    @State private var isLoading = false
+    @State private var showPlayer = false
 
     var body: some View {
         Button {
             Task { await open() }
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: icon)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.black.opacity(0.25))
+                    Image(systemName: "play.fill")
+                        .foregroundColor(.white)
+                }
+                .frame(width: 52, height: 42)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(attachment.fileName ?? "Видео")
+                        .font(.footnote).bold()
+                        .lineLimit(1)
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundColor(isMine ? .white.opacity(0.8) : .secondary)
+                }
+                Spacer(minLength: 0)
+                if isLoading { ProgressView() }
+            }
+            .padding(8)
+            .frame(maxWidth: 250, alignment: .leading)
+            .background(isMine ? Color.accentColor.opacity(0.85) : Color(.secondarySystemBackground))
+            .foregroundColor(isMine ? .white : .primary)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoading)
+        .fullScreenCover(isPresented: $showPlayer) {
+            if let player {
+                VideoPlayer(player: player)
+                    .ignoresSafeArea()
+                    .onDisappear { player.pause() }
+            }
+        }
+    }
+
+    private var subtitle: String {
+        if let duration = attachment.duration {
+            return DurationFormatter.mmss(duration)
+        }
+        if let size = attachment.fileSize {
+            return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+        }
+        return "Видео"
+    }
+
+    private func open() async {
+        guard player == nil, let uuid = attachment.attachmentUuid else {
+            showPlayer = player != nil
+            return
+        }
+        isLoading = true
+        defer { isLoading = false }
+        guard let url = await AttachmentFileCache.shared.localURL(
+            attachmentUuid: uuid,
+            fileName: attachment.fileName ?? "video.mp4",
+            repository: container.attachmentRepository
+        ) else { return }
+        let player = AVPlayer(url: url)
+        self.player = player
+        showPlayer = true
+        player.play()
+    }
+}
+
+// MARK: - Audio
+
+private struct AudioAttachmentView: View {
+    let attachment: AttachmentResponse
+    let isMine: Bool
+
+    @EnvironmentObject private var container: AppContainer
+    @ObservedObject private var audio = AudioPlaybackCenter.shared
+
+    var body: some View {
+        Button {
+            Task {
+                await audio.toggle(
+                    id: attachment.id,
+                    attachment: attachment,
+                    repository: container.attachmentRepository
+                )
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: audio.isPlaying(attachment.id) ? "pause.circle.fill" : "play.circle.fill")
+                    .font(.title2)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(attachment.fileName ?? "Аудио")
+                        .font(.footnote)
+                        .lineLimit(1)
+                    if audio.playingId == attachment.id {
+                        ProgressView(value: audio.progress)
+                            .tint(isMine ? .white : .accentColor)
+                    } else {
+                        Text(attachment.duration.map(DurationFormatter.mmss) ?? "Аудио")
+                            .font(.caption2)
+                            .foregroundColor(isMine ? .white.opacity(0.8) : .secondary)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(8)
+            .frame(maxWidth: 250, alignment: .leading)
+            .background(isMine ? Color.accentColor.opacity(0.85) : Color(.secondarySystemBackground))
+            .foregroundColor(isMine ? .white : .primary)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Files
+
+private struct FileAttachmentView: View {
+    let attachment: AttachmentResponse
+    let isMine: Bool
+
+    @EnvironmentObject private var container: AppContainer
+    @State private var isDownloading = false
+    @State private var shareFile: ShareFileItem?
+
+    var body: some View {
+        Button {
+            Task { await open() }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "doc")
                     .font(.title3)
                     .frame(width: 32)
 
@@ -154,20 +336,8 @@ private struct AttachmentCard: View {
         }
         .buttonStyle(.plain)
         .disabled(isDownloading)
-    }
-
-    private var kind: AttachmentKind {
-        AttachmentPolicy.kind(fromServerType: attachment.type)
-            ?? AttachmentPolicy.rule(for: attachment.fileName ?? "")?.kind
-            ?? .document
-    }
-
-    private var icon: String {
-        switch kind {
-        case .video: return "play.rectangle"
-        case .audio: return "waveform"
-        case .image: return "photo"
-        default: return "doc"
+        .sheet(item: $shareFile) { item in
+            ActivityView(items: [item.url])
         }
     }
 
@@ -175,53 +345,20 @@ private struct AttachmentCard: View {
         if let size = attachment.fileSize {
             return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
         }
-        return kind.rawValue.capitalized
+        return "Файл"
     }
 
     private func open() async {
         guard let uuid = attachment.attachmentUuid else { return }
         isDownloading = true
         defer { isDownloading = false }
-        guard let data = try? await container.attachmentRepository.download(attachmentUuid: uuid),
-              let url = AttachmentFiles.write(
-                data: data,
-                fileName: attachment.fileName ?? "attachment"
-              ) else { return }
-        onShare(url)
+        guard let url = await AttachmentFileCache.shared.localURL(
+            attachmentUuid: uuid,
+            fileName: attachment.fileName ?? "attachment",
+            repository: container.attachmentRepository
+        ) else { return }
+        shareFile = ShareFileItem(url: url)
     }
-}
-
-struct ImageAttachmentViewer: View {
-    let image: UIImage
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-            VStack {
-                HStack {
-                    Spacer()
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title)
-                            .foregroundColor(.white)
-                    }
-                    .padding()
-                }
-                Spacer()
-            }
-        }
-    }
-}
-
-private struct ImageViewerItem: Identifiable {
-    let id = UUID()
-    let image: UIImage
 }
 
 private struct ShareFileItem: Identifiable {

@@ -156,6 +156,7 @@ final class FakeAttachmentRepository: AttachmentRepository {
     var uploads: [(String, String, AttachmentKind)] = []
     var response: AttachmentResponse?
     var downloadData = Data([1, 2, 3])
+    var downloads = 0
 
     func upload(
         chatUuid: String,
@@ -188,7 +189,8 @@ final class FakeAttachmentRepository: AttachmentRepository {
     }
 
     func download(attachmentUuid: String) async throws -> Data {
-        downloadData
+        downloads += 1
+        return downloadData
     }
 
     func preview(attachmentUuid: String) async throws -> Data {
