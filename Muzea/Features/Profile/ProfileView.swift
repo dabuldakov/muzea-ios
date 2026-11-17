@@ -8,6 +8,8 @@ struct ProfileView: View {
     @State private var fullName = ""
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var deleteDialog: DeleteDialog?
+    @State private var cacheSize: Int64 = 0
+    @State private var cacheCleared = false
 
     private enum DeleteDialog {
         case confirm
@@ -65,6 +67,27 @@ struct ProfileView: View {
                     }
                 }
 
+                Section {
+                    LabeledContent(
+                        "Кэш",
+                        value: ByteCountFormatter.string(
+                            fromByteCount: cacheSize,
+                            countStyle: .file
+                        )
+                    )
+                    Button("Очистить кэш") {
+                        Task {
+                            await container.cacheManager.clear()
+                            cacheSize = container.cacheManager.totalSizeBytes()
+                            cacheCleared = true
+                        }
+                    }
+                } footer: {
+                    if cacheCleared {
+                        Text("Кэш очищен").foregroundColor(.green)
+                    }
+                }
+
                 if let error = viewModel.state.error {
                     Section { Text(error).foregroundColor(.red) }
                 }
@@ -92,6 +115,7 @@ struct ProfileView: View {
             .task {
                 await viewModel.load()
                 fullName = viewModel.state.user?.fullName ?? viewModel.state.user?.userName ?? ""
+                cacheSize = container.cacheManager.totalSizeBytes()
             }
             .onChange(of: selectedPhoto) { newValue in
                 Task { await loadPhoto(newValue) }

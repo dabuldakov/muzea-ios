@@ -10,6 +10,8 @@ struct VideoDetailView: View {
     @StateObject private var viewModel: VideoDetailViewModel
     @State private var player: AVPlayer?
     @State private var showDeleteConfirm = false
+    @State private var showReport = false
+    @State private var reportNotice: String?
 
     init(video: Video, container: AppContainer) {
         self.video = video
@@ -73,9 +75,33 @@ struct VideoDetailView: View {
         }
         .navigationTitle("Видео")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Удалить видео?", isPresented: $showDeleteConfirm) {
+        .toolbar {
+            if !canDelete {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showReport = true
+                    } label: {
+                        Image(systemName: "exclamationmark.bubble")
+                    }
+                }
+            }
+        }
+        .confirmationDialog("Удалить видео?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("Удалить", role: .destructive) { delete() }
             Button("Отмена", role: .cancel) {}
+        }
+        .sheet(isPresented: $showReport) {
+            ReportReasonSheet { reason in
+                Task { await report(reason: reason) }
+            }
+        }
+        .alert("Жалоба", isPresented: Binding(
+            get: { reportNotice != nil },
+            set: { if !$0 { reportNotice = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(reportNotice ?? "")
         }
         .onAppear { if player == nil { player = makePlayer() } }
         .onDisappear {
@@ -107,6 +133,20 @@ struct VideoDetailView: View {
             if await viewModel.delete(id: video.id) {
                 dismiss()
             }
+        }
+    }
+
+    private func report(reason: String) async {
+        do {
+            try await container.contentReportRepository.report(
+                contentType: "VIDEO",
+                contentId: video.id,
+                reason: reason,
+                comment: nil
+            )
+            reportNotice = "Жалоба отправлена"
+        } catch {
+            reportNotice = error.localizedDescription
         }
     }
 }

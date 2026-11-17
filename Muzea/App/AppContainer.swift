@@ -14,6 +14,8 @@ final class AppContainer: ObservableObject {
     let userRepository: UserRepository
     let newsRepository: NewsRepository
     let videoRepository: VideoRepository
+    let contentReportRepository: ContentReportRepository
+    let cacheManager: CacheManager
     let chatRepository: ChatRepository
     let messageRepository: MessageRepository
     let messageActionsRepository: MessageActionsRepository
@@ -56,6 +58,15 @@ final class AppContainer: ObservableObject {
         authRepository = authImpl
         userRepository = UserRepositoryImpl(client: api.makeup)
         newsRepository = NewsRepositoryImpl(client: api.makeup)
+        contentReportRepository = ContentReportRepositoryImpl(client: api.makeup)
+
+        let cacheDirectories = [
+            FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first,
+            FileManager.default.temporaryDirectory.appendingPathComponent("attachment-cache")
+        ].compactMap { $0 }
+        cacheManager = CacheManager(directories: cacheDirectories) {
+            await GifCache.shared.clearAll()
+        }
 
         let videoCache = VideoListCache()
         videoListCache = videoCache

@@ -346,6 +346,13 @@ struct BlockUserRequest: Encodable {
     let reason: String?
 }
 
+struct CreateContentReportRequest: Encodable {
+    let contentType: String
+    let contentId: Int64
+    let reason: String
+    let comment: String?
+}
+
 /// Статус собственного сообщения. Отправляется в UI как галочки.
 enum MessageDeliveryStatus: String, Hashable {
     case sending

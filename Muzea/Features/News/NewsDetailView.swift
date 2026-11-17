@@ -7,6 +7,8 @@ struct NewsDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: NewsDetailViewModel
     @State private var showDeleteConfirm = false
+    @State private var showReport = false
+    @State private var reportNotice: String?
 
     init(newsId: Int64, container: AppContainer) {
         self.newsId = newsId
@@ -76,8 +78,32 @@ struct NewsDetailView: View {
         }
         .navigationTitle("Новость")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if let news = viewModel.news, !canDelete(news) {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showReport = true
+                    } label: {
+                        Image(systemName: "exclamationmark.bubble")
+                    }
+                }
+            }
+        }
         .task { await viewModel.load(id: newsId) }
-        .alert("Удалить новость?", isPresented: $showDeleteConfirm) {
+        .sheet(isPresented: $showReport) {
+            ReportReasonSheet { reason in
+                Task { await report(reason: reason) }
+            }
+        }
+        .alert("Жалоба", isPresented: Binding(
+            get: { reportNotice != nil },
+            set: { if !$0 { reportNotice = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(reportNotice ?? "")
+        }
+        .confirmationDialog("Удалить новость?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("Удалить", role: .destructive) { delete() }
             Button("Отмена", role: .cancel) {}
         }
@@ -93,6 +119,20 @@ struct NewsDetailView: View {
             if await viewModel.delete(id: newsId) {
                 dismiss()
             }
+        }
+    }
+
+    private func report(reason: String) async {
+        do {
+            try await container.contentReportRepository.report(
+                contentType: "NEWS",
+                contentId: newsId,
+                reason: reason,
+                comment: nil
+            )
+            reportNotice = "Жалоба отправлена"
+        } catch {
+            reportNotice = error.localizedDescription
         }
     }
 }
