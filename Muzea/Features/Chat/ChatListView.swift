@@ -6,6 +6,7 @@ struct ChatListView: View {
     @StateObject private var viewModel: ChatListViewModel
     @StateObject private var router = Router()
     @State private var showCreateGroup = false
+    @State private var sharePayload: SharePayload?
 
     init(container: AppContainer) {
         _viewModel = StateObject(wrappedValue: ChatListViewModel(repository: container.chatRepository))
@@ -34,8 +35,24 @@ struct ChatListView: View {
         }
         .environmentObject(router)
         .task { await viewModel.startAutoRefresh() }
-        .onAppear { openPendingChat() }
+        .onAppear {
+            openPendingChat()
+            if let text = appRouter.consumeSharedText(), !text.isEmpty {
+                sharePayload = SharePayload(text: text)
+            }
+        }
         .onChange(of: appRouter.chatTarget) { _ in openPendingChat() }
+        .onChange(of: appRouter.sharedText) { text in
+            if let text, !text.isEmpty {
+                sharePayload = SharePayload(text: text)
+                _ = appRouter.consumeSharedText()
+            }
+        }
+        .sheet(item: $sharePayload) { payload in
+            ShareToChatView(text: payload.text, container: container) { chat in
+                router.push(.conversation(chat))
+            }
+        }
         .onChange(of: router.path.count) { count in
             // Вернулись из переписки: не ждём 8-секундный опрос, сразу
             // подтягиваем счётчики непрочитанных и последние сообщения.
@@ -49,6 +66,11 @@ struct ChatListView: View {
         guard let chat = appRouter.consumeChatTarget() else { return }
         router.push(.conversation(chat))
         Task { await viewModel.load() }
+    }
+
+    private struct SharePayload: Identifiable {
+        let id = UUID()
+        let text: String
     }
 
     @ViewBuilder

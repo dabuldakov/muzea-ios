@@ -13,6 +13,7 @@ final class AppRouter: ObservableObject {
     @Published var selectedTab = tabNews
     @Published var chatTarget: Chat?
     @Published var newsTarget: Int64?
+    @Published var sharedText: String?
 
     private var observer: NSObjectProtocol?
 
@@ -38,22 +39,47 @@ final class AppRouter: ObservableObject {
     func handle(_ route: PushRoute) {
         switch route {
         case .chat(let target):
-            selectedTab = Self.tabChats
-            chatTarget = Chat(
-                chatUuid: target.chatUuid,
-                chatType: nil,
-                title: target.title,
-                avatarUrl: target.avatarUrl,
-                createdAt: nil,
-                updatedAt: nil,
-                participantCount: nil,
-                lastMessage: nil,
-                unreadCount: 0
-            )
+            openChat(target)
         case .news(let id):
             selectedTab = Self.tabNews
             newsTarget = id
         }
+    }
+
+    @discardableResult
+    func handleURL(_ url: URL) -> Bool {
+        guard let link = DeepLink.parse(url) else { return false }
+        switch link {
+        case .chat(let target):
+            openChat(target)
+        case .news(let id):
+            selectedTab = Self.tabNews
+            newsTarget = id
+        case .share(let text):
+            selectedTab = Self.tabChats
+            sharedText = text
+        }
+        return true
+    }
+
+    private func openChat(_ target: ChatPushTarget) {
+        selectedTab = Self.tabChats
+        chatTarget = Chat(
+            chatUuid: target.chatUuid,
+            chatType: nil,
+            title: target.title,
+            avatarUrl: target.avatarUrl,
+            createdAt: nil,
+            updatedAt: nil,
+            participantCount: nil,
+            lastMessage: nil,
+            unreadCount: 0
+        )
+    }
+
+    func consumeSharedText() -> String? {
+        defer { sharedText = nil }
+        return sharedText
     }
 
     func consumeChatTarget() -> Chat? {

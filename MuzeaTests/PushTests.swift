@@ -86,10 +86,55 @@ final class AppRouterTests: XCTestCase {
         XCTAssertEqual(router.consumeNewsTarget(), 7)
         XCTAssertNil(router.newsTarget)
     }
+
+    func testShareURLSelectsChatsAndStoresText() {
+        let router = AppRouter()
+
+        XCTAssertTrue(router.handleURL(URL(string: "muzea://share?text=hi")!))
+        XCTAssertEqual(router.selectedTab, AppRouter.tabChats)
+        XCTAssertEqual(router.consumeSharedText(), "hi")
+        XCTAssertNil(router.sharedText)
+    }
+}
+
+final class DeepLinkTests: XCTestCase {
+
+    func testParsesCustomSchemeChatNewsAndShare() throws {
+        XCTAssertEqual(
+            DeepLink.parse(URL(string: "muzea://chat/c1?title=Alice&message=m1")!),
+            .chat(ChatPushTarget(
+                chatUuid: "c1",
+                title: "Alice",
+                avatarUrl: nil,
+                messageUuid: "m1"
+            ))
+        )
+        XCTAssertEqual(
+            DeepLink.parse(URL(string: "muzea://news/42")!),
+            .news(id: 42)
+        )
+        XCTAssertEqual(
+            DeepLink.parse(URL(string: "muzea://share?text=hello%20world")!),
+            .share(text: "hello world")
+        )
+    }
+
+    func testParsesUniversalLink() {
+        XCTAssertEqual(
+            DeepLink.parse(URL(string: "https://muzea.su/chat/c1")!),
+            .chat(ChatPushTarget(
+                chatUuid: "c1",
+                title: nil,
+                avatarUrl: nil,
+                messageUuid: nil
+            ))
+        )
+        XCTAssertNil(DeepLink.parse(URL(string: "https://example.com/chat/c1")!))
+        XCTAssertNil(DeepLink.parse(URL(string: "muzea://unknown")!))
+    }
 }
 
 final class ActiveChatTrackerTests: XCTestCase {
-
     func testTracksOnlyCurrentChat() {
         let tracker = ActiveChatTracker()
         tracker.enter("c1")

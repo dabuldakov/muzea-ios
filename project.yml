@@ -44,6 +44,28 @@ targets:
     dependencies:
       - package: Firebase
         product: FirebaseMessaging
+      - target: MuzeaShare
+        embed: true
+
+  MuzeaShare:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: MuzeaShare
+        excludes:
+          - "Info.plist"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.cyber.muzea.Share
+        PRODUCT_NAME: MuzeaShare
+        GENERATE_INFOPLIST_FILE: "NO"
+        INFOPLIST_FILE: MuzeaShare/Info.plist
+        SKIP_INSTALL: "YES"
+        APPLICATION_EXTENSION_API_ONLY: "YES"
+        TARGETED_DEVICE_FAMILY: "1"
+        MARKETING_VERSION: "1.1"
+        CURRENT_PROJECT_VERSION: "2"
 
   MuzeaTests:
     type: bundle.unit-test

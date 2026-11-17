@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var container: AppContainer
+    @EnvironmentObject private var appRouter: AppRouter
 
     var body: some View {
         Group {
@@ -15,6 +16,9 @@ struct RootView: View {
             } else {
                 LoginView(container: container)
             }
+        }
+        .onOpenURL { url in
+            _ = appRouter.handleURL(url)
         }
     }
 }
