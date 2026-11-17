@@ -99,7 +99,7 @@ the iOS backlog: update the status as work lands. Status values:
 | NET.03 | Push (FCM/APNs) | partial | data-only FCM, локальные уведомления, чат/новость, подавление открытого чата; APNs background задеплоен; device smoke pending |
 | NET.04 | Offline + retry | partial | disk outbox, вложения, офлайн-баннер, retry при возврате сети; background sync pending |
 | NET.05 | Invites | n/a | not in code |
-| NET.06 | Deep links | partial | muzea://chat/news/share + https://muzea.su/...; Universal Links entitlement/AASA pending |
+| NET.06 | Deep links | partial | muzea:// и https://muzea.su/...; entitlement + capability готовы, AASA нужно выложить (`docs/DEEP_LINKS.md`) |
 | NET.07 | No-flicker sync | partial | keep cached list while refreshing |
 | — | Share extension | partial | MuzeaShare text/URL → выбор чата; device smoke pending |
 

@@ -31,6 +31,8 @@ targets:
       - path: Muzea
         excludes:
           - "Resources/Info.plist"
+    entitlements:
+      path: Muzea/Resources/Muzea.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.cyber.muzea

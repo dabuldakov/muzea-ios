@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "5HGZ927RW5.com.cyber.muzea",
+        "components": [
+          { "/": "/chat/*" },
+          { "/": "/news/*" },
+          { "/": "/share" }
+        ]
+      }
+    ]
+  }
+}

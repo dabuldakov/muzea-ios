@@ -20,5 +20,10 @@ struct RootView: View {
         .onOpenURL { url in
             _ = appRouter.handleURL(url)
         }
+        // Universal Links: https://muzea.su/chat/... приходит не через onOpenURL.
+        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+            guard let url = activity.webpageURL else { return }
+            _ = appRouter.handleURL(url)
+        }
     }
 }
