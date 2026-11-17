@@ -26,8 +26,8 @@ the iOS backlog: update the status as work lands. Status values:
 | UI.09 | Localization | partial | RU strings; EN + pluralization missing |
 | UI.10 | 6-line composer | partial | UIViewRepresentable editor, 1...6 lines, cursor-aware; device check pending |
 | UI.11 | Hide tab bar in chat | partial | `.toolbar(.hidden, for: .tabBar)`; device check pending |
-| UI.12 | Emoji + GIF button | missing | |
-| UI.13 | Composer layout | partial | paperclip + attachment chips; emoji/GIF button pending |
+| UI.12 | Emoji + GIF button | partial | emoji grid + GIF search sheet; device check pending |
+| UI.13 | Composer layout | partial | paperclip + emoji/GIF + attachment chips; device check pending |
 | UI.14 | Settings screen | missing | |
 | UI.15 | Tab order | missing | |
 | UI.16 | Insets/keyboard | partial | verify on device |
@@ -60,15 +60,15 @@ the iOS backlog: update the status as work lands. Status values:
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
 | MEDIA.01 | Photos | partial | picker, JPEG 2048px, upload, grid, full-screen viewer; multi-select pending |
-| MEDIA.02 | Video | partial | file upload + card; playback/thumbnail/compression pending |
-| MEDIA.03 | Voice messages | missing | AVAudioRecorder + player |
+| MEDIA.02 | Video | partial | upload, full-screen AVPlayer, cache; thumbnails/compression/progress pending |
+| MEDIA.03 | Voice messages | partial | m4a/AAC recorder, hold/swipe-cancel, playback with progress; waveform pending |
 | MEDIA.04 | Video notes (circles) | missing | AVCaptureSession |
-| MEDIA.05 | GIF (Klipy) | missing | client-side search + server metadata |
+| MEDIA.05 | GIF (Klipy) | partial | search/trending, disk cache, picker, looping MP4; recent/chat tabs pending |
 | MEDIA.06 | Documents | partial | upload, card, download, share sheet; QuickLook preview pending |
 | MEDIA.07 | Save to Files/Photos | partial | share sheet for files; explicit Save to Photos pending |
 | MEDIA.08 | Upload queue | missing | disk queue, retry on network |
 | MEDIA.09 | Open/share after download | partial | share sheet after download; QuickLook/video player pending |
-| MEDIA.10 | GIF cache | missing | |
+| MEDIA.10 | GIF cache | partial | first page on disk, TTL 30 min, stale fallback |
 | MEDIA.12 | Image viewer | partial | full-screen viewer; swipe gallery/header/actions pending |
 | MEDIA.13 | Server thumbnails | n/a | backend plan; client just uses URLs |
 | MEDIA.14 | CDN/presigned | n/a | backend plan |
@@ -118,7 +118,7 @@ the iOS backlog: update the status as work lands. Status values:
 
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
-| QA.01 | Unit tests | partial | 263 vs 1151 on Android (1 Keychain test skipped on unsigned simulator); chat text + media foundation |
+| QA.01 | Unit tests | partial | 273 vs 1151 on Android (1 Keychain test skipped on unsigned simulator); chat text + media |
 | QA.02 | Robolectric | n/a | |
 | QA.03 | Integration (mock network) | partial | `MockURLProtocol`; add shared fixtures |
 | QA.04 | Device tests | missing | XCUITest for 4 critical paths |
