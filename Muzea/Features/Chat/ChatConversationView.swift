@@ -11,7 +11,6 @@ struct ChatConversationView: View {
     @State private var draftBeforeEdit = ""
     @State private var jumpTarget: String?
     @State private var activeAlert: ActiveAlert?
-    @State private var forwardTargets: [MessageResponse] = []
     @State private var activeSheet: ActiveSheet?
     @State private var forwardTargets: [MessageResponse] = []
 
