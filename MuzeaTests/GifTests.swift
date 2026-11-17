@@ -46,8 +46,20 @@ final class GifParsingTests: XCTestCase {
         XCTAssertTrue(KlipyGifRepository.parse(Data(broken.utf8)).isEmpty)
     }
 
-    func testGifCacheKeepsFreshAndStale() async {
-        let url = FileManager.default.temporaryDirectory
+    func testServerGifDTOResolvesRelativeURLs() throws {
+        let json = """
+        {"gifUuid":"g1","provider":"klipy","providerGifId":"42","title":"Cat",
+         "url":"/api/gifs/file/a.webp","previewUrl":"/api/gifs/file/a.jpg",
+         "mp4Url":null,"width":10,"height":20}
+        """
+        let gif = try TestSupport.decode(GifDTO.self, json).toDomain()
+
+        XCTAssertEqual(gif.gifKey, "g1")
+        XCTAssertEqual(gif.url, "https://chat-muzea.su/api/gifs/file/a.webp")
+        XCTAssertEqual(gif.previewUrl, "https://chat-muzea.su/api/gifs/file/a.jpg")
+    }
+
+    func testGifCacheKeepsFreshAndStale() async {        let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("gif-cache-\(UUID().uuidString).json")
         let cache = GifCache(fileURL: url)
         let gif = Gif(
@@ -132,31 +144,102 @@ final class KlipyGifRepositoryTests: XCTestCase {
     }
 }
 
-@MainActor
-final class GifSearchViewModelTests: XCTestCase {
+final class ServerGifRepositoryTests: XCTestCase {
 
-    func testLoadIfNeededUsesTrendingAndSearchUsesQuery() async {
-        let repository = FakeGifRepository()
-        repository.gifs = [
-            Gif(
-                provider: "klipy",
-                providerGifId: "1",
-                title: nil,
-                url: "u",
-                previewUrl: nil,
-                mp4Url: nil,
-                width: nil,
-                height: nil,
-                gifKey: nil
+    override func setUp() {
+        super.setUp()
+        MockURLProtocol.reset()
+    }
+
+    override func tearDown() {
+        MockURLProtocol.reset()
+        super.tearDown()
+    }
+
+    private func repository() -> KlipyGifRepository {
+        let store = TestSupport.makeStore()
+        store.token = "access"
+        store.chatUserUuid = "me"
+        let client = TestSupport.chatClient(tokenStore: store)
+        let auth = ChatAuthorization(
+            client: client,
+            auth: ChatAuthManager(client: client, store: store)
+        )
+        return KlipyGifRepository(
+            apiKey: "",
+            session: TestSupport.session(),
+            cache: GifCache(fileURL: URL(fileURLWithPath: "/tmp/gif-test-\(UUID().uuidString).json")),
+            auth: auth
+        )
+    }
+
+    func testRecentUsesServerEndpoint() async {
+        MockURLProtocol.handler = { request in
+            (
+                MockURLProtocol.response(for: request),
+                Data(#"[{"gifUuid":"g1","provider":"klipy","providerGifId":"p1","url":"/api/gifs/file/a.webp"}]"#.utf8)
             )
-        ]
-        let viewModel = GifSearchViewModel(repository: repository)
+        }
 
-        await viewModel.loadIfNeeded()
-        await viewModel.search(query: "cat")
+        let gifs = await repository().recent(page: 0, size: 30)
 
-        XCTAssertEqual(repository.queries, ["", "cat"])
-        XCTAssertEqual(viewModel.gifs.count, 1)
-        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertEqual(gifs.first?.gifKey, "g1")
+        XCTAssertEqual(gifs.first?.url, "https://chat-muzea.su/api/gifs/file/a.webp")
+        XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/gifs/recent")
+    }
+
+    func testChatUsesChatEndpoint() async {
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request), Data(#"[{"provider":"klipy","providerGifId":"p1","url":"https://cdn/a.webp"}]"#.utf8))
+        }
+
+        _ = await repository().chat(chatUuid: "c1", page: 0, size: 30)
+
+        XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/gifs/chat/c1")
     }
 }
+
+@MainActor
+final class GifSearchViewModelTests: XCTestCase {
+    private let gif = Gif(
+        provider: "klipy",
+        providerGifId: "1",
+        title: nil,
+        url: "u",
+        previewUrl: nil,
+        mp4Url: nil,
+        width: nil,
+        height: nil,
+        gifKey: nil
+    )
+
+    func testLoadsRecentThenChatThenSearch() async {
+        let repository = FakeGifRepository()
+        repository.recentGifs = [gif]
+        repository.chatGifs = [gif]
+        repository.gifs = [gif]
+        let viewModel = GifSearchViewModel(repository: repository, chatUuid: "c1")
+
+        await viewModel.loadIfNeeded()
+        XCTAssertEqual(viewModel.tab, .recent)
+        XCTAssertEqual(viewModel.gifs.count, 1)
+
+        await viewModel.select(.chat)
+        XCTAssertEqual(viewModel.tab, .chat)
+        XCTAssertEqual(viewModel.gifs.count, 1)
+
+        await viewModel.select(.search)
+        await viewModel.search(query: "cat")
+        XCTAssertEqual(repository.queries.last, "cat")
+        XCTAssertEqual(viewModel.gifs.count, 1)
+    }
+
+    func testChatTabWithoutChatDoesNotLoad() async {
+        let repository = FakeGifRepository()
+        let viewModel = GifSearchViewModel(repository: repository)
+
+        await viewModel.select(.chat)
+
+        XCTAssertTrue(viewModel.gifs.isEmpty)
+        XCTAssertFalse(viewModel.hasMore)
+    }}

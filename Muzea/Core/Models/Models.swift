@@ -432,6 +432,33 @@ struct GifPayload: Encodable {
     let height: Int?
 }
 
+/// Гифка из нашего API («Мои»/«Этот чат»).
+struct GifDTO: Decodable {
+    let gifUuid: String?
+    let provider: String
+    let providerGifId: String
+    let title: String?
+    let url: String
+    let previewUrl: String?
+    let mp4Url: String?
+    let width: Int?
+    let height: Int?
+
+    func toDomain() -> Gif {
+        Gif(
+            provider: provider,
+            providerGifId: providerGifId,
+            title: title,
+            url: AttachmentURLResolver.absolute(url, base: Config.chatBaseURL)?.absoluteString ?? url,
+            previewUrl: AttachmentURLResolver.absolute(previewUrl, base: Config.chatBaseURL)?.absoluteString,
+            mp4Url: AttachmentURLResolver.absolute(mp4Url, base: Config.chatBaseURL)?.absoluteString,
+            width: width,
+            height: height,
+            gifKey: gifUuid
+        )
+    }
+}
+
 struct EditMessageRequest: Encodable {
     let text: String
 }

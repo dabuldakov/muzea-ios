@@ -264,6 +264,22 @@ final class ChatMediaViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.state.isUploadingAttachments)
     }
 
+    func testAttachmentLimitRejectsEleventhFile() async {
+        let attachments = FakeAttachmentRepository()
+        let (viewModel, _) = makeViewModel(attachmentRepository: attachments)
+
+        for _ in 0..<AttachmentPolicy.maxAttachmentsPerMessage {
+            await viewModel.addImage(data: Data([1]), width: 1, height: 1)
+        }
+        await viewModel.addImage(data: Data([1]), width: 1, height: 1)
+
+        XCTAssertEqual(
+            viewModel.state.pendingAttachments.count,
+            AttachmentPolicy.maxAttachmentsPerMessage
+        )
+        XCTAssertNotNil(viewModel.state.error)
+    }
+
     func testSendWithoutCaptionUsesImageTypeAndClearsPending() async {
         let attachments = FakeAttachmentRepository()
         let (viewModel, messages) = makeViewModel(attachmentRepository: attachments)

@@ -338,11 +338,21 @@ final class FakeReactionHistoryStore: ReactionHistoryStore {
 
 final class FakeGifRepository: GifRepository {
     var gifs: [Gif] = []
+    var recentGifs: [Gif] = []
+    var chatGifs: [Gif] = []
     var queries: [String] = []
 
     func search(query: String, page: Int, size: Int) async -> [Gif] {
         queries.append(query)
         return gifs
+    }
+
+    func recent(page: Int, size: Int) async -> [Gif] {
+        recentGifs
+    }
+
+    func chat(chatUuid: String, page: Int, size: Int) async -> [Gif] {
+        chatGifs
     }
 }
 

@@ -19,4 +19,8 @@ protocol GifRepository {
     /// Поиск/тренды. Пустой query — тренды. Ошибки сети не всплывают наружу:
     /// лучше старый кэш, чем пустой экран.
     func search(query: String, page: Int, size: Int) async -> [Gif]
+    /// «Мои» гифки с сервера.
+    func recent(page: Int, size: Int) async -> [Gif]
+    /// Гифки конкретного чата.
+    func chat(chatUuid: String, page: Int, size: Int) async -> [Gif]
 }

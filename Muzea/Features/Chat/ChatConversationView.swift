@@ -22,7 +22,7 @@ struct ChatConversationView: View {
     @State private var showPhotoPicker = false
     @State private var showVideoPicker = false
     @State private var showFilePicker = false
-    @State private var photoItem: PhotosPickerItem?
+    @State private var photoItems: [PhotosPickerItem] = []
     @State private var videoItem: PhotosPickerItem?
     @State private var showVideoNoteRecorder = false
 
@@ -190,9 +190,9 @@ struct ChatConversationView: View {
                 )
             }
         }
-        .onChange(of: photoItem) { item in
-            guard let item else { return }
-            Task { await addPhoto(item) }
+        .onChange(of: photoItems) { items in
+            guard !items.isEmpty else { return }
+            Task { await addPhotos(items) }
         }
         .onChange(of: videoItem) { item in
             guard let item else { return }
@@ -205,7 +205,12 @@ struct ChatConversationView: View {
             Button("Файл") { showFilePicker = true }
             Button("Отмена", role: .cancel) {}
         }
-        .photosPicker(isPresented: $showPhotoPicker, selection: $photoItem, matching: .images)
+        .photosPicker(
+            isPresented: $showPhotoPicker,
+            selection: $photoItems,
+            maxSelectionCount: AttachmentPolicy.maxAttachmentsPerMessage,
+            matching: .images
+        )
         .photosPicker(isPresented: $showVideoPicker, selection: $videoItem, matching: .videos)
         .fileImporter(
             isPresented: $showFilePicker,
@@ -246,6 +251,7 @@ struct ChatConversationView: View {
             case .emojiGif:
                 EmojiGifSheet(
                     repository: container.gifRepository,
+                    chatUuid: chat.chatUuid,
                     onEmoji: { emoji in input += emoji },
                     onGif: { gif in Task { await viewModel.sendGif(gif) } }
                 )
@@ -429,22 +435,24 @@ struct ChatConversationView: View {
 
     // MARK: - Actions
 
-    private func addPhoto(_ item: PhotosPickerItem) async {
-        defer { photoItem = nil }
-        guard let data = try? await item.loadTransferable(type: Data.self) else {
-            viewModel.reportValidationError("Не удалось прочитать изображение")
-            return
+    private func addPhotos(_ items: [PhotosPickerItem]) async {
+        defer { photoItems = [] }
+        for (index, item) in items.prefix(AttachmentPolicy.maxAttachmentsPerMessage).enumerated() {
+            guard let data = try? await item.loadTransferable(type: Data.self) else {
+                viewModel.reportValidationError("Не удалось прочитать изображение")
+                continue
+            }
+            guard let prepared = ImagePreparation.jpeg(from: data) else {
+                viewModel.reportValidationError("Это изображение не поддерживается")
+                continue
+            }
+            await viewModel.addImage(
+                data: prepared.data,
+                fileName: "photo_\(Int(Date().timeIntervalSince1970))_\(index).jpg",
+                width: prepared.width,
+                height: prepared.height
+            )
         }
-        guard let prepared = ImagePreparation.jpeg(from: data) else {
-            viewModel.reportValidationError("Это изображение не поддерживается")
-            return
-        }
-        await viewModel.addImage(
-            data: prepared.data,
-            fileName: "photo_\(Int(Date().timeIntervalSince1970)).jpg",
-            width: prepared.width,
-            height: prepared.height
-        )
     }
 
     private func addVideo(_ item: PhotosPickerItem) async {

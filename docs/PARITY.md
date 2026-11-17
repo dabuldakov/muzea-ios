@@ -59,11 +59,11 @@ the iOS backlog: update the status as work lands. Status values:
 
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
-| MEDIA.01 | Photos | partial | picker, JPEG 2048px, upload, grid, full-screen viewer; multi-select pending |
+| MEDIA.01 | Photos | partial | multi-select до 10, JPEG 2048px, upload, grid, gallery; device smoke pending |
 | MEDIA.02 | Video | partial | upload, full-screen AVPlayer, cache; thumbnails/compression/progress pending |
 | MEDIA.03 | Voice messages | partial | m4a/AAC recorder, hold/swipe-cancel, playback with progress; waveform pending |
 | MEDIA.04 | Video notes (circles) | partial | AVCaptureSession, 60s, round preview/recorder, VIDEO_NOTE, thumbnail; device check pending |
-| MEDIA.05 | GIF (Klipy) | partial | search/trending, disk cache, picker, looping MP4; recent/chat tabs pending |
+| MEDIA.05 | GIF (Klipy) | partial | поиск + «Мои»/«Этот чат» с сервера, диск cache, looping MP4; device smoke pending |
 | MEDIA.06 | Documents | partial | upload, card, QuickLook, share; device check pending |
 | MEDIA.07 | Save to Files/Photos | partial | Save to Photos for photo/video, Files через share; device check pending |
 | MEDIA.08 | Upload queue | partial | disk queue files+thumbs, restore/retry at chat open; no network monitor/progress |

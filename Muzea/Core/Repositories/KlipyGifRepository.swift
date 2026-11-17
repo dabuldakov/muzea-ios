@@ -75,15 +75,18 @@ final class KlipyGifRepository: GifRepository {
     private let apiKey: String
     private let session: URLSession
     private let cache: GifCache
+    private let auth: ChatAuthorization?
 
     init(
         apiKey: String = Config.klipyAppKey,
         session: URLSession = .shared,
-        cache: GifCache = .shared
+        cache: GifCache = .shared,
+        auth: ChatAuthorization? = nil
     ) {
         self.apiKey = apiKey
         self.session = session
         self.cache = cache
+        self.auth = auth
     }
 
     func search(query: String, page: Int, size: Int) async -> [Gif] {
@@ -106,6 +109,57 @@ final class KlipyGifRepository: GifRepository {
 
     private func cacheKey(query: String, page: Int) -> String {
         "\(query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())#\(page)"
+    }
+
+    func recent(page: Int, size: Int) async -> [Gif] {
+        await serverList(
+            path: "/api/gifs/recent",
+            key: "recent#\(page)",
+            page: page,
+            size: size
+        )
+    }
+
+    func chat(chatUuid: String, page: Int, size: Int) async -> [Gif] {
+        await serverList(
+            path: "/api/gifs/chat/\(chatUuid)",
+            key: "chat-\(chatUuid)#\(page)",
+            page: page,
+            size: size
+        )
+    }
+
+    private func serverList(
+        path: String,
+        key: String,
+        page: Int,
+        size: Int
+    ) async -> [Gif] {
+        guard let auth else { return [] }
+        if page == 0, let fresh = await cache.fresh(key: key, ttl: Self.freshTTL) {
+            return fresh
+        }
+        do {
+            let dtos: [GifDTO] = try await auth.authorized {
+                try await auth.client.request(
+                    "GET",
+                    path,
+                    query: [
+                        URLQueryItem(name: "page", value: "\(page)"),
+                        URLQueryItem(name: "size", value: "\(size)")
+                    ]
+                )
+            }
+            let items = dtos.map { $0.toDomain() }
+            if page == 0, !items.isEmpty {
+                await cache.put(key: key, items: items)
+            }
+            return items.isEmpty && page == 0
+                ? (await cache.stale(key: key) ?? [])
+                : items
+        } catch {
+            return page == 0 ? (await cache.stale(key: key) ?? []) : []
+        }
     }
 
     private func fetch(query: String, page: Int, size: Int) async -> [Gif] {
