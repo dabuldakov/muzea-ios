@@ -237,10 +237,10 @@ final class ChatMediaViewModelTests: XCTestCase {
     func testSendWithoutCaptionUsesImageTypeAndClearsPending() async {
         let attachments = FakeAttachmentRepository()
         let (viewModel, messages) = makeViewModel(attachmentRepository: attachments)
+        await viewModel.addImage(data: Data([1, 2, 3]), width: 10, height: 20)
         let remote = try! XCTUnwrap(attachments.response)
         messages.sendResult = TestData.message("server-1")
             .replacing(messageType: "IMAGE", attachments: [remote])
-        await viewModel.addImage(data: Data([1, 2, 3]), width: 10, height: 20)
 
         let ok = await viewModel.send("")
 
