@@ -1,7 +1,4 @@
 # Xcode / Swift
-*.xcodeproj
-*.xcworkspace
-!*.xcodeproj/project.pbxproj
 xcuserdata/
 DerivedData/
 build/
@@ -9,9 +6,6 @@ build/
 *.ipa
 *.dSYM.zip
 *.dSYM
-
-# XcodeGen generated
-Muzea.xcodeproj/
 
 # Swift Package Manager
 .swiftpm/

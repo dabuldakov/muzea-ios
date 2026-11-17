@@ -1,10 +1,8 @@
 name: iOS CI
 
+# Основная сборка/TestFlight — Xcode Cloud. GitHub Actions оставлен
+# только для ручного аварийного прогона, чтобы не тратить macOS-минуты.
 on:
-  push:
-    branches: [ main ]
-    tags: [ 'v*' ]
-  pull_request:
   workflow_dispatch:
 
 concurrency:
