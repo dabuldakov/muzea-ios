@@ -33,7 +33,7 @@ struct GroupSettingsView: View {
                         AvatarView(url: ImageURL.chat(viewModel.avatarUrl), size: 96)
 
                         PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                            Text("Сменить аватар")
+                            Text(L10n.chatGroupChangeAvatar)
                         }
                         .disabled(viewModel.state.isUploading)
 
@@ -43,12 +43,12 @@ struct GroupSettingsView: View {
                 }
             }
 
-            Section("Участники (\(viewModel.state.participants.count))") {
+            Section(L10n.groupMembers(viewModel.state.participants.count)) {
                 if viewModel.state.participants.isEmpty {
                     if viewModel.state.isLoading {
                         HStack { Spacer(); ProgressView(); Spacer() }
                     } else {
-                        Text("Нет участников").foregroundColor(.secondary)
+                        Text(L10n.chatGroupNoMembers).foregroundColor(.secondary)
                     }
                 } else {
                     ForEach(viewModel.state.participants) { participant in
@@ -68,12 +68,12 @@ struct GroupSettingsView: View {
                 Button {
                     showMemberPicker = true
                 } label: {
-                    Label("Добавить участников", systemImage: "person.badge.plus")
+                    Label(L10n.chatGroupAddMembers, systemImage: "person.badge.plus")
                 }
                 .disabled(viewModel.contacts.isEmpty)
             }
         }
-        .navigationTitle(chat.title ?? "Чат")
+        .navigationTitle(chat.title ?? L10n.chat)
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.load() }
         .onChange(of: selectedPhoto) { newValue in
@@ -82,13 +82,13 @@ struct GroupSettingsView: View {
         .sheet(isPresented: $showMemberPicker) {
             NavigationStack {
                 MemberPickerView(contacts: viewModel.contacts, selected: $selectedMembers)
-                    .navigationTitle("Добавить участников")
+                    .navigationTitle(L10n.chatGroupAddMembers)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button("Отмена") { selectedMembers = [] }
+                            Button(L10n.cancel) { selectedMembers = [] }
                         }
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("Добавить") { addMembers() }
+                            Button(L10n.add) { addMembers() }
                                 .disabled(selectedMembers.isEmpty)
                         }
                     }
@@ -106,7 +106,7 @@ struct GroupSettingsView: View {
     private func uploadAvatar(_ item: PhotosPickerItem?) async {
         guard let item, let data = try? await item.loadTransferable(type: Data.self) else { return }
         guard data.count <= Config.maxAvatarBytes else {
-            viewModel.reportValidationError("Выберите изображение размером до 5 МБ")
+            viewModel.reportValidationError(L10n.chatGroupAvatarTooLarge)
             return
         }
         await viewModel.uploadAvatar(

@@ -79,7 +79,7 @@ struct ChatConversationView: View {
 
             if chat.peerDeleted == true {
                 // Аккаунт собеседника деактивирован: история видна, отправка нет.
-                Text("Пользователь удалён")
+                Text(L10n.userDeletedBanner)
                     .font(.footnote)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity)
@@ -107,7 +107,7 @@ struct ChatConversationView: View {
                 )
             }
         }
-        .navigationTitle(chat.title ?? "Чат")
+        .navigationTitle(chat.title ?? L10n.chat)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
@@ -118,7 +118,7 @@ struct ChatConversationView: View {
                 } label: {
                     Image(systemName: "info.circle")
                 }
-                .accessibilityLabel("О чате")
+                .accessibilityLabel(L10n.aboutChat)
             }
         }
         .task { await viewModel.start() }
@@ -153,7 +153,7 @@ struct ChatConversationView: View {
             switch alert {
             case .error(let message):
                 return Alert(
-                    title: Text("Ошибка"),
+                    title: Text(L10n.error),
                     message: Text(message),
                     dismissButton: .default(Text("OK")) { viewModel.consumeError() }
                 )
@@ -164,27 +164,27 @@ struct ChatConversationView: View {
                 )
             case .delete(let message):
                 return Alert(
-                    title: Text("Удалить сообщение?"),
-                    message: Text("Сообщение исчезнет у всех участников."),
-                    primaryButton: .destructive(Text("Удалить")) {
+                    title: Text(L10n.deleteMessageTitle),
+                    message: Text(L10n.deleteMessageBody),
+                    primaryButton: .destructive(Text(L10n.delete)) {
                         Task { await viewModel.deleteMessage(message) }
                     },
                     secondaryButton: .cancel()
                 )
             case .deleteSelected:
                 return Alert(
-                    title: Text("Удалить выбранные?"),
-                    message: Text("Выбранные сообщения исчезнут у всех участников."),
-                    primaryButton: .destructive(Text("Удалить")) {
+                    title: Text(L10n.deleteSelectedTitle),
+                    message: Text(L10n.deleteSelectedBody),
+                    primaryButton: .destructive(Text(L10n.delete)) {
                         Task { await viewModel.deleteSelected() }
                     },
                     secondaryButton: .cancel()
                 )
             case .block(let message):
                 return Alert(
-                    title: Text("Заблокировать пользователя?"),
-                    message: Text("Он больше не сможет писать вам, а контакт будет удалён."),
-                    primaryButton: .destructive(Text("Заблокировать")) {
+                    title: Text(L10n.blockTitle),
+                    message: Text(L10n.blockBody),
+                    primaryButton: .destructive(Text(L10n.block)) {
                         if let uuid = message.senderUuid {
                             Task { await viewModel.block(userUuid: uuid) }
                         }
@@ -201,12 +201,12 @@ struct ChatConversationView: View {
             guard let item else { return }
             Task { await addVideo(item) }
         }
-        .confirmationDialog("Вложение", isPresented: $showAttachMenu) {
-            Button("Фото") { showPhotoPicker = true }
-            Button("Видео") { showVideoPicker = true }
-            Button("Видео-кружок") { showVideoNoteRecorder = true }
-            Button("Файл") { showFilePicker = true }
-            Button("Отмена", role: .cancel) {}
+        .confirmationDialog(L10n.attachment, isPresented: $showAttachMenu) {
+            Button(L10n.photo) { showPhotoPicker = true }
+            Button(L10n.video) { showVideoPicker = true }
+            Button(L10n.videoNote) { showVideoNoteRecorder = true }
+            Button(L10n.file) { showFilePicker = true }
+            Button(L10n.cancel, role: .cancel) {}
         }
         .photosPicker(
             isPresented: $showPhotoPicker,
@@ -340,31 +340,31 @@ struct ChatConversationView: View {
                 Button {
                     activeSheet = .reaction(message)
                 } label: {
-                    Label("Реакция", systemImage: "face.smiling")
+                    Label(L10n.reaction, systemImage: "face.smiling")
                 }
             case .retry:
                 Button {
                     Task { await viewModel.retry(message) }
                 } label: {
-                    Label("Повторить", systemImage: "arrow.clockwise")
+                    Label(L10n.retry, systemImage: "arrow.clockwise")
                 }
             case .copy:
                 Button {
                     UIPasteboard.general.string = message.text
                 } label: {
-                    Label("Копировать", systemImage: "doc.on.doc")
+                    Label(L10n.copy, systemImage: "doc.on.doc")
                 }
             case .reply:
                 Button {
                     viewModel.beginReply(to: message)
                 } label: {
-                    Label("Ответить", systemImage: "arrowshape.turn.up.left")
+                    Label(L10n.reply, systemImage: "arrowshape.turn.up.left")
                 }
             case .select:
                 Button {
                     viewModel.enterSelection(with: message)
                 } label: {
-                    Label("Выбрать", systemImage: "checkmark.circle")
+                    Label(L10n.select, systemImage: "checkmark.circle")
                 }
             case .edit:
                 Button {
@@ -372,50 +372,50 @@ struct ChatConversationView: View {
                     input = message.text ?? ""
                     viewModel.beginEdit(message)
                 } label: {
-                    Label("Изменить", systemImage: "pencil")
+                    Label(L10n.edit, systemImage: "pencil")
                 }
             case .delete:
                 Button(role: .destructive) {
                     activeAlert = .delete(message)
                 } label: {
-                    Label("Удалить", systemImage: "trash")
+                    Label(L10n.delete, systemImage: "trash")
                 }
             case .forward:
                 Button {
                     openForward([message])
                 } label: {
-                    Label("Переслать", systemImage: "arrowshape.turn.up.right")
+                    Label(L10n.forward, systemImage: "arrowshape.turn.up.right")
                 }
             case .pin:
                 Button {
                     Task { await viewModel.togglePin(message) }
                 } label: {
-                    Label("Закрепить", systemImage: "pin")
+                    Label(L10n.pin, systemImage: "pin")
                 }
             case .unpin:
                 Button {
                     Task { await viewModel.togglePin(message) }
                 } label: {
-                    Label("Открепить", systemImage: "pin.slash")
+                    Label(L10n.unpin, systemImage: "pin.slash")
                 }
             case .status:
                 Button {
                     activeSheet = .details(message)
                     Task { await viewModel.loadMessageStatuses(for: message) }
                 } label: {
-                    Label("Детали", systemImage: "info.circle")
+                    Label(L10n.details, systemImage: "info.circle")
                 }
             case .report:
                 Button {
                     activeSheet = .report(message)
                 } label: {
-                    Label("Пожаловаться", systemImage: "exclamationmark.bubble")
+                    Label(L10n.report, systemImage: "exclamationmark.bubble")
                 }
             case .block:
                 Button(role: .destructive) {
                     activeAlert = .block(message)
                 } label: {
-                    Label("Заблокировать", systemImage: "hand.raised")
+                    Label(L10n.block, systemImage: "hand.raised")
                 }
             }
         }
@@ -430,9 +430,9 @@ struct ChatConversationView: View {
             } label: {
                 Image(systemName: "xmark")
             }
-            .accessibilityLabel("Выйти из выбора")
+            .accessibilityLabel(L10n.exitSelection)
 
-            Text("Выбрано: \(viewModel.state.selection.count)")
+            Text(L10n.selectedCount(viewModel.state.selection.count))
                 .font(.subheadline).bold()
 
             Spacer()
@@ -442,7 +442,7 @@ struct ChatConversationView: View {
             } label: {
                 Image(systemName: "arrowshape.turn.up.right")
             }
-            .accessibilityLabel("Переслать выбранные")
+            .accessibilityLabel(L10n.forwardSelected)
             .disabled(viewModel.selectedMessages.isEmpty)
 
             Button {
@@ -450,7 +450,7 @@ struct ChatConversationView: View {
             } label: {
                 Image(systemName: "trash")
             }
-            .accessibilityLabel("Удалить выбранные")
+            .accessibilityLabel(L10n.deleteSelected)
             .disabled(viewModel.selectedMessages.isEmpty)
         }
         .padding(.horizontal, 16)
@@ -464,11 +464,11 @@ struct ChatConversationView: View {
         defer { photoItems = [] }
         for (index, item) in items.prefix(AttachmentPolicy.maxAttachmentsPerMessage).enumerated() {
             guard let data = try? await item.loadTransferable(type: Data.self) else {
-                viewModel.reportValidationError("Не удалось прочитать изображение")
+                viewModel.reportValidationError(L10n.errorImageRead)
                 continue
             }
             guard let prepared = ImagePreparation.jpeg(from: data) else {
-                viewModel.reportValidationError("Это изображение не поддерживается")
+                viewModel.reportValidationError(L10n.errorImageUnsupported)
                 continue
             }
             await viewModel.addImage(
@@ -483,7 +483,7 @@ struct ChatConversationView: View {
     private func addVideo(_ item: PhotosPickerItem) async {
         defer { videoItem = nil }
         guard let data = try? await item.loadTransferable(type: Data.self) else {
-            viewModel.reportValidationError("Не удалось прочитать видео")
+            viewModel.reportValidationError(L10n.errorVideoRead)
             return
         }
         let ext = item.supportedContentTypes.first?.preferredFilenameExtension ?? "mov"
@@ -499,7 +499,7 @@ struct ChatConversationView: View {
         defer { if access { url.stopAccessingSecurityScopedResource() } }
 
         guard let data = try? Data(contentsOf: url) else {
-            viewModel.reportValidationError("Не удалось прочитать файл")
+            viewModel.reportValidationError(L10n.errorFileRead)
             return
         }
         let fileName = url.lastPathComponent

@@ -1,0 +1,39 @@
+name: Checks
+
+# Быстрые проверки без macOS-минут: ключи локализации и синтаксис Swift.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Muzea/**"
+      - "MuzeaTests/**"
+      - "scripts/**"
+      - ".github/workflows/checks.yml"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  localization:
+    name: Localization keys
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check localization tables
+        run: python3 scripts/check_localization.py
+
+  swift-syntax:
+    name: Swift syntax (parse)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Parse Swift sources
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD":/work -w /work \
+            swift:6.0 \
+            bash -lc 'find Muzea MuzeaTests -name "*.swift" -print0 | xargs -0 swiftc -parse'

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1B2C3D4E5F60718293A4B5C /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* Localizable.strings */; };
 		048D78D11C577147B202DCC2 /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBB7195DCF07F74B4373434 /* ConsentView.swift */; };
 		07899F7649974BBCD1174A67 /* UserRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D34447AB871966F2320716E8 /* UserRepository.swift */; };
 		0C6B428B8D6FD584716B3DF0 /* MuzeaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEB0AEF85A9860AC5879C8F2 /* MuzeaApp.swift */; };
@@ -201,6 +202,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A1B2C3D4E5F60718293A4B5E /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5F /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/Localizable.strings; sourceTree = "<group>"; };
 		011BE538662E7DED61FA1B73 /* VideoListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoListView.swift; sourceTree = "<group>"; };
 		05748853F49B5FE761E52C3B /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		0766138DDE7E3309120057AF /* ReactionCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionCatalog.swift; sourceTree = "<group>"; };
@@ -682,6 +685,7 @@
 			children = (
 				124B76FF2EC24C72C267C2A6 /* Assets.xcassets */,
 				7CB61801CFB42EF391BD1284 /* GoogleService-Info.plist */,
+				A1B2C3D4E5F60718293A4B5D /* Localizable.strings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -857,6 +861,7 @@
 			knownRegions = (
 				Base,
 				en,
+				ru,
 			);
 			mainGroup = 1727DA431C6A83F3C875498C;
 			packageReferences = (
@@ -879,6 +884,7 @@
 			files = (
 				0E516AA99D102C111CE96AE8 /* Assets.xcassets in Resources */,
 				A62DAB3FA12E94B5EED8F32F /* GoogleService-Info.plist in Resources */,
+				A1B2C3D4E5F60718293A4B5C /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1076,6 +1082,18 @@
 			targetProxy = CA513E91100B2BB95C0B6E3D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		A1B2C3D4E5F60718293A4B5D /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A1B2C3D4E5F60718293A4B5E /* en */,
+				A1B2C3D4E5F60718293A4B5F /* ru */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		640121DACD09E29EB5039CD3 /* Release */ = {

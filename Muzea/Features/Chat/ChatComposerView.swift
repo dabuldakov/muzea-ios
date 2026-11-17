@@ -33,12 +33,12 @@ struct ChatComposerView: View {
         VStack(spacing: 0) {
             if let editing {
                 banner(
-                    title: "Редактирование",
+                    title: L10n.editing,
                     preview: MessagePreviewText.preview(editing)
                 )
             } else if let replyTo {
                 banner(
-                    title: "Ответ: \(MessagePreviewText.senderName(replyTo, myUserUuid: myUserUuid))",
+                    title: L10n.replyBanner(MessagePreviewText.senderName(replyTo, myUserUuid: myUserUuid)),
                     preview: MessagePreviewText.preview(replyTo)
                 )
             }
@@ -82,7 +82,7 @@ struct ChatComposerView: View {
                                 } label: {
                                     Image(systemName: "xmark.circle.fill")
                                 }
-                                .accessibilityLabel("Удалить вложение")
+                                .accessibilityLabel(L10n.removeAttachment)
                                 .buttonStyle(.plain)
                             }
                             .font(.caption)
@@ -102,20 +102,20 @@ struct ChatComposerView: View {
                     Image(systemName: "paperclip")
                         .font(.title3)
                 }
-                .accessibilityLabel("Прикрепить")
+                .accessibilityLabel(L10n.attach)
                 .disabled(editing != nil || (isUploadingAttachments && pendingAttachments.isEmpty))
 
                 Button(action: onEmojiGif) {
                     Image(systemName: "face.smiling")
                         .font(.title3)
                 }
-                .accessibilityLabel("Эмодзи и GIF")
+                .accessibilityLabel(L10n.emojiGif)
                 .disabled(editing != nil)
 
                 ZStack(alignment: .topLeading) {
                     MentionTextEditor(text: $text, selection: $selection)
                     if text.isEmpty {
-                        Text(editing == nil ? "Сообщение" : "Новый текст")
+                        Text(editing == nil ? L10n.messagePlaceholder : L10n.newTextPlaceholder)
                             .foregroundColor(Color(.placeholderText))
                             .padding(.horizontal, 9)
                             .padding(.vertical, 8)
@@ -158,7 +158,7 @@ struct ChatComposerView: View {
                                 .background(Color.accentColor.opacity(0.12))
                                 .clipShape(Circle())
                         }
-                        .accessibilityLabel("Видео-кружок")
+                        .accessibilityLabel(L10n.videoNote)
                     }
                 }
             }
@@ -186,7 +186,7 @@ struct ChatComposerView: View {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.secondary)
             }
-            .accessibilityLabel(editing == nil ? "Отменить ответ" : "Отменить редактирование")
+            .accessibilityLabel(editing == nil ? L10n.cancelReply : L10n.cancelEditing)
             .buttonStyle(.plain)
         }
         .frame(height: 40)

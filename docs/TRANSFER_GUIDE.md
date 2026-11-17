@@ -29,6 +29,27 @@
    (Android);
 4. только потом менять DTO/мапперы.
 
+
+## Локализация и тема
+
+- Все строки интерфейса — только через `L10n` (`Muzea/Core/Localization/L10n.swift`).
+  В вью не должно быть русских литералов.
+- Таблицы: `Muzea/Resources/ru.lproj/Localizable.strings` и `en.lproj`.
+- Новая строка = ключ в `L10n` + значение в обеих таблицах. Проверка:
+
+  ```bash
+  python3 scripts/check_localization.py
+  ```
+
+  Скрипт падает, если ключ забыт в одном языке, плейсхолдеры не совпадают
+  или в `Features/Chat` появилась кириллица в литерале. Он же крутится
+  в `.github/workflows/checks.yml` на каждый push.
+- Размеры и цвета — из `Theme` (`Muzea/Design/Theme.swift`), а не числами
+  по месту. Палитра повторяет Android `colors.xml` (исходящий пузырь —
+  градиент `#6200EE → #7F39FB`, входящий — `secondarySystemBackground`).
+- Тесты не сравнивают локализованный текст с литералом: ожидание берётся
+  из `L10n` (`XCTAssertEqual(state.notice, L10n.noticeBlocked)`).
+
 ## Чек-лист новой фичи
 
 - [ ] ID из Android `docs/FEATURE_CATALOG.md` в сообщении коммита.
@@ -36,6 +57,7 @@
 - [ ] Чистая логика вынесена из View/ViewModel.
 - [ ] Есть unit-тест на логику и contract-тест при изменении API.
 - [ ] iOS-строка добавлена в `docs/PARITY.md`.
+- [ ] Новые строки добавлены в `L10n` и обе таблицы.
 - [ ] Одинаковые имена полей/методов с Android, где это возможно.
 - [ ] Device smoke на TestFlight перед статусом `done`.
 

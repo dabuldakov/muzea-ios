@@ -178,7 +178,7 @@ struct ImageGalleryViewer: View {
                             .font(.title)
                             .foregroundColor(.white)
                     }
-                    .accessibilityLabel("Закрыть")
+                    .accessibilityLabel(L10n.close)
                     VStack(alignment: .leading, spacing: 2) {
                         if let senderName, !senderName.isEmpty {
                             Text(senderName)
@@ -210,7 +210,7 @@ struct ImageGalleryViewer: View {
                             .font(.title2)
                             .foregroundColor(.white)
                     }
-                    .accessibilityLabel("Ответить")
+                    .accessibilityLabel(L10n.reply)
 
                     Button {
                         onForward()
@@ -219,7 +219,7 @@ struct ImageGalleryViewer: View {
                             .font(.title2)
                             .foregroundColor(.white)
                     }
-                    .accessibilityLabel("Переслать")
+                    .accessibilityLabel(L10n.forward)
 
                     Button {
                         shareCurrent()
@@ -228,7 +228,7 @@ struct ImageGalleryViewer: View {
                             .font(.title2)
                             .foregroundColor(.white)
                     }
-                    .accessibilityLabel("Поделиться")
+                    .accessibilityLabel(L10n.share)
 
                     Button {
                         saveCurrent()
@@ -237,7 +237,7 @@ struct ImageGalleryViewer: View {
                             .font(.title2)
                             .foregroundColor(.white)
                     }
-                    .accessibilityLabel("Сохранить в Фото")
+                    .accessibilityLabel(L10n.saveToPhotos)
                 }
                 .padding(.bottom, 30)
             }
@@ -386,7 +386,7 @@ private struct VideoAttachmentView: View {
                 .frame(width: 52, height: 42)
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(attachment.fileName ?? "Видео")
+                    Text(attachment.fileName ?? L10n.videoFallback)
                         .font(.footnote).bold()
                         .lineLimit(1)
                     Text(subtitle)
@@ -408,22 +408,22 @@ private struct VideoAttachmentView: View {
             Button {
                 Task { await saveToPhotos() }
             } label: {
-                Label("Сохранить в Photos", systemImage: "square.and.arrow.down")
+                Label(L10n.saveToPhotos, systemImage: "square.and.arrow.down")
             }
             Button {
                 Task { await share() }
             } label: {
-                Label("Поделиться", systemImage: "square.and.arrow.up")
+                Label(L10n.share, systemImage: "square.and.arrow.up")
             }
         }
         .sheet(item: $shareFile) { item in
             ActivityView(items: [item.url])
         }
-        .alert("Не удалось сохранить", isPresented: Binding(
+        .alert(L10n.saveFailed, isPresented: Binding(
             get: { saveError != nil },
             set: { if !$0 { saveError = nil } }
         )) {
-            Button("OK", role: .cancel) {}
+            Button(L10n.done, role: .cancel) {}
         } message: {
             Text(saveError ?? "")
         }
@@ -443,7 +443,7 @@ private struct VideoAttachmentView: View {
         if let size = attachment.fileSize {
             return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
         }
-        return "Видео"
+        return L10n.videoFallback
     }
 
     private func open() async {
@@ -542,7 +542,7 @@ private struct AudioAttachmentView: View {
                     .frame(height: 24)
 
                     HStack(spacing: 6) {
-                        Text(attachment.fileName ?? "Голосовое сообщение")
+                        Text(attachment.fileName ?? L10n.voiceFallback)
                             .font(.caption2)
                             .lineLimit(1)
                         Spacer(minLength: 0)
@@ -561,7 +561,7 @@ private struct AudioAttachmentView: View {
             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.media))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isPlaying ? "Пауза" : "Воспроизвести голосовое сообщение")
+        .accessibilityLabel(isPlaying ? L10n.pause : L10n.playVoice)
         .accessibilityValue(timeLabel)
         .task(id: attachment.id) {
             guard levels.isEmpty else { return }
@@ -730,7 +730,7 @@ private struct FileAttachmentView: View {
                     .frame(width: 32)
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(attachment.fileName ?? "Вложение")
+                    Text(attachment.fileName ?? L10n.attachmentFallback)
                         .font(.footnote).bold()
                         .lineLimit(1)
                     Text(subtitle)
@@ -759,7 +759,7 @@ private struct FileAttachmentView: View {
             Button {
                 Task { await open(share: true) }
             } label: {
-                Label("Поделиться", systemImage: "square.and.arrow.up")
+                Label(L10n.share, systemImage: "square.and.arrow.up")
             }
         }
         .sheet(item: $previewItem) { item in
@@ -774,7 +774,7 @@ private struct FileAttachmentView: View {
         if let size = attachment.fileSize {
             return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
         }
-        return "Файл"
+        return L10n.fileFallback
     }
 
     private func open(share: Bool) async {

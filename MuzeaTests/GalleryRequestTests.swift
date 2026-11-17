@@ -37,7 +37,7 @@ final class GalleryRequestTests: XCTestCase {
 
         XCTAssertEqual(
             GalleryRequest(message: message, tappedIndex: 0)?.senderName,
-            "Удалённый пользователь"
+            L10n.deletedUser
         )
     }
 

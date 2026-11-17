@@ -23,16 +23,16 @@ struct CreateGroupView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Название") {
-                    TextField("Название группы", text: $title)
+                Section(L10n.chatGroupName) {
+                    TextField(L10n.chatGroupNamePlaceholder, text: $title)
                 }
 
-                Section("Участники") {
+                Section(L10n.chatGroupMembers) {
                     Button {
                         showMemberPicker = true
                     } label: {
                         HStack {
-                            Text(selected.isEmpty ? "Выбрать участников" : "Выбрано: \(selected.count)")
+                            Text(selected.isEmpty ? L10n.chatGroupChooseMembers : L10n.selectedCount(selected.count))
                             Spacer()
                             Image(systemName: "chevron.right").foregroundColor(.secondary)
                         }
@@ -44,13 +44,13 @@ struct CreateGroupView: View {
                     Section { Text(error).foregroundColor(.red) }
                 }
             }
-            .navigationTitle("Новая группа")
+            .navigationTitle(L10n.chatGroupNew)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
+                    Button(L10n.cancel) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Создать") { create() }
+                    Button(L10n.create) { create() }
                         .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isSubmitting)
                 }
             }
@@ -59,15 +59,15 @@ struct CreateGroupView: View {
                 NavigationStack {
                     Group {
                         if viewModel.contacts.isEmpty {
-                            Text("Нет контактов").foregroundColor(.secondary)
+                            Text(L10n.chatGroupNoContacts).foregroundColor(.secondary)
                         } else {
                             MemberPickerView(contacts: viewModel.contacts, selected: $selected)
                         }
                     }
-                    .navigationTitle("Участники")
+                    .navigationTitle(L10n.chatGroupMembers)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("Готово") { showMemberPicker = false }
+                            Button(L10n.done) { showMemberPicker = false }
                         }
                     }
                 }

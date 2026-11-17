@@ -69,7 +69,7 @@ struct VideoNoteRecorderSheet: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 24)
                 default:
-                    Text("Видео-кружок · до 60 секунд")
+                    Text(L10n.videoNoteHint)
                         .font(.footnote)
                         .foregroundColor(.white.opacity(0.7))
                 }

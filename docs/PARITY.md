@@ -23,7 +23,7 @@ the iOS backlog: update the status as work lands. Status values:
 | UI.06 | Dark theme | partial | follows system; explicit palette needed |
 | UI.07 | Accessibility | partial | labels/hints в чате, галерее и композере; dynamic type/contrast pending |
 | UI.08 | Adaptivity | partial | iPhone portrait only |
-| UI.09 | Localization | partial | RU strings; EN + pluralization missing |
+| UI.09 | Localization | partial | чат: `L10n` + RU/EN таблицы, guard-скрипт и CI; остальные экраны на литералах |
 | UI.10 | 6-line composer | partial | UIViewRepresentable editor, 1...6 lines, cursor-aware; device check pending |
 | UI.11 | Hide tab bar in chat | partial | `.toolbar(.hidden, for: .tabBar)`; device check pending |
 | UI.12 | Emoji + GIF button | partial | emoji grid + GIF search sheet; device check pending |

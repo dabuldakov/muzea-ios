@@ -15,14 +15,14 @@ struct MessageStatusSheet: View {
         NavigationStack {
             List {
                 if !reactionRows.isEmpty {
-                    Section("Реакции") {
+                    Section(L10n.reactionsSection) {
                         ForEach(reactionRows) { row in
                             HStack(spacing: 12) {
                                 Text(row.emoji).font(.title3)
                                 AvatarView(url: ImageURL.chat(row.avatarUrl), size: 34)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(row.name)
-                                    Text(row.time.isEmpty ? "Поставил(а) реакцию" : row.time)
+                                    Text(row.time.isEmpty ? L10n.reacted : row.time)
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -32,7 +32,7 @@ struct MessageStatusSheet: View {
                 }
 
                 if !deliveryRows.isEmpty {
-                    Section("Статус доставки") {
+                    Section(L10n.deliveryStatus) {
                         ForEach(deliveryRows) { row in
                             HStack(spacing: 12) {
                                 AvatarView(url: ImageURL.chat(row.avatarUrl), size: 34)
@@ -51,15 +51,15 @@ struct MessageStatusSheet: View {
                 }
 
                 if reactionRows.isEmpty && deliveryRows.isEmpty {
-                    Text("Пока нет данных")
+                    Text(L10n.noData)
                         .foregroundColor(.secondary)
                 }
             }
-            .navigationTitle("Детали сообщения")
+            .navigationTitle(L10n.messageDetails)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Готово") { dismiss() }
+                    Button(L10n.done) { dismiss() }
                 }
             }
         }
@@ -110,8 +110,8 @@ struct MessageStatusSheet: View {
     }
 
     private func name(for userUuid: String, receipt: ChatReceipt?) -> String {
-        if userUuid == myUserUuid { return "Вы" }
-        return receipt?.displayName ?? "Неизвестный пользователь"
+        if userUuid == myUserUuid { return L10n.you }
+        return receipt?.displayName ?? L10n.unknownUser
     }
 
     private struct ReactionRow: Identifiable {
@@ -140,9 +140,9 @@ struct MessageStatusSheet: View {
         var timeText: String {
             let label: String
             switch status {
-            case .read: label = "Прочитано"
-            case .delivered: label = "Доставлено"
-            default: label = "Отправлено"
+            case .read: label = L10n.statusRead
+            case .delivered: label = L10n.statusDelivered
+            default: label = L10n.statusSent
             }
             return time.isEmpty ? label : "\(label) · \(time)"
         }

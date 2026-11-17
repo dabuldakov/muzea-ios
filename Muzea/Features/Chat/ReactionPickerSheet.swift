@@ -15,7 +15,7 @@ struct ReactionPickerSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if !recent.isEmpty {
-                        Text("Последние")
+                        Text(L10n.recentReactions)
                             .font(.caption).foregroundColor(.secondary)
                         LazyVGrid(columns: columns, spacing: 8) {
                             ForEach(Array(recent.prefix(ReactionCatalog.stripLimit)), id: \.self) { emoji in
@@ -24,7 +24,7 @@ struct ReactionPickerSheet: View {
                         }
                     }
 
-                    Text("Все реакции")
+                    Text(L10n.allReactions)
                         .font(.caption).foregroundColor(.secondary)
                     LazyVGrid(columns: columns, spacing: 8) {
                         ForEach(all, id: \.self) { emoji in
@@ -34,11 +34,11 @@ struct ReactionPickerSheet: View {
                 }
                 .padding(16)
             }
-            .navigationTitle("Реакция")
+            .navigationTitle(L10n.reaction)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
+                    Button(L10n.cancel) { dismiss() }
                 }
             }
         }

@@ -31,7 +31,7 @@ struct MessageRow: View {
                 }
 
                 if message.forwardedFromMessageUuid != nil {
-                    Label("Переслано", systemImage: "arrowshape.turn.up.right")
+                    Label(L10n.forwarded, systemImage: "arrowshape.turn.up.right")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
@@ -80,7 +80,7 @@ struct MessageRow: View {
                             .foregroundColor(.orange)
                     }
                     if message.isEdited == true {
-                        Text("изм.")
+                        Text(L10n.editedShort)
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
@@ -137,7 +137,7 @@ struct MessageRow: View {
                     .background(reaction.mine ? Color.accentColor.opacity(0.2) : Color(.tertiarySystemBackground))
                     .clipShape(Capsule())
                 }
-                .accessibilityLabel("Реакция \(reaction.emoji), \(reaction.count)")
+                .accessibilityLabel(L10n.reactionAccessibility(reaction.emoji, reaction.count))
                 .buttonStyle(.plain)
             }
         }
@@ -158,8 +158,8 @@ struct MessageRow: View {
     }
 
     private var senderName: String {
-        if message.senderDeleted == true { return "Удалённый пользователь" }
-        return message.senderName ?? "Участник"
+        if message.senderDeleted == true { return L10n.deletedUser }
+        return message.senderName ?? L10n.participant
     }
 }
 
@@ -191,11 +191,11 @@ struct MessageStatusIcon: View {
 
     private var accessibilityText: String {
         switch status {
-        case .sending: return "Отправляется"
-        case .failed: return "Ошибка отправки"
-        case .sent: return "Отправлено"
-        case .delivered: return "Доставлено"
-        case .read: return "Прочитано"
+        case .sending: return L10n.statusSending
+        case .failed: return L10n.statusFailed
+        case .sent: return L10n.statusSent
+        case .delivered: return L10n.statusDelivered
+        case .read: return L10n.statusRead
         case .none: return ""
         }
     }

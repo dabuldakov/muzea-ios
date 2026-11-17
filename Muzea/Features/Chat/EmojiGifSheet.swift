@@ -41,8 +41,8 @@ struct EmojiGifSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Picker("Режим", selection: $mode) {
-                    Text("Эмодзи").tag(0)
+                Picker(L10n.mode, selection: $mode) {
+                    Text(L10n.emoji).tag(0)
                     Text("GIF").tag(1)
                 }
                 .pickerStyle(.segmented)
@@ -54,11 +54,11 @@ struct EmojiGifSheet: View {
                     gifContent
                 }
             }
-            .navigationTitle("Эмодзи и GIF")
+            .navigationTitle(L10n.emojiGif)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Закрыть") { dismiss() }
+                    Button(L10n.close) { dismiss() }
                 }
             }
         }
@@ -124,9 +124,9 @@ struct EmojiGifSheet: View {
 
             if viewModel.tab == .search {
                 if Config.klipyAppKey.trimmingCharacters(in: .whitespaces).isEmpty {
-                    message("GIF-поиск недоступен: не настроен ключ Klipy")
+                    message(L10n.gifsUnavailable)
                 } else {
-                    TextField("Поиск GIF", text: $viewModel.query)
+                    TextField(L10n.gifsSearchPlaceholder, text: $viewModel.query)
                         .textFieldStyle(.roundedBorder)
                         .padding(.horizontal, 12)
                         .padding(.bottom, 8)
@@ -136,7 +136,7 @@ struct EmojiGifSheet: View {
             if viewModel.isLoading && viewModel.gifs.isEmpty {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.gifs.isEmpty {
-                message("Пока нет GIF")
+                message(L10n.gifsEmpty)
             } else {
                 ScrollView {
                     LazyVGrid(
@@ -166,7 +166,7 @@ struct EmojiGifSheet: View {
                     .padding(12)
 
                     if viewModel.hasMore {
-                        Button("Загрузить ещё") {
+                        Button(L10n.gifsLoadMore) {
                             Task { await viewModel.loadNextPage() }
                         }
                         .padding(.bottom, 16)

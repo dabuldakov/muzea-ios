@@ -12,12 +12,12 @@ struct ReportReasonSheet: View {
     }
 
     private let reasons = [
-        Reason(id: "SPAM", title: "Спам"),
-        Reason(id: "ABUSE", title: "Оскорбления и травля"),
-        Reason(id: "VIOLENCE", title: "Насилие"),
-        Reason(id: "ADULT", title: "Материалы для взрослых"),
-        Reason(id: "ILLEGAL", title: "Незаконный контент"),
-        Reason(id: "OTHER", title: "Другое")
+        Reason(id: "SPAM", title: L10n.reportSpam),
+        Reason(id: "ABUSE", title: L10n.reportAbuse),
+        Reason(id: "VIOLENCE", title: L10n.reportViolence),
+        Reason(id: "ADULT", title: L10n.reportAdult),
+        Reason(id: "ILLEGAL", title: L10n.reportIllegal),
+        Reason(id: "OTHER", title: L10n.reportOther)
     ]
 
     var body: some View {
@@ -30,11 +30,11 @@ struct ReportReasonSheet: View {
                     Text(reason.title).foregroundColor(.primary)
                 }
             }
-            .navigationTitle("Причина жалобы")
+            .navigationTitle(L10n.reportTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
+                    Button(L10n.cancel) { dismiss() }
                 }
             }
         }

@@ -12,13 +12,13 @@ struct ForwardChatPickerView: View {
         NavigationStack {
             List {
                 Section {
-                    TextField("Комментарий (необязательно)", text: $comment, axis: .vertical)
+                    TextField(L10n.forwardCommentPlaceholder, text: $comment, axis: .vertical)
                         .lineLimit(1...3)
                 }
 
-                Section("Куда переслать") {
+                Section(L10n.forwardWhere) {
                     if chats.isEmpty {
-                        Text("Нет других чатов").foregroundColor(.secondary)
+                        Text(L10n.forwardNoChats).foregroundColor(.secondary)
                     }
                     ForEach(chats) { chat in
                         Button {
@@ -44,11 +44,11 @@ struct ForwardChatPickerView: View {
                     }
                 }
             }
-            .navigationTitle("Переслать")
+            .navigationTitle(L10n.forwardTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
+                    Button(L10n.cancel) { dismiss() }
                 }
             }
         }
@@ -56,6 +56,6 @@ struct ForwardChatPickerView: View {
     }
 
     private func title(_ chat: Chat) -> String {
-        chat.peerDeleted == true ? "Удалённый пользователь" : (chat.title ?? "Чат")
+        chat.peerDeleted == true ? L10n.deletedUser : (chat.title ?? L10n.chat)
     }
 }

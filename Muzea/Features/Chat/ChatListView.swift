@@ -16,7 +16,7 @@ struct ChatListView: View {
     var body: some View {
         NavigationStack(path: $router.path) {
             content
-                .navigationTitle("Чаты")
+                .navigationTitle(L10n.chatList)
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         Button { showCreateGroup = true } label: {
@@ -96,13 +96,13 @@ struct ChatListView: View {
         case .error:
             VStack(spacing: 8) {
                 Image(systemName: "message").font(.largeTitle).foregroundColor(.secondary)
-                Text(viewModel.state.error ?? "Ошибка").foregroundColor(.secondary)
+                Text(viewModel.state.error ?? L10n.error).foregroundColor(.secondary)
             }
 
         case .empty:
             VStack(spacing: 8) {
                 Image(systemName: "message").font(.largeTitle).foregroundColor(.secondary)
-                Text("Нет чатов").foregroundColor(.secondary)
+                Text(L10n.chatListEmpty).foregroundColor(.secondary)
             }
         }
     }
@@ -125,7 +125,7 @@ struct ChatRow: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 } else {
-                    Text("Нет сообщений")
+                    Text(L10n.messagesEmpty)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
@@ -155,6 +155,6 @@ struct ChatRow: View {
     }
 
     private var titleText: String {
-        chat.peerDeleted == true ? "Удалённый пользователь" : (chat.title ?? "Чат")
+        chat.peerDeleted == true ? L10n.deletedUser : (chat.title ?? L10n.chat)
     }
 }

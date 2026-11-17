@@ -673,7 +673,7 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         XCTAssertEqual(moderation.reports.first?.0, "m1")
         XCTAssertEqual(moderation.reports.first?.1, "SPAM")
         XCTAssertEqual(moderation.blocks.first?.0, "other")
-        XCTAssertEqual(viewModel.state.notice, "Пользователь заблокирован")
+        XCTAssertEqual(viewModel.state.notice, L10n.noticeBlocked)
     }
 
     func testForwardSendsMessageAndCommentToTargetChat() async {
@@ -687,7 +687,7 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         XCTAssertEqual(actions.forwarded.first?.0, "m1")
         XCTAssertEqual(actions.forwarded.first?.1, "c-2")
         XCTAssertEqual(repository.sentRequests.last?.text, "look")
-        XCTAssertEqual(viewModel.state.notice, "Переслано")
+        XCTAssertEqual(viewModel.state.notice, L10n.forwarded)
     }
 
     func testDeleteSelectedSkipsForeignMessages() async {

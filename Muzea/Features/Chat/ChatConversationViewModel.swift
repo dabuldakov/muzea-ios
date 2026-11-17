@@ -159,7 +159,7 @@ final class ChatConversationViewModel: ObservableObject {
         let uploaded = state.pendingAttachments.compactMap(\.uploaded)
         guard !trimmed.isEmpty || !uploaded.isEmpty else { return false }
         guard state.pendingAttachments.allSatisfy(\.isUploaded) else {
-            state.error = "Дождитесь загрузки вложений"
+            state.error = L10n.errorAttachmentUpload
             return false
         }
         let kinds = state.pendingAttachments.map(\.kind)
@@ -511,7 +511,7 @@ final class ChatConversationViewModel: ObservableObject {
         duration: Int?
     ) async {
         guard state.pendingAttachments.count < AttachmentPolicy.maxAttachmentsPerMessage else {
-            state.error = "Можно прикрепить не больше \(AttachmentPolicy.maxAttachmentsPerMessage) файлов"
+            state.error = L10n.attachmentLimit(AttachmentPolicy.maxAttachmentsPerMessage)
             return
         }
         if let message = AttachmentPolicy.validationError(
@@ -645,7 +645,7 @@ final class ChatConversationViewModel: ObservableObject {
                 reason: reason,
                 comment: nil
             )
-            state.notice = "Жалоба отправлена"
+            state.notice = L10n.noticeReported
         } catch {
             state.error = error.localizedDescription
         }
@@ -654,7 +654,7 @@ final class ChatConversationViewModel: ObservableObject {
     func block(userUuid: String) async {
         do {
             try await services.moderation.block(userUuid: userUuid, reason: nil)
-            state.notice = "Пользователь заблокирован"
+            state.notice = L10n.noticeBlocked
         } catch {
             state.error = error.localizedDescription
         }
@@ -717,7 +717,7 @@ final class ChatConversationViewModel: ObservableObject {
                 state.error = error.localizedDescription
             }
         }
-        state.notice = "Переслано"
+        state.notice = L10n.forwarded
         exitSelection()
     }
 
@@ -748,7 +748,7 @@ final class ChatConversationViewModel: ObservableObject {
             $0.messageId != nil && $0.senderUuid != nil && $0.senderUuid == myUserUuid
         }
         guard !targets.isEmpty else {
-            state.error = "Можно удалить только свои сообщения"
+            state.error = L10n.errorOnlyOwnDelete
             exitSelection()
             return
         }
@@ -853,7 +853,7 @@ final class ChatConversationViewModel: ObservableObject {
     private func submitEdit(_ target: ChatMessage, text: String) async -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            state.error = "Сообщение не может быть пустым"
+            state.error = L10n.errorEmptyMessage
             return false
         }
         state.editing = nil

@@ -30,9 +30,9 @@ struct VoiceRecordButton: View {
         .frame(width: Theme.Size.iconButton, height: Theme.Size.iconButton)
         .contentShape(Circle())
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(isRecording ? "Идёт запись" : "Записать голосовое")
+        .accessibilityLabel(isRecording ? L10n.recording : L10n.recordVoice)
         .accessibilityValue(isRecording ? DurationFormatter.mmss(elapsed) : "")
-        .accessibilityHint("Удерживайте для записи, свайп вверх — отмена")
+        .accessibilityHint(L10n.recordVoiceHint)
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { value in
@@ -56,14 +56,14 @@ struct VoiceRecordButton: View {
             let granted = await VoiceRecorder.requestPermission()
             guard granted else {
                 reset()
-                onError("Нет доступа к микрофону. Разрешите его в настройках.")
+                onError(L10n.errorMicrophone)
                 return
             }
             guard startedAt != nil else { return }
             let recorder = VoiceRecorder()
             guard recorder.start() else {
                 reset()
-                onError("Не удалось начать запись")
+                onError(L10n.errorRecordStart)
                 return
             }
             self.recorder = recorder

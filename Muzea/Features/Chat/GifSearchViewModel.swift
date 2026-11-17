@@ -15,9 +15,9 @@ enum GifTab: CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .recent: return "Мои"
-        case .chat: return "Этот чат"
-        case .search: return "Поиск"
+        case .recent: return L10n.gifsRecent
+        case .chat: return L10n.gifsChat
+        case .search: return L10n.gifsSearchTab
         }
     }
 }

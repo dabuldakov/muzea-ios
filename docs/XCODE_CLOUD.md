@@ -3,6 +3,17 @@
 Основная сборка iOS и загрузка в TestFlight идут через Xcode Cloud, без
 macOS-минут GitHub Actions.
 
+## Проект и локализация
+
+`ci_post_clone.sh` сам ставит XcodeGen (если его нет) и выполняет
+`xcodegen generate`, поэтому Xcode Cloud всегда собирает актуальный
+`project.yml`: новые Swift-файлы и `.lproj` попадают в проект без ручной
+перегенерации на Mac.
+
+Локально после изменения `project.yml` всё равно стоит прогнать
+`xcodegen generate` и закоммитить `Muzea.xcodeproj`, чтобы проект открывался
+в Xcode без дополнительных шагов.
+
 ## Что уже подготовлено
 
 - `Muzea.xcodeproj` закоммичен, чтобы App Store Connect видел проект при

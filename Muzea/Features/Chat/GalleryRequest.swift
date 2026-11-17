@@ -19,7 +19,7 @@ struct GalleryRequest: Identifiable {
     }
 
     var senderName: String? {
-        message.senderDeleted == true ? "Удалённый пользователь" : message.senderName
+        message.senderDeleted == true ? L10n.deletedUser : message.senderName
     }
 }
 

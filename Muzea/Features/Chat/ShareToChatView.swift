@@ -18,7 +18,7 @@ struct ShareToChatView: View {
                 if isLoading {
                     ProgressView()
                 } else if chats.isEmpty {
-                    Text("Нет чатов").foregroundColor(.secondary)
+                    Text(L10n.chatListEmpty).foregroundColor(.secondary)
                 } else {
                     List(chats) { chat in
                         Button {
@@ -30,7 +30,7 @@ struct ShareToChatView: View {
                                     size: 40
                                 )
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(chat.title ?? "Чат")
+                                    Text(chat.title ?? L10n.chat)
                                         .foregroundColor(.primary)
                                     Text(text)
                                         .font(.caption)
@@ -47,11 +47,11 @@ struct ShareToChatView: View {
                     }
                 }
             }
-            .navigationTitle("Отправить в чат")
+            .navigationTitle(L10n.sendToChat)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
+                    Button(L10n.cancel) { dismiss() }
                 }
             }
             .task {
@@ -62,7 +62,7 @@ struct ShareToChatView: View {
                 }
                 isLoading = false
             }
-            .alert("Ошибка", isPresented: Binding(
+            .alert(L10n.error, isPresented: Binding(
                 get: { error != nil },
                 set: { if !$0 { error = nil } }
             )) {

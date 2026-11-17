@@ -13,7 +13,7 @@ struct PinnedMessagesBar: View {
                 Image(systemName: "pin.fill")
                     .foregroundColor(.accentColor)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(pinned.count > 1 ? "Закреплённые: \(pinned.count)" : "Закреплённое сообщение")
+                    Text(pinned.count > 1 ? L10n.pinnedMany(pinned.count) : L10n.pinnedOne)
                         .font(.caption2).bold()
                     Text(MessagePreviewText.preview(first))
                         .font(.caption)
@@ -25,7 +25,7 @@ struct PinnedMessagesBar: View {
                     Image(systemName: "xmark")
                         .font(.caption)
                 }
-                .accessibilityLabel("Открепить сообщение")
+                .accessibilityLabel(L10n.unpin)
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, Theme.Spacing.m)
