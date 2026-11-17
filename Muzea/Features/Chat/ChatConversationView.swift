@@ -550,11 +550,36 @@ struct ChatConversationView: View {
             ?? "application/octet-stream"
 
         let kind = AttachmentPolicy.rule(for: fileName)?.kind ?? .document
-        if kind == .video {
-            await viewModel.addVideo(data: data, fileName: fileName, duration: nil)
-        } else if kind == .audio {
-            await viewModel.addAudio(data: data, fileName: fileName, duration: nil)
-        } else {
+        switch kind {
+        case .video:
+            let prepared = await VideoPreparation.prepare(data: data, fileName: fileName)
+            await viewModel.addVideo(
+                data: data,
+                fileName: fileName,
+                width: prepared.width,
+                height: prepared.height,
+                duration: prepared.duration,
+                thumbnail: prepared.thumbnail
+            )
+        case .audio:
+            let duration = await AudioPreparation.durationSeconds(
+                data: data,
+                fileName: fileName
+            )
+            await viewModel.addAudio(data: data, fileName: fileName, duration: duration)
+        case .image:
+            // Через «Файл» тоже можно выбрать фото — сжимаем как из галереи.
+            guard let prepared = ImagePreparation.jpeg(from: data) else {
+                viewModel.reportValidationError(L10n.errorImageUnsupported)
+                return
+            }
+            await viewModel.addImage(
+                data: prepared.data,
+                fileName: fileName,
+                width: prepared.width,
+                height: prepared.height
+            )
+        default:
             await viewModel.addFile(data: data, fileName: fileName, mimeType: mime)
         }
     }

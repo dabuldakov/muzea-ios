@@ -61,10 +61,10 @@ the iOS backlog: update the status as work lands. Status values:
 |---|---|---|---|
 | MEDIA.01 | Photos | partial | multi-select до 10, JPEG 2048px, upload, grid, gallery; device smoke pending |
 | MEDIA.02 | Video | partial | upload с миниатюрой/размерами/длительностью, AVPlayer, cache; device smoke pending |
-| MEDIA.03 | Voice messages | partial | запись, waveform из реальных пиков, прогресс, кэш; device smoke pending |
+| MEDIA.03 | Voice messages | partial | запись, waveform из реальных пиков, прогресс, длительность файлов, кэш; device smoke pending |
 | MEDIA.04 | Video notes (circles) | partial | AVCaptureSession, 60s, round preview/recorder, VIDEO_NOTE, thumbnail; device check pending |
 | MEDIA.05 | GIF (Klipy) | partial | поиск + «Мои»/«Этот чат» с сервера, диск cache, looping MP4; device smoke pending |
-| MEDIA.06 | Documents | partial | upload, card, QuickLook, share; device check pending |
+| MEDIA.06 | Documents | partial | классификация по расширению (фото/видео/аудио/файл), QuickLook, share; device check pending |
 | MEDIA.07 | Save to Files/Photos | partial | Save to Photos for photo/video, Files через share; device check pending |
 | MEDIA.08 | Upload queue | partial | disk queue files+thumbs, restore/retry, прогресс и ошибка по каждому файлу, retry тапом |
 | MEDIA.09 | Open/share after download | partial | QuickLook, video player, share sheet; device check pending |

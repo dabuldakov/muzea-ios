@@ -277,6 +277,18 @@ final class AttachmentRepositoryTests: XCTestCase {
 }
 
 @MainActor
+final class AudioPreparationTests: XCTestCase {
+
+    func testBrokenDataHasNoDuration() async {
+        let duration = await AudioPreparation.durationSeconds(
+            data: Data([0, 1, 2]),
+            fileName: "broken.mp3"
+        )
+
+        XCTAssertNil(duration)
+    }
+}
+
 final class VideoPreparationTests: XCTestCase {
 
     func testBrokenDataReturnsEmptyMetadata() async {
