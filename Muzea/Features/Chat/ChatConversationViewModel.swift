@@ -340,6 +340,17 @@ final class ChatConversationViewModel: ObservableObject {
         )
     }
 
+    @discardableResult
+    func sendVoice(_ recorded: RecordedVoice) async -> Bool {
+        await addAudio(
+            data: recorded.data,
+            fileName: recorded.url.lastPathComponent,
+            duration: recorded.duration
+        )
+        guard state.pendingAttachments.contains(where: \.isUploaded) else { return false }
+        return await send("")
+    }
+
     func removePendingAttachment(_ id: String) {
         state.pendingAttachments.removeAll { $0.id == id }
     }

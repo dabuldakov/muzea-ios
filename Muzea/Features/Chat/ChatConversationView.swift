@@ -91,6 +91,10 @@ struct ChatConversationView: View {
                     onAttach: { showAttachMenu = true },
                     onRemoveAttachment: { viewModel.removePendingAttachment($0) },
                     onSend: { power in send(power: power) },
+                    onVoiceRecorded: { recorded in
+                        Task { _ = await viewModel.sendVoice(recorded) }
+                    },
+                    onVoiceError: { viewModel.reportValidationError($0) },
                     onCancel: cancelComposer
                 )
             }

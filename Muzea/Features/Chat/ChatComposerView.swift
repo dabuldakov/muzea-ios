@@ -13,6 +13,8 @@ struct ChatComposerView: View {
     let onAttach: () -> Void
     let onRemoveAttachment: (String) -> Void
     let onSend: (Int) -> Void
+    let onVoiceRecorded: (RecordedVoice) -> Void
+    let onVoiceError: (String) -> Void
     let onCancel: () -> Void
 
     @State private var selection = NSRange(location: 0, length: 0)
@@ -116,18 +118,31 @@ struct ChatComposerView: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 8))
 
-                ChargeSendButton(
-                    isEnabled: !isUploadingAttachments
-                        && (!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            || (!pendingAttachments.isEmpty
-                                && pendingAttachments.allSatisfy(\.isUploaded))),
-                    icon: editing == nil ? "paperplane.fill" : "checkmark"
-                ) { power in
-                    onSend(power)
+                if canSendNow {
+                    ChargeSendButton(
+                        isEnabled: !isUploadingAttachments
+                            && (!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                || (!pendingAttachments.isEmpty
+                                    && pendingAttachments.allSatisfy(\.isUploaded))),
+                        icon: editing == nil ? "paperplane.fill" : "checkmark"
+                    ) { power in
+                        onSend(power)
+                    }
+                } else {
+                    VoiceRecordButton(
+                        onRecorded: onVoiceRecorded,
+                        onError: onVoiceError
+                    )
                 }
             }
             .padding(8)
         }
+    }
+
+    private var canSendNow: Bool {
+        editing != nil
+            || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !pendingAttachments.isEmpty
     }
 
     private func banner(title: String, preview: String) -> some View {

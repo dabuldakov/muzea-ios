@@ -302,4 +302,22 @@ final class ChatMediaViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.state.messages.count, 1)
         XCTAssertEqual(viewModel.state.failedMessages.count, 1)
     }
+
+    func testSendVoiceUploadsAudioAndSends() async throws {
+        let attachments = FakeAttachmentRepository()
+        let (viewModel, messages) = makeViewModel(attachmentRepository: attachments)
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("voice-\(UUID().uuidString).m4a")
+        try Data([1, 2, 3]).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let recorded = RecordedVoice(url: url, data: Data([1, 2, 3]), duration: 3)
+
+        let ok = await viewModel.sendVoice(recorded)
+
+        XCTAssertTrue(ok)
+        XCTAssertEqual(attachments.uploads.first?.2, .audio)
+        XCTAssertEqual(messages.sentMedia.first?.messageType, "AUDIO")
+        XCTAssertEqual(messages.sentMedia.first?.attachments, ["a-1"])
+        XCTAssertTrue(viewModel.state.pendingAttachments.isEmpty)
+    }
 }
