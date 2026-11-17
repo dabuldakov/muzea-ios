@@ -94,6 +94,17 @@ final class ChatMessagesCache {
     func get(chatUuid: String) -> [ChatMessage] { store.value(for: chatUuid) ?? [] }
     func has(chatUuid: String) -> Bool { store.contains(chatUuid) }
     func put(chatUuid: String, list: [ChatMessage]) { store.set(list, for: chatUuid) }
+
+    /// Догрузка истории вверх: старые сообщения добавляются перед текущими
+    /// без дублей, кэш остаётся в порядке возрастания времени.
+    func prepend(chatUuid: String, older: [ChatMessage]) {
+        guard !older.isEmpty else { return }
+        let current = store.value(for: chatUuid) ?? []
+        let known = Set(current.map(\.messageUuid))
+        let fresh = older.filter { !known.contains($0.messageUuid) }
+        guard !fresh.isEmpty else { return }
+        store.set((fresh + current).sorted { ($0.createdAt ?? "") < ($1.createdAt ?? "") }, for: chatUuid)
+    }
     func clear() { store.clear() }
 }
 

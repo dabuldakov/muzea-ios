@@ -30,6 +30,23 @@ final class MessageRepositoryImpl: MessageRepository {
         cache.get(chatUuid: chatUuid)
     }
 
+    func loadMessagesBefore(
+        chatUuid: String,
+        beforeMessageUuid: String,
+        limit: Int
+    ) async throws -> [ChatMessage] {
+        let list: [ChatMessageDTO] = try await auth.authorized {
+            try await auth.client.request(
+                "GET",
+                "/api/messages/\(chatUuid)/before/\(beforeMessageUuid)",
+                query: [URLQueryItem(name: "limit", value: "\(limit)")]
+            )
+        }
+        let messages = list.map { $0.toDomain() }
+        cache.prepend(chatUuid: chatUuid, older: messages)
+        return messages
+    }
+
     func sendMessage(chatUuid: String, text: String) async throws -> ChatMessage {
         try await sendMessage(
             chatUuid: chatUuid,

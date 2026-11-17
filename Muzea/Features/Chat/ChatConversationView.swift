@@ -59,6 +59,10 @@ struct ChatConversationView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 6) {
+                        if viewModel.state.hasMoreHistory {
+                            historyLoader(proxy)
+                        }
+
                         ForEach(viewModel.state.messages) { message in
                             row(for: message)
                                 .id(message.messageUuid)
@@ -66,9 +70,13 @@ struct ChatConversationView: View {
                         }
                     }
                     .padding(8)
-                    .animation(.easeInOut(duration: 0.18), value: viewModel.state.messages.count)
+                    .animation(
+                        .easeInOut(duration: 0.18),
+                        value: viewModel.state.messages.last?.messageUuid
+                    )
                 }
-                .onChange(of: viewModel.state.messages.count) { _ in
+                .onChange(of: viewModel.state.messages.last?.messageUuid) { _ in
+                    guard !viewModel.state.isLoadingMore else { return }
                     scroll(proxy)
                 }
                 .onChange(of: jumpTarget) { target in
@@ -329,6 +337,29 @@ struct ChatConversationView: View {
         }
         .contextMenu {
             contextMenu(for: message, isMine: isMine)
+        }
+    }
+
+    /// Верхний сентинел: появление в зоне видимости = догрузка страницы.
+    @ViewBuilder
+    private func historyLoader(_ proxy: ScrollViewProxy) -> some View {
+        Group {
+            if viewModel.state.isLoadingMore {
+                ProgressView().scaleEffect(0.8).padding(6)
+            } else {
+                Color.clear.frame(height: 1)
+            }
+        }
+        .onAppear {
+            let anchor = viewModel.state.messages.first?.messageUuid
+            Task {
+                await viewModel.loadOlderMessages()
+                // Новые старые сообщения вставлены сверху — держим прежний
+                // верхний край на месте, иначе экран прыгает вниз.
+                if let anchor {
+                    proxy.scrollTo(anchor, anchor: .top)
+                }
+            }
         }
     }
 

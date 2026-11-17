@@ -45,6 +45,12 @@ protocol MessageRepository {
         gif: Gif,
         replyToMessageUuid: String?
     ) async throws -> ChatMessage
+    /// История вверх: сообщения старше указанного (по uuid).
+    func loadMessagesBefore(
+        chatUuid: String,
+        beforeMessageUuid: String,
+        limit: Int
+    ) async throws -> [ChatMessage]
     /// Инкрементальная синхронизация: только новые сообщения после timestamp.
     func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [ChatMessage]
     /// Окно правок/закрепов. Удаления сюда не попадают — нужен полный refresh.

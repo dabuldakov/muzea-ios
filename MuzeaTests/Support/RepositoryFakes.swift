@@ -75,10 +75,24 @@ final class FakeMessageRepository: MessageRepository {
     var loadError: Error?
     var markedRead: [(String, String)] = []
     var markedDelivered: [(String, String)] = []
+    /// Ответ на догрузку истории вверх и журнал запросов.
+    var olderMessages: [ChatMessage] = []
+    var olderError: Error?
+    var requestedBefore: [(beforeUuid: String, limit: Int)] = []
 
     func loadMessages(chatUuid: String) async throws -> [ChatMessage] {
         if let loadError { throw loadError }
         return messages
+    }
+
+    func loadMessagesBefore(
+        chatUuid: String,
+        beforeMessageUuid: String,
+        limit: Int
+    ) async throws -> [ChatMessage] {
+        requestedBefore.append((beforeMessageUuid, limit))
+        if let olderError { throw olderError }
+        return olderMessages
     }
 
     func cachedMessages(chatUuid: String) -> [ChatMessage] { cached }

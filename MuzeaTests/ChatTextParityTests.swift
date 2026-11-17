@@ -467,6 +467,61 @@ extension ChatTextParityTests {
 @MainActor
 final class ChatConversationTextViewModelTests: XCTestCase {
 
+    func testLoadOlderMessagesPrependsAndStopsOnShortPage() async {
+        let newest = TestData.message("m3", createdAt: "2026-01-01T00:00:03")
+        let (viewModel, repository) = makeViewModel(messages: [newest])
+        repository.olderMessages = [
+            TestData.message("m1", createdAt: "2026-01-01T00:00:01"),
+            TestData.message("m2", createdAt: "2026-01-01T00:00:02")
+        ]
+
+        await viewModel.loadOlderMessages()
+
+        XCTAssertEqual(viewModel.state.messages.map(\.messageUuid), ["m1", "m2", "m3"])
+        XCTAssertEqual(repository.requestedBefore.first?.beforeUuid, "m3")
+        XCTAssertFalse(viewModel.state.hasMoreHistory)
+        XCTAssertFalse(viewModel.state.isLoadingMore)
+    }
+
+    func testLoadOlderMessagesKeepsPagingWhenPageIsFull() async {
+        let newest = TestData.message("m-new", createdAt: "2026-01-02T00:00:00")
+        let (viewModel, repository) = makeViewModel(messages: [newest])
+        repository.olderMessages = (0..<Config.messagePageSize).map { index in
+            TestData.message(
+                "old-\(index)",
+                createdAt: String(format: "2026-01-01T00:00:%02d", index)
+            )
+        }
+
+        await viewModel.loadOlderMessages()
+
+        XCTAssertTrue(viewModel.state.hasMoreHistory)
+        XCTAssertEqual(viewModel.state.messages.first?.messageUuid, "old-0")
+        XCTAssertEqual(viewModel.state.messages.last?.messageUuid, "m-new")
+    }
+
+    func testLoadOlderMessagesSkipsWhenOnlyLocalMessages() async {
+        let (viewModel, repository) = makeViewModel(messages: [])
+
+        await viewModel.loadOlderMessages()
+
+        XCTAssertTrue(repository.requestedBefore.isEmpty)
+        XCTAssertTrue(viewModel.state.messages.isEmpty)
+    }
+
+    func testLoadOlderMessagesKeepsHistoryOnError() async {
+        let newest = TestData.message("m1", createdAt: "2026-01-01T00:00:01")
+        let (viewModel, repository) = makeViewModel(messages: [newest])
+        repository.olderError = APIError.server(500, "boom")
+
+        await viewModel.loadOlderMessages()
+
+        XCTAssertEqual(viewModel.state.messages.map(\.messageUuid), ["m1"])
+        XCTAssertTrue(viewModel.state.hasMoreHistory)
+        XCTAssertFalse(viewModel.state.isLoadingMore)
+        XCTAssertNil(viewModel.state.error)
+    }
+
     private func makeViewModel(
         messages: [ChatMessage] = [],
         actions: FakeMessageActionsRepository = FakeMessageActionsRepository(),

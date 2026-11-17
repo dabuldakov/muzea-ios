@@ -261,6 +261,57 @@ final class ChatRepositoryTests: XCTestCase {
         XCTAssertEqual(MockURLProtocol.requests.first?.value(forHTTPHeaderField: "Authorization"), "Bearer chat-token")
     }
 
+    func testLoadMessagesBeforeUsesEndpointAndPrepsCache() async throws {
+        let cache = ChatMessagesCache()
+        cache.put(chatUuid: "c-1", list: [
+            ChatMessage(
+                messageUuid: "m2",
+                chatUuid: "c-1",
+                senderId: nil,
+                senderUuid: "u-1",
+                senderName: nil,
+                senderAvatar: nil,
+                text: "newer",
+                messageType: "TEXT",
+                replyToMessageUuid: nil,
+                isEdited: nil,
+                isDeleted: nil,
+                isPinned: nil,
+                createdAt: "2026-01-01T00:00:02",
+                updatedAt: nil
+            )
+        ])
+        let client = TestSupport.chatClient(tokenStore: store)
+        let repository = MessageRepositoryImpl(
+            auth: ChatAuthorization(
+                client: client,
+                auth: ChatAuthManager(client: client, store: store)
+            ),
+            cache: cache
+        )
+        MockURLProtocol.handler = { request in
+            (
+                MockURLProtocol.response(for: request),
+                TestSupport.data(#"[{"messageUuid":"m1","createdAt":"2026-01-01T00:00:01"}]"#)
+            )
+        }
+
+        let older = try await repository.loadMessagesBefore(
+            chatUuid: "c-1",
+            beforeMessageUuid: "m2",
+            limit: 50
+        )
+
+        XCTAssertEqual(older.map(\.messageUuid), ["m1"])
+        XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/messages/c-1/before/m2")
+        XCTAssertEqual(
+            URLComponents(url: try XCTUnwrap(MockURLProtocol.requests.first?.url), resolvingAgainstBaseURL: false)?
+                .queryItems?.first(where: { $0.name == "limit" })?.value,
+            "50"
+        )
+        XCTAssertEqual(cache.get(chatUuid: "c-1").map(\.messageUuid), ["m1", "m2"])
+    }
+
     func testTotalUnreadCount() async throws {
         MockURLProtocol.handler = { request in
             (MockURLProtocol.response(for: request), TestSupport.data(#"{"count":5}"#))

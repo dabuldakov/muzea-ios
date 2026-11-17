@@ -4,6 +4,8 @@ import Foundation
 struct ChatConversationUiState: Equatable {
     var messages: [ChatMessage] = []
     var isLoading = false
+    /// Догрузка истории вверх: true, пока сервер может отдать ещё страницу.
+    var hasMoreHistory = true
     var isLoadingMore = false
     var error: String?
     var notice: String?
@@ -132,6 +134,34 @@ final class ChatConversationViewModel: ObservableObject {
             } else {
                 await loadIncremental()
             }
+        }
+    }
+
+    /// Догружает страницу сообщений старше самого раннего серверного.
+    /// Ошибки не показываем поверх переписки: пользователь просто увидит,
+    /// что история не добавилась, и сможет потянуть ещё раз.
+    func loadOlderMessages() async {
+        guard state.hasMoreHistory, !state.isLoadingMore else { return }
+        guard let oldest = state.messages.first(where: {
+            !$0.messageUuid.hasPrefix("local-")
+        }) else { return }
+
+        state.isLoadingMore = true
+        defer { state.isLoadingMore = false }
+        do {
+            let older = try await services.messages.loadMessagesBefore(
+                chatUuid: chatUuid,
+                beforeMessageUuid: oldest.messageUuid,
+                limit: Config.messagePageSize
+            )
+            if older.count < Config.messagePageSize {
+                state.hasMoreHistory = false
+            }
+            if !older.isEmpty {
+                merge(older)
+            }
+        } catch {
+            // Сеть вернётся — догрузим при следующем появлении сентинела.
         }
     }
 
