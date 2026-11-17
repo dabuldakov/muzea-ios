@@ -20,6 +20,9 @@ enum L10n {
     static var copy: String { t("common.copy") }
     static var select: String { t("common.select") }
     static var edit: String { t("common.edit") }
+    static var save: String { t("common.save") }
+    static var reportAlert: String { t("common.report") }
+    static var reported: String { t("common.reported") }
 
     // MARK: - Chat
 
@@ -166,6 +169,221 @@ enum L10n {
     /// Озвучка кнопки реакции для VoiceOver.
     static func reactionAccessibility(_ emoji: String, _ count: Int) -> String {
         format("chat.reaction.accessibility", emoji, count)
+    }
+
+
+    // MARK: - Auth
+
+    static var registerTitle: String { t("auth.register.title") }
+    static var confirmTitle: String { t("auth.confirm.title") }
+    static var authAccount: String { t("auth.account") }
+    static var usernameField: String { t("auth.username") }
+    static var displayNameField: String { t("auth.displayName") }
+    static var consentToggle: String { t("auth.consent.toggle") }
+    static var termsLink: String { t("auth.terms") }
+    static var policyLink: String { t("auth.policy") }
+    static var registerAction: String { t("auth.register.action") }
+    static var confirmEmailSection: String { t("auth.confirm.section") }
+    static var codeField: String { t("auth.code") }
+    static var confirmAction: String { t("auth.confirm.action") }
+    static var resendCode: String { t("auth.resend") }
+    static var changeData: String { t("auth.changeData") }
+    static var emailInvalid: String { t("auth.error.email") }
+    static var codeRequired: String { t("auth.error.code") }
+    static var usernameInvalid: String { t("auth.error.username") }
+    static var consentTitle: String { t("auth.consent.title") }
+    static var consentOpenTerms: String { t("auth.consent.terms") }
+    static var consentOpenPolicy: String { t("auth.consent.policy") }
+    static var consentAccept: String { t("auth.consent.accept") }
+    static var consentDecline: String { t("auth.consent.decline") }
+    static var getCode: String { t("auth.getCode") }
+    static var signIn: String { t("auth.signIn") }
+    static var changeEmail: String { t("auth.changeEmail") }
+    static var legalNote: String { t("auth.legalNote") }
+
+    static func codeSent(_ email: String) -> String {
+        format("auth.code.sent", email)
+    }
+
+    static func codeSentAgain(_ email: String) -> String {
+        format("auth.code.sentAgain", email)
+    }
+
+    // MARK: - Contacts
+
+    static var contactsTitle: String { t("contact.title") }
+    static var addContact: String { t("contact.add") }
+    static var contactsEmpty: String { t("contact.empty") }
+    static var contactNoUuid: String { t("contact.error.noUuid") }
+
+    // MARK: - News
+
+    static var newsTitle: String { t("news.title") }
+    static var newsEmpty: String { t("news.empty") }
+    static var newsDetail: String { t("news.detail") }
+    static var newsDelete: String { t("news.delete") }
+    static var newsDeleteTitle: String { t("news.delete.title") }
+    static var newsCreate: String { t("news.create") }
+    static var newsSection: String { t("news.section") }
+    static var newsHeadingField: String { t("news.heading") }
+    static var newsTextField: String { t("news.text") }
+    static var newsImageSection: String { t("news.image") }
+    static var newsPickImage: String { t("news.pickImage") }
+    static var newsImageChosen: String { t("news.imageChosen") }
+    static var newsVideoSection: String { t("news.video") }
+    static var newsNone: String { t("news.none") }
+    static var newsPublish: String { t("news.publish") }
+
+    static func newsAuthor(_ name: String) -> String {
+        format("news.author", name)
+    }
+
+    static func newsWatch(_ title: String) -> String {
+        format("news.watch", title)
+    }
+
+    // MARK: - Profile
+
+    static var profileTitle: String { t("profile.title") }
+    static var changeAvatar: String { t("profile.changeAvatar") }
+    static var deleteAvatar: String { t("profile.deleteAvatar") }
+    static var loginLabel: String { t("profile.login") }
+    static var fullNameField: String { t("profile.fullName") }
+    static var roleLabel: String { t("profile.role") }
+    static var operatorLink: String { t("profile.operator") }
+    static var cacheLabel: String { t("profile.cache") }
+    static var clearCache: String { t("profile.clearCache") }
+    static var cacheCleared: String { t("profile.cacheCleared") }
+    static var deleteAccount: String { t("profile.deleteAccount") }
+    static var signOut: String { t("profile.signOut") }
+    static var deleteAccountTitle: String { t("profile.delete.title") }
+    static var signOutAction: String { t("profile.signOut.action") }
+    static var deactivateDescription: String { t("profile.delete.body") }
+    static var avatarTooLarge: String { t("profile.avatarTooLarge") }
+    static var chatDeactivateFailed: String { t("profile.error.chat") }
+    static var profileLoadFailed: String { t("profile.error.load") }
+    static var operatorTitle: String { t("profile.operator.title") }
+    static var operatorName: String { t("profile.operator.name") }
+    static var operatorStatus: String { t("profile.operator.status") }
+    static var operatorINN: String { t("profile.operator.inn") }
+    static var operatorAddress: String { t("profile.operator.address") }
+    static var operatorContacts: String { t("profile.operator.contacts") }
+    static var operatorEmail: String { t("profile.operator.email") }
+    static var operatorPhone: String { t("profile.operator.phone") }
+    static var operatorDocuments: String { t("profile.operator.documents") }
+
+    // MARK: - Video
+
+    static var videoTitle: String { t("video.title") }
+    static var videoEmpty: String { t("video.empty") }
+    static var videoDescriptionSection: String { t("video.section") }
+    static var videoNameField: String { t("video.name") }
+    static var videoDescriptionField: String { t("video.description") }
+    static var videoFileSection: String { t("video.file") }
+    static var videoPick: String { t("video.pick") }
+    static var videoChosen: String { t("video.chosen") }
+    static var videoUpload: String { t("video.upload") }
+    static var videoUploadTitle: String { t("video.upload.title") }
+    static var videoDelete: String { t("video.delete") }
+    static var videoDeleteTitle: String { t("video.delete.title") }
+
+    static func videoAuthor(_ name: String) -> String {
+        format("video.author", name)
+    }
+
+    static func videoViews(_ count: Int) -> String {
+        format("video.views", count)
+    }
+
+    static func videoLikes(_ count: Int) -> String {
+        format("video.likes", count)
+    }
+
+
+    // MARK: - Tabs and common shell
+
+    static var tabNews: String { t("app.tab.news") }
+    static var tabChats: String { t("app.tab.chats") }
+    static var tabContacts: String { t("app.tab.contacts") }
+    static var tabVideo: String { t("app.tab.video") }
+    static var tabProfile: String { t("app.tab.profile") }
+    static var noInternet: String { t("app.noInternet") }
+
+    // MARK: - Errors
+
+    static var sessionExpired: String { t("error.sessionExpired") }
+    static var networkUnavailable: String { t("error.network") }
+    static var invalidURL: String { t("error.invalidURL") }
+    static var unexpectedResponse: String { t("error.unexpected") }
+    static var unauthorized: String { t("error.unauthorized") }
+    static var emptyResponse: String { t("error.emptyResponse") }
+    static var otpInvalid: String { t("auth.error.otpInvalid") }
+    static var otpExpired: String { t("auth.error.otpExpired") }
+    static var otpNotFound: String { t("auth.error.otpNotFound") }
+    static var otpAttempts: String { t("auth.error.otpAttempts") }
+    static var cooldown: String { t("auth.error.cooldown") }
+    static var rateLimited: String { t("auth.error.rateLimited") }
+    static var emailTaken: String { t("auth.error.emailTaken") }
+    static var usernameTaken: String { t("auth.error.usernameTaken") }
+    static var userNotFound: String { t("auth.error.userNotFound") }
+    static var checkInput: String { t("auth.error.checkInput") }
+
+    // MARK: - Domain text
+
+    static var unsupportedFile: String { t("attachment.error.unsupported") }
+    static var emptyFile: String { t("attachment.error.empty") }
+    static var unknownSender: String { t("preview.unknownSender") }
+    static var previewImage: String { t("preview.image") }
+    static var previewMessage: String { t("preview.message") }
+    static var messageDeleted: String { t("preview.messageDeleted") }
+    static var presenceOnline: String { t("presence.online") }
+    static var presenceOffline: String { t("presence.offline") }
+    static var presenceJustNow: String { t("presence.justNow") }
+    static var pushNewMessage: String { t("push.newMessage") }
+    static var pushNews: String { t("push.news") }
+    static var recorderNoPermission: String { t("recorder.noPermission") }
+    static var recorderCameraFailed: String { t("recorder.cameraFailed") }
+    static var recorderTooShort: String { t("recorder.tooShort") }
+    static var recorderReadFailed: String { t("recorder.readFailed") }
+
+    static func serverError(_ code: Int, _ message: String) -> String {
+        format("error.server", code, message)
+    }
+
+    static func serverCode(_ code: Int) -> String {
+        format("error.serverCode", code)
+    }
+
+    static func decodingError(_ description: String) -> String {
+        format("error.decoding", description)
+    }
+
+    static func transportError(_ description: String) -> String {
+        format("error.transport", description)
+    }
+
+    static func fileTooLarge(_ megabytes: Int64) -> String {
+        format("attachment.error.tooLarge", Int(megabytes))
+    }
+
+    static func presenceMinutes(_ minutes: Int) -> String {
+        format("presence.minutesAgo", minutes)
+    }
+
+    static func presenceHours(_ hours: Int) -> String {
+        format("presence.hoursAgo", hours)
+    }
+
+    static func presenceLastSeen(_ date: String) -> String {
+        format("presence.lastSeen", date)
+    }
+
+    static func recorderWriteFailed(_ description: String) -> String {
+        format("recorder.writeFailed", description)
+    }
+
+    static func deactivateFallback(_ email: String) -> String {
+        format("legal.deactivateFallback", email)
     }
 
     // MARK: - Private

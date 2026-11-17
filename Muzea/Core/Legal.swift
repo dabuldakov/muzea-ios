@@ -6,9 +6,12 @@ enum Legal {
     static let policyURL = "https://muzea.su/privacy"
     static let termsURL = "https://muzea.su/terms"
 
+    // l10n:ignore — имя оператора, данные
     static let operatorName = "Булдаков Дмитрий Александрович"
+    // l10n:ignore — правовой статус, данные
     static let operatorStatus = "Физическое лицо, оператор персональных данных"
-    static let operatorINN = "ИНН 701712666930"
+    static let operatorINN = "701712666930"
+    // l10n:ignore — адрес, данные
     static let operatorAddress = "Томская область, г. Томск, ул. Пушкина, д. 61/3, кв. 267"
     static let operatorEmail = "dabuldakov@mail.ru"
     static let operatorPhone = "+7 913 800-24-16"
@@ -48,7 +51,6 @@ enum Legal {
 
     /// Сообщение о неудачной деактивации с форматом `%@` — операторский email.
     static func deleteFailedMessage(email: String = Legal.operatorEmail) -> String {
-        "Не удалось деактивировать аккаунт на сервере. Напишите на \(email), "
-        + "и мы поможем вручную."
+        L10n.deactivateFallback(email)
     }
 }

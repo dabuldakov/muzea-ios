@@ -64,7 +64,7 @@ final class ContactListViewModel: ObservableObject {
     /// повторный тап по контакту больше не плодит дубликаты чатов.
     func openChat(with contact: Contact) async -> Chat? {
         guard let uuid = contact.contactUserUuid, !uuid.isEmpty else {
-            state.error = "У контакта нет UUID"
+            state.error = L10n.contactNoUuid
             return nil
         }
         guard !isOpeningChat else { return nil }

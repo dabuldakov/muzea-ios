@@ -67,9 +67,9 @@ final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDe
     private func title(for route: PushRoute, data: [AnyHashable: Any]) -> String {
         switch route {
         case .chat:
-            return PushPayload.title(for: data) ?? "Новое сообщение"
+            return PushPayload.title(for: data) ?? L10n.pushNewMessage
         case .news:
-            return PushPayload.title(for: data) ?? "Новости"
+            return PushPayload.title(for: data) ?? L10n.pushNews
         }
     }
 

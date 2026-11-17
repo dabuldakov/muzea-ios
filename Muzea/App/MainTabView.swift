@@ -10,31 +10,31 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $appRouter.selectedTab) {
             NewsListView(container: container)
-                .tabItem { Label("Новости", systemImage: "newspaper") }
+                .tabItem { Label(L10n.tabNews, systemImage: "newspaper") }
                 .tag(0)
 
             ChatListView(container: container)
-                .tabItem { Label("Чаты", systemImage: "message") }
+                .tabItem { Label(L10n.tabChats, systemImage: "message") }
                 .badge(unreadCount > 0 ? Int(unreadCount) : 0)
                 .tag(1)
 
             ContactListView(container: container)
-                .tabItem { Label("Контакты", systemImage: "person.2") }
+                .tabItem { Label(L10n.tabContacts, systemImage: "person.2") }
                 .tag(2)
 
             VideoListView(container: container)
-                .tabItem { Label("Видео", systemImage: "play.rectangle") }
+                .tabItem { Label(L10n.tabVideo, systemImage: "play.rectangle") }
                 .tag(3)
 
             ProfileView(container: container)
-                .tabItem { Label("Профиль", systemImage: "person.crop.circle") }
+                .tabItem { Label(L10n.tabProfile, systemImage: "person.crop.circle") }
                 .tag(4)
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             if !networkMonitor.isOnline {
                 HStack(spacing: 6) {
                     Image(systemName: "wifi.slash")
-                    Text("Нет подключения к интернету")
+                    Text(L10n.noInternet)
                 }
                 .font(.caption).bold()
                 .foregroundColor(.white)

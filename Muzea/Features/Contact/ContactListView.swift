@@ -19,21 +19,21 @@ struct ContactListView: View {
     var body: some View {
         NavigationStack(path: $router.path) {
             content
-                .navigationTitle("Контакты")
+                .navigationTitle(L10n.contactsTitle)
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         Button { newUsername = ""; showAdd = true } label: { Image(systemName: "plus") }
                     }
                 }
                 .refreshable { await viewModel.load() }
-                .alert("Добавить контакт", isPresented: $showAdd) {
-                    TextField("Имя пользователя", text: $newUsername)
+                .alert(L10n.addContact, isPresented: $showAdd) {
+                    TextField(L10n.usernameField, text: $newUsername)
                         .textInputAutocapitalization(.never)
-                    Button("Добавить") {
+                    Button(L10n.add) {
                         let name = newUsername
                         Task { _ = await viewModel.add(username: name) }
                     }
-                    Button("Отмена", role: .cancel) {}
+                    Button(L10n.cancel, role: .cancel) {}
                 }
                 .navigationDestination(for: Route.self) { RouteDestinationView(route: $0) }
         }
@@ -67,7 +67,7 @@ struct ContactListView: View {
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "person.2").font(.largeTitle).foregroundColor(.secondary)
-                    Text(viewModel.state.error ?? "Нет контактов")
+                    Text(viewModel.state.error ?? L10n.contactsEmpty)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)

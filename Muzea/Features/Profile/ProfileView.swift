@@ -36,12 +36,12 @@ struct ProfileView: View {
                             AvatarView(url: ImageURL.chat(viewModel.state.avatarUrl), size: 96)
 
                             PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                                Text("Сменить аватар")
+                                Text(L10n.changeAvatar)
                             }
                             .disabled(viewModel.state.isBusy)
 
                             if viewModel.state.avatarUrl != nil {
-                                Button("Удалить аватар", role: .destructive) {
+                                Button(L10n.deleteAvatar, role: .destructive) {
                                     Task { await viewModel.deleteAvatar() }
                                 }
                                 .disabled(viewModel.state.isBusy)
@@ -53,29 +53,29 @@ struct ProfileView: View {
                     }
                 }
 
-                Section("Профиль") {
-                    LabeledContent("Логин", value: viewModel.state.user?.userName ?? container.tokenStore.username ?? "")
-                    TextField("Полное имя", text: $fullName)
+                Section(L10n.profileTitle) {
+                    LabeledContent(L10n.loginLabel, value: viewModel.state.user?.userName ?? container.tokenStore.username ?? "")
+                    TextField(L10n.fullNameField, text: $fullName)
                     // Email — идентичность IdP; отдельного endpoint для смены нет.
                     LabeledContent("Email", value: viewModel.state.email ?? "")
-                    LabeledContent("Роль", value: viewModel.state.user?.role ?? "")
+                    LabeledContent(L10n.roleLabel, value: viewModel.state.user?.role ?? "")
                 }
 
                 Section {
                     NavigationLink(value: Route.operatorInfo) {
-                        Label("Оператор персональных данных", systemImage: "person.text.rectangle")
+                        Label(L10n.operatorLink, systemImage: "person.text.rectangle")
                     }
                 }
 
                 Section {
                     LabeledContent(
-                        "Кэш",
+                        L10n.cacheLabel,
                         value: ByteCountFormatter.string(
                             fromByteCount: cacheSize,
                             countStyle: .file
                         )
                     )
-                    Button("Очистить кэш") {
+                    Button(L10n.clearCache) {
                         Task {
                             await container.cacheManager.clear()
                             cacheSize = container.cacheManager.totalSizeBytes()
@@ -84,7 +84,7 @@ struct ProfileView: View {
                     }
                 } footer: {
                     if cacheCleared {
-                        Text("Кэш очищен").foregroundColor(.green)
+                        Text(L10n.cacheCleared).foregroundColor(.green)
                     }
                 }
 
@@ -93,7 +93,7 @@ struct ProfileView: View {
                 }
 
                 Section {
-                    Button("Сохранить") {
+                    Button(L10n.save) {
                         Task {
                             _ = await viewModel.update(
                                 fullName: fullName,
@@ -101,16 +101,16 @@ struct ProfileView: View {
                             )
                         }
                     }
-                    Button("Удалить аккаунт", role: .destructive) {
+                    Button(L10n.deleteAccount, role: .destructive) {
                         deleteDialog = .confirm
                     }
                     .disabled(viewModel.state.isBusy)
-                    Button("Выйти", role: .destructive) {
+                    Button(L10n.signOut, role: .destructive) {
                         Task { await container.logout() }
                     }
                 }
             }
-            .navigationTitle("Профиль")
+            .navigationTitle(L10n.profileTitle)
             .navigationDestination(for: Route.self) { RouteDestinationView(route: $0) }
             .task {
                 await viewModel.load()
@@ -120,26 +120,26 @@ struct ProfileView: View {
             .onChange(of: selectedPhoto) { newValue in
                 Task { await loadPhoto(newValue) }
             }
-            .alert("Удалить аккаунт?", isPresented: Binding(
+            .alert(L10n.deleteAccountTitle, isPresented: Binding(
                 get: { deleteDialog != nil },
                 set: { if !$0 { deleteDialog = nil } }
             )) {
                 switch deleteDialog {
                 case .confirm:
-                    Button("Удалить", role: .destructive) { Task { await deleteAccount() } }
-                    Button("Отмена", role: .cancel) {}
+                    Button(L10n.delete, role: .destructive) { Task { await deleteAccount() } }
+                    Button(L10n.cancel, role: .cancel) {}
                 case .failure:
-                    Button("Выйти из приложения", role: .destructive) {
+                    Button(L10n.signOutAction, role: .destructive) {
                         Task { await container.logout() }
                     }
-                    Button("Отмена", role: .cancel) {}
+                    Button(L10n.cancel, role: .cancel) {}
                 case .none:
                     EmptyView()
                 }
             } message: {
                 switch deleteDialog {
                 case .confirm:
-                    Text("Аккаунт будет деактивирован: войти в него станет нельзя, имя, фамилия и ник скроются, а переписка с вами станет доступна только для чтения. Сообщения, публикации, видео и другие данные сохранятся. Восстановить аккаунт можно через поддержку.")
+                    Text(L10n.deactivateDescription)
                 case .failure(let message):
                     Text(message)
                 case .none:
@@ -152,7 +152,7 @@ struct ProfileView: View {
     private func loadPhoto(_ item: PhotosPickerItem?) async {
         guard let item, let data = try? await item.loadTransferable(type: Data.self) else { return }
         guard data.count <= Config.maxAvatarBytes else {
-            viewModel.reportValidationError("Выберите изображение размером до 5 МБ")
+            viewModel.reportValidationError(L10n.avatarTooLarge)
             return
         }
         await viewModel.uploadAvatar(
@@ -169,7 +169,7 @@ struct ProfileView: View {
             // нужен, а вызвал бы повторную регистрацию. Чистим только локально.
             container.didDeleteAccount()
         case .chatFailed:
-            deleteDialog = .failure("Не удалось деактивировать аккаунт в сервисе чата. Проверьте подключение и повторите попытку.")
+            deleteDialog = .failure(L10n.chatDeactivateFailed)
         case .failed(let message):
             deleteDialog = .failure(message)
         }

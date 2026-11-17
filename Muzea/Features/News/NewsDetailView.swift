@@ -35,7 +35,7 @@ struct NewsDetailView: View {
                     Text(news.title).font(.title2).bold()
 
                     HStack {
-                        Text("Автор: \(news.author)")
+                        Text(L10n.newsAuthor(news.author))
                         Spacer()
                         Text(DateTimeFormat.full(news.publishedAt))
                     }
@@ -46,7 +46,7 @@ struct NewsDetailView: View {
 
                     if let video = news.relatedVideo {
                         NavigationLink(value: Route.videoDetail(video)) {
-                            Label("Смотреть: \(video.title)", systemImage: "play.rectangle")
+                            Label(L10n.newsWatch(video.title), systemImage: "play.rectangle")
                         }
                     }
 
@@ -61,7 +61,7 @@ struct NewsDetailView: View {
                             if viewModel.isDeleting {
                                 ProgressView().frame(maxWidth: .infinity)
                             } else {
-                                Text("Удалить новость").frame(maxWidth: .infinity)
+                                Text(L10n.newsDelete).frame(maxWidth: .infinity)
                             }
                         }
                         .buttonStyle(.borderedProminent)
@@ -76,7 +76,7 @@ struct NewsDetailView: View {
                 ProgressView().padding()
             }
         }
-        .navigationTitle("Новость")
+        .navigationTitle(L10n.newsDetail)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let news = viewModel.news, !canDelete(news) {
@@ -95,17 +95,17 @@ struct NewsDetailView: View {
                 Task { await report(reason: reason) }
             }
         }
-        .alert("Жалоба", isPresented: Binding(
+        .alert(L10n.reportAlert, isPresented: Binding(
             get: { reportNotice != nil },
             set: { if !$0 { reportNotice = nil } }
         )) {
-            Button("OK", role: .cancel) {}
+            Button(L10n.done, role: .cancel) {}
         } message: {
             Text(reportNotice ?? "")
         }
-        .confirmationDialog("Удалить новость?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Удалить", role: .destructive) { delete() }
-            Button("Отмена", role: .cancel) {}
+        .confirmationDialog(L10n.newsDeleteTitle, isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button(L10n.delete, role: .destructive) { delete() }
+            Button(L10n.cancel, role: .cancel) {}
         }
     }
 
@@ -130,7 +130,7 @@ struct NewsDetailView: View {
                 reason: reason,
                 comment: nil
             )
-            reportNotice = "Жалоба отправлена"
+            reportNotice = L10n.reported
         } catch {
             reportNotice = error.localizedDescription
         }

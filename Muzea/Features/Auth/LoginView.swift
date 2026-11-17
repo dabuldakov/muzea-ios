@@ -59,13 +59,13 @@ struct LoginView: View {
             if viewModel.state.isLoading {
                 ProgressView().frame(maxWidth: .infinity)
             } else {
-                Text("Получить код").frame(maxWidth: .infinity)
+                Text(L10n.getCode).frame(maxWidth: .infinity)
             }
         }
         .buttonStyle(.borderedProminent)
         .disabled(email.isEmpty || viewModel.state.isLoading)
 
-        Button("Регистрация") { showRegister = true }
+        Button(L10n.registerTitle) { showRegister = true }
             .disabled(viewModel.state.isLoading)
     }
 
@@ -78,7 +78,7 @@ struct LoginView: View {
                 .multilineTextAlignment(.center)
         }
 
-        TextField("Код из письма", text: $code)
+        TextField(L10n.codeField, text: $code)
             .textFieldStyle(.roundedBorder)
             .keyboardType(.numberPad)
             .textContentType(.oneTimeCode)
@@ -87,18 +87,18 @@ struct LoginView: View {
             if viewModel.state.isLoading {
                 ProgressView().frame(maxWidth: .infinity)
             } else {
-                Text("Войти").frame(maxWidth: .infinity)
+                Text(L10n.signIn).frame(maxWidth: .infinity)
             }
         }
         .buttonStyle(.borderedProminent)
         .disabled(code.isEmpty || viewModel.state.isLoading)
 
-        Button("Отправить ещё раз") {
+        Button(L10n.resendCode) {
             Task { _ = await viewModel.resend() }
         }
         .disabled(viewModel.state.isLoading)
 
-        Button("Изменить email") {
+        Button(L10n.changeEmail) {
             email = viewModel.state.email
             code = ""
             viewModel.backToEmail()
@@ -109,14 +109,14 @@ struct LoginView: View {
 
     private var legalNote: some View {
         VStack(spacing: 8) {
-            Text("Продолжая, вы принимаете Пользовательское соглашение и Политику обработки персональных данных")
+            Text(L10n.legalNote)
                 .font(.caption2)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
 
             HStack(spacing: 16) {
-                Button("Пользовательское соглашение") { open(Legal.termsURL) }
-                Button("Политика обработки ПДн") { open(Legal.policyURL) }
+                Button(L10n.termsLink) { open(Legal.termsURL) }
+                Button(L10n.policyLink) { open(Legal.policyURL) }
             }
             .font(.caption)
         }

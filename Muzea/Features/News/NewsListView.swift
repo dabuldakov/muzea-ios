@@ -18,7 +18,7 @@ struct NewsListView: View {
     var body: some View {
         NavigationStack(path: $router.path) {
             content
-                .navigationTitle("Новости")
+                .navigationTitle(L10n.newsTitle)
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         Button { showCreate = true } label: { Image(systemName: "plus") }
@@ -51,7 +51,7 @@ struct NewsListView: View {
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "newspaper").font(.largeTitle).foregroundColor(.secondary)
-                    Text(viewModel.state.error ?? "Нет новостей").foregroundColor(.secondary)
+                    Text(viewModel.state.error ?? L10n.newsEmpty).foregroundColor(.secondary)
                 }
             }
         } else {

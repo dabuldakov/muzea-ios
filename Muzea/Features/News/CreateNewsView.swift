@@ -24,25 +24,25 @@ struct CreateNewsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Новость") {
-                    TextField("Заголовок", text: $title)
-                    TextField("Текст", text: $content, axis: .vertical)
+                Section(L10n.newsSection) {
+                    TextField(L10n.newsHeadingField, text: $title)
+                    TextField(L10n.newsTextField, text: $content, axis: .vertical)
                         .lineLimit(4...12)
                 }
 
-                Section("Изображение") {
+                Section(L10n.newsImageSection) {
                     PhotosPicker(selection: $selectedImage, matching: .images) {
                         Label(
-                            imageData == nil ? "Выбрать изображение" : "Изображение выбрано",
+                            imageData == nil ? L10n.newsPickImage : L10n.newsImageChosen,
                             systemImage: "photo"
                         )
                     }
                 }
 
                 if !viewModel.ownVideos.isEmpty {
-                    Section("Видео") {
-                        Picker("Видео", selection: $selectedVideoId) {
-                            Text("Нет").tag(Int64?.none)
+                    Section(L10n.newsVideoSection) {
+                        Picker(L10n.newsVideoSection, selection: $selectedVideoId) {
+                            Text(L10n.newsNone).tag(Int64?.none)
                             ForEach(viewModel.ownVideos) { video in
                                 Text(video.title).tag(Int64?.some(video.id))
                             }
@@ -59,16 +59,16 @@ struct CreateNewsView: View {
                         if viewModel.isSubmitting {
                             ProgressView().frame(maxWidth: .infinity)
                         } else {
-                            Text("Опубликовать").frame(maxWidth: .infinity)
+                            Text(L10n.newsPublish).frame(maxWidth: .infinity)
                         }
                     }
                     .disabled(title.isEmpty || content.isEmpty || viewModel.isSubmitting)
                 }
             }
-            .navigationTitle("Новая новость")
+            .navigationTitle(L10n.newsCreate)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
+                    Button(L10n.cancel) { dismiss() }
                 }
             }
             .task { await viewModel.loadVideos(ownUsername: container.tokenStore.username) }

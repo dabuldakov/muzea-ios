@@ -46,28 +46,28 @@ final class LastSeenFormatterTests: XCTestCase {
     func testLabelUsesRelativeUnits() {
         XCTAssertEqual(
             LastSeenFormatter.label(lastSeenAt: iso(now.addingTimeInterval(-30)), now: now, timeZone: utc),
-            "был(а) только что"
+            L10n.presenceJustNow
         )
         XCTAssertEqual(
             LastSeenFormatter.label(lastSeenAt: iso(now.addingTimeInterval(-5 * 60)), now: now, timeZone: utc),
-            "был(а) 5 мин назад"
+            L10n.presenceMinutes(5)
         )
         XCTAssertEqual(
             LastSeenFormatter.label(lastSeenAt: iso(now.addingTimeInterval(-3 * 60 * 60)), now: now, timeZone: utc),
-            "был(а) 3 ч назад"
+            L10n.presenceHours(3)
         )
     }
 
     func testLabelFallsBackToCalendarTimeAfterDay() {
         XCTAssertEqual(
             LastSeenFormatter.label(lastSeenAt: iso(now.addingTimeInterval(-2 * 24 * 60 * 60)), now: now, timeZone: utc),
-            "был(а) в сети 2027-01-13 08:00"
+            L10n.presenceLastSeen("2027-01-13 08:00")
         )
     }
 
     func testLabelWithoutTimestampIsOffline() {
-        XCTAssertEqual(LastSeenFormatter.label(lastSeenAt: nil, now: now), "офлайн")
-        XCTAssertEqual(LastSeenFormatter.label(lastSeenAt: "", now: now), "офлайн")
-        XCTAssertEqual(LastSeenFormatter.label(lastSeenAt: "не дата", now: now), "офлайн")
+        XCTAssertEqual(LastSeenFormatter.label(lastSeenAt: nil, now: now), L10n.presenceOffline)
+        XCTAssertEqual(LastSeenFormatter.label(lastSeenAt: "", now: now), L10n.presenceOffline)
+        XCTAssertEqual(LastSeenFormatter.label(lastSeenAt: "не дата", now: now), L10n.presenceOffline)
     }
 }

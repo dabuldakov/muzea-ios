@@ -35,15 +35,15 @@ struct VideoDetailView: View {
                 }
 
                 HStack {
-                    Text("Автор: \(video.uploadedBy)")
+                    Text(L10n.videoAuthor(video.uploadedBy))
                     Spacer()
-                    Text("\(video.views) просмотров")
+                    Text(L10n.videoViews(video.views))
                 }
                 .font(.caption)
                 .foregroundColor(.secondary)
 
                 HStack {
-                    Text("\(video.likes ?? 0) лайков")
+                    Text(L10n.videoLikes(video.likes ?? 0))
                     Spacer()
                     if !video.uploadedAt.isEmpty {
                         Text(DateTimeFormat.full(video.uploadedAt))
@@ -63,7 +63,7 @@ struct VideoDetailView: View {
                         if viewModel.isDeleting {
                             ProgressView().frame(maxWidth: .infinity)
                         } else {
-                            Text("Удалить видео").frame(maxWidth: .infinity)
+                            Text(L10n.videoDelete).frame(maxWidth: .infinity)
                         }
                     }
                     .buttonStyle(.borderedProminent)
@@ -73,7 +73,7 @@ struct VideoDetailView: View {
             }
             .padding()
         }
-        .navigationTitle("Видео")
+        .navigationTitle(L10n.videoTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if !canDelete {
@@ -86,20 +86,20 @@ struct VideoDetailView: View {
                 }
             }
         }
-        .confirmationDialog("Удалить видео?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Удалить", role: .destructive) { delete() }
-            Button("Отмена", role: .cancel) {}
+        .confirmationDialog(L10n.videoDeleteTitle, isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button(L10n.delete, role: .destructive) { delete() }
+            Button(L10n.cancel, role: .cancel) {}
         }
         .sheet(isPresented: $showReport) {
             ReportReasonSheet { reason in
                 Task { await report(reason: reason) }
             }
         }
-        .alert("Жалоба", isPresented: Binding(
+        .alert(L10n.reportAlert, isPresented: Binding(
             get: { reportNotice != nil },
             set: { if !$0 { reportNotice = nil } }
         )) {
-            Button("OK", role: .cancel) {}
+            Button(L10n.done, role: .cancel) {}
         } message: {
             Text(reportNotice ?? "")
         }
@@ -144,7 +144,7 @@ struct VideoDetailView: View {
                 reason: reason,
                 comment: nil
             )
-            reportNotice = "Жалоба отправлена"
+            reportNotice = L10n.reported
         } catch {
             reportNotice = error.localizedDescription
         }

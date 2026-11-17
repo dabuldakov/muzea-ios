@@ -22,7 +22,12 @@ TABLES = {
     "ru": ROOT / "Muzea/Resources/ru.lproj/Localizable.strings",
     "en": ROOT / "Muzea/Resources/en.lproj/Localizable.strings",
 }
-CHECKED_DIRS = [ROOT / "Muzea/Features/Chat"]
+CHECKED_DIRS = [
+    ROOT / "Muzea/Features",
+    ROOT / "Muzea/App",
+    ROOT / "Muzea/Core",
+    ROOT / "Muzea/Domain",
+]
 
 KEY_CALL = re.compile(r'(?:t|format)\("([^"]+)"')
 TABLE_LINE = re.compile(r'^"([^"]+)"\s*=\s*"(.*)";\s*$')
@@ -71,9 +76,17 @@ def main() -> int:
     leaked: list[str] = []
     for directory in CHECKED_DIRS:
         for path in sorted(directory.rglob("*.swift")):
+            previous = ""
             for number, line in enumerate(path.read_text().splitlines(), 1):
-                if CYRILLIC.search(line):
-                    leaked.append(f"{path.relative_to(ROOT)}:{number}: {line.strip()}")
+                stripped = line.strip()
+                skipped = (
+                    stripped.startswith("//")
+                    or "print(" in line
+                    or "l10n:ignore" in previous
+                )
+                if not skipped and CYRILLIC.search(line):
+                    leaked.append(f"{path.relative_to(ROOT)}:{number}: {stripped}")
+                previous = stripped
 
     if leaked:
         problems.append("кириллица в литералах:\n  " + "\n  ".join(leaked))

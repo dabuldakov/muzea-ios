@@ -121,7 +121,7 @@ final class ProfileViewModel: ObservableObject {
         }
 
         guard let id = state.user?.id else {
-            return chatErased ? .chatFailed : .failed("Не удалось загрузить профиль. Попробуйте позже.")
+            return chatErased ? .chatFailed : .failed(L10n.profileLoadFailed)
         }
 
         do {

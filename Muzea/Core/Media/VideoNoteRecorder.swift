@@ -66,14 +66,14 @@ final class VideoNoteRecorder: NSObject, ObservableObject {
         cancelled = false
 
         guard await Self.requestPermissions() else {
-            state = .failed("Нет доступа к камере и микрофону")
+            state = .failed(L10n.recorderNoPermission)
             return
         }
 
         do {
             try configureIfNeeded()
         } catch {
-            state = .failed("Не удалось открыть камеру")
+            state = .failed(L10n.recorderCameraFailed)
             return
         }
 
@@ -201,7 +201,7 @@ extension VideoNoteRecorder: AVCaptureFileOutputRecordingDelegate {
 
         if let error {
             try? FileManager.default.removeItem(at: url)
-            state = .failed("Не удалось записать видео: \(error.localizedDescription)")
+            state = .failed(L10n.recorderWriteFailed(error.localizedDescription))
             return
         }
 
@@ -211,7 +211,7 @@ extension VideoNoteRecorder: AVCaptureFileOutputRecordingDelegate {
                 let duration = try await asset.load(.duration).seconds
                 guard VideoNoteLimits.isValid(duration: duration) else {
                     try? FileManager.default.removeItem(at: url)
-                    state = .failed("Слишком короткая запись")
+                    state = .failed(L10n.recorderTooShort)
                     return
                 }
                 let data = try Data(contentsOf: url)
@@ -233,7 +233,7 @@ extension VideoNoteRecorder: AVCaptureFileOutputRecordingDelegate {
                 state = .finished
             } catch {
                 try? FileManager.default.removeItem(at: url)
-                state = .failed("Не удалось прочитать видео")
+                state = .failed(L10n.recorderReadFailed)
             }
         }
     }

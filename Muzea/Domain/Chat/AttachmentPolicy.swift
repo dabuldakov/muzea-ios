@@ -68,11 +68,11 @@ enum AttachmentPolicy {
     /// Ошибка валидации или nil, если файл можно отправлять.
     static func validationError(fileName: String, size: Int64) -> String? {
         guard let rule = rule(for: fileName) else {
-            return "Этот тип файла не поддерживается"
+            return L10n.unsupportedFile
         }
-        guard size > 0 else { return "Файл пустой" }
+        guard size > 0 else { return L10n.emptyFile }
         guard size <= rule.maxBytes else {
-            return "Файл больше \(rule.maxBytes / (1024 * 1024)) МБ"
+            return L10n.fileTooLarge(rule.maxBytes / (1024 * 1024))
         }
         return nil
     }

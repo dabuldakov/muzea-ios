@@ -321,7 +321,7 @@ struct ChatReceipt: Hashable {
     let lastReadMessageId: Int64?
     let lastReadAt: String?
 
-    var displayName: String { fullName ?? username ?? "Участник" }
+    var displayName: String { fullName ?? username ?? L10n.participant }
 }
 
 /// Точный статус участника для конкретного сообщения

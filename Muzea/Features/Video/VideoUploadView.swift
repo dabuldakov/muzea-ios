@@ -24,16 +24,16 @@ struct VideoUploadView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Описание") {
-                    TextField("Название", text: $title)
-                    TextField("Описание", text: $videoDescription, axis: .vertical)
+                Section(L10n.videoDescriptionSection) {
+                    TextField(L10n.videoNameField, text: $title)
+                    TextField(L10n.videoDescriptionField, text: $videoDescription, axis: .vertical)
                         .lineLimit(3...6)
                 }
 
-                Section("Файл") {
+                Section(L10n.videoFileSection) {
                     PhotosPicker(selection: $selectedItem, matching: .videos) {
                         Label(
-                            videoData == nil ? "Выбрать видео" : "Видео выбрано",
+                            videoData == nil ? L10n.videoPick : L10n.videoChosen,
                             systemImage: "film"
                         )
                     }
@@ -57,16 +57,16 @@ struct VideoUploadView: View {
                         if viewModel.isUploading {
                             ProgressView().frame(maxWidth: .infinity)
                         } else {
-                            Text("Загрузить").frame(maxWidth: .infinity)
+                            Text(L10n.videoUpload).frame(maxWidth: .infinity)
                         }
                     }
                     .disabled(title.isEmpty || videoData == nil || viewModel.isUploading)
                 }
             }
-            .navigationTitle("Загрузка видео")
+            .navigationTitle(L10n.videoUploadTitle)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
+                    Button(L10n.cancel) { dismiss() }
                 }
             }
             .onChange(of: selectedItem) { newValue in

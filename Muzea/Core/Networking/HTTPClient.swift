@@ -174,7 +174,7 @@ final class HTTPClient {
             do {
                 let (data, response) = try await send(current, onProgress: onProgress)
                 guard let http = response as? HTTPURLResponse else {
-                    throw APIError.server(-1, "Пустой ответ")
+                    throw APIError.server(-1, L10n.emptyResponse)
                 }
                 switch http.statusCode {
                 case 200..<300:

@@ -28,10 +28,10 @@ struct RegisterView: View {
                     confirmationForm
                 }
             }
-            .navigationTitle(viewModel.state.phase == .email ? "Регистрация" : "Подтверждение")
+            .navigationTitle(viewModel.state.phase == .email ? L10n.registerTitle : L10n.confirmTitle)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
+                    Button(L10n.cancel) { dismiss() }
                 }
             }
         }
@@ -39,25 +39,25 @@ struct RegisterView: View {
 
     @ViewBuilder
     private var registrationForm: some View {
-        Section("Аккаунт") {
+        Section(L10n.authAccount) {
             TextField("Email", text: $email)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .textContentType(.emailAddress)
-            TextField("Имя пользователя", text: $username)
+            TextField(L10n.usernameField, text: $username)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .textContentType(.username)
-            TextField("Отображаемое имя (необязательно)", text: $displayName)
+            TextField(L10n.displayNameField, text: $displayName)
         }
 
         Section {
-            Toggle("Я принимаю Пользовательское соглашение и Политику обработки персональных данных", isOn: $consentAccepted)
+            Toggle(L10n.consentToggle, isOn: $consentAccepted)
                 .font(.footnote)
             HStack(spacing: 16) {
-                Button("Пользовательское соглашение") { open(Legal.termsURL) }
-                Button("Политика обработки ПДн") { open(Legal.policyURL) }
+                Button(L10n.termsLink) { open(Legal.termsURL) }
+                Button(L10n.policyLink) { open(Legal.policyURL) }
             }
             .font(.caption)
         }
@@ -69,7 +69,7 @@ struct RegisterView: View {
                 if viewModel.state.isLoading {
                     ProgressView().frame(maxWidth: .infinity)
                 } else {
-                    Text("Зарегистрироваться").frame(maxWidth: .infinity)
+                    Text(L10n.registerAction).frame(maxWidth: .infinity)
                 }
             }
             .disabled(!isValid || viewModel.state.isLoading)
@@ -78,11 +78,11 @@ struct RegisterView: View {
 
     @ViewBuilder
     private var confirmationForm: some View {
-        Section("Подтверждение email") {
+        Section(L10n.confirmEmailSection) {
             if let info = viewModel.state.info {
                 Text(info).font(.footnote).foregroundColor(.secondary)
             }
-            TextField("Код из письма", text: $code)
+            TextField(L10n.codeField, text: $code)
                 .keyboardType(.numberPad)
                 .textContentType(.oneTimeCode)
         }
@@ -94,17 +94,17 @@ struct RegisterView: View {
                 if viewModel.state.isLoading {
                     ProgressView().frame(maxWidth: .infinity)
                 } else {
-                    Text("Подтвердить").frame(maxWidth: .infinity)
+                    Text(L10n.confirmAction).frame(maxWidth: .infinity)
                 }
             }
             .disabled(code.isEmpty || viewModel.state.isLoading)
 
-            Button("Отправить ещё раз") {
+            Button(L10n.resendCode) {
                 Task { _ = await viewModel.resend() }
             }
             .disabled(viewModel.state.isLoading)
 
-            Button("Изменить данные") {
+            Button(L10n.changeData) {
                 code = ""
                 viewModel.backToEmail()
             }

@@ -9,9 +9,9 @@ enum LastSeenFormatter {
     private static let serverPattern = "yyyy-MM-dd'T'HH:mm:ss"
 
     /// Текст статуса «в сети» (Android `presence_online`).
-    static let onlineText = "в сети"
+    static var onlineText: String { L10n.presenceOnline }
     /// Без данных о последнем визите (Android `presence_offline`).
-    static let offlineText = "офлайн"
+    static var offlineText: String { L10n.presenceOffline }
 
     /// Момент последней активности либо nil, если данных нет.
     ///
@@ -42,13 +42,13 @@ enum LastSeenFormatter {
         guard let minutes = minutesAgo(iso, now: now) else { return offlineText }
         switch minutes {
         case ..<1:
-            return "был(а) только что"
+            return L10n.presenceJustNow
         case ..<60:
-            return "был(а) \(minutes) мин назад"
+            return L10n.presenceMinutes(Int(minutes))
         case ..<(24 * 60):
-            return "был(а) \(minutes / 60) ч назад"
+            return L10n.presenceHours(Int(minutes / 60))
         default:
-            return "был(а) в сети \(DateTimeFormat.full(iso, timeZone: timeZone))"
+            return L10n.presenceLastSeen(DateTimeFormat.full(iso, timeZone: timeZone))
         }
     }
 }

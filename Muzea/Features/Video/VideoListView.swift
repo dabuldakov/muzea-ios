@@ -18,7 +18,7 @@ struct VideoListView: View {
     var body: some View {
         NavigationStack(path: $router.path) {
             content
-                .navigationTitle("Видео")
+                .navigationTitle(L10n.videoTitle)
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         Button { showUpload = true } label: { Image(systemName: "plus") }
@@ -44,7 +44,7 @@ struct VideoListView: View {
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "play.rectangle").font(.largeTitle).foregroundColor(.secondary)
-                    Text(viewModel.state.error ?? "Нет видео").foregroundColor(.secondary)
+                    Text(viewModel.state.error ?? L10n.videoEmpty).foregroundColor(.secondary)
                 }
             }
         } else {
@@ -80,7 +80,7 @@ struct VideoCell: View {
             .cornerRadius(8)
 
             Text(video.title).font(.subheadline).lineLimit(2)
-            Text("\(video.views) просмотров").font(.caption).foregroundColor(.secondary)
+            Text(L10n.videoViews(video.views)).font(.caption).foregroundColor(.secondary)
         }
     }
 }

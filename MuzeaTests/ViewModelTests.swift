@@ -322,7 +322,7 @@ final class AuthViewModelTests: XCTestCase {
         let ok = await viewModel.requestLoginCode(email: "alice@example.com")
 
         XCTAssertFalse(ok)
-        XCTAssertEqual(viewModel.state.error, "Подождите немного перед повторной отправкой.")
+        XCTAssertEqual(viewModel.state.error, L10n.cooldown)
     }
 }
 

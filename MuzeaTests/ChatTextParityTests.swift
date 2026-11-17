@@ -363,8 +363,8 @@ extension ChatTextParityTests {
         let deleted = TestData.message("m2", text: "hi", sender: "other")
             .replacing(senderDeleted: true)
 
-        XCTAssertEqual(MessagePreviewText.senderName(mine, myUserUuid: "me"), "Вы")
-        XCTAssertEqual(MessagePreviewText.senderName(deleted, myUserUuid: "me"), "Удалённый пользователь")
+        XCTAssertEqual(MessagePreviewText.senderName(mine, myUserUuid: "me"), L10n.you)
+        XCTAssertEqual(MessagePreviewText.senderName(deleted, myUserUuid: "me"), L10n.deletedUser)
         XCTAssertEqual(MessagePreviewText.preview(mine), "hi")
     }
 

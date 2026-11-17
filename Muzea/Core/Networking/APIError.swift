@@ -9,11 +9,11 @@ enum APIError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL: return "Некорректный адрес запроса"
-        case .unauthorized: return "Требуется авторизация"
-        case .server(let code, let message): return "Ошибка сервера (\(code)): \(message)"
-        case .decoding(let error): return "Ошибка разбора ответа: \(error.localizedDescription)"
-        case .transport(let error): return "Сетевая ошибка: \(error.localizedDescription)"
+        case .invalidURL: return L10n.invalidURL
+        case .unauthorized: return L10n.unauthorized
+        case .server(let code, let message): return L10n.serverError(code, message)
+        case .decoding(let error): return L10n.decodingError(error.localizedDescription)
+        case .transport(let error): return L10n.transportError(error.localizedDescription)
         }
     }
 }

@@ -35,7 +35,7 @@ final class AuthViewModel: ObservableObject {
     func requestLoginCode(email: String) async -> Bool {
         let normalized = Self.normalizeEmail(email)
         guard Self.isValidEmail(normalized) else {
-            state.error = "Введите корректный email."
+            state.error = L10n.emailInvalid
             return false
         }
         state.flow = .login
@@ -44,7 +44,7 @@ final class AuthViewModel: ObservableObject {
             try await repository.requestLoginCode(email: normalized)
         } onSuccess: {
             state.phase = .code
-            state.info = "Код отправлен на \(normalized)."
+            state.info = L10n.codeSent(normalized)
         }
     }
 
@@ -54,11 +54,11 @@ final class AuthViewModel: ObservableObject {
         let normalizedEmail = Self.normalizeEmail(email)
         let normalizedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard Self.isValidEmail(normalizedEmail) else {
-            state.error = "Введите корректный email."
+            state.error = L10n.emailInvalid
             return false
         }
         guard Self.isValidUsername(normalizedUsername) else {
-            state.error = "Имя пользователя: 3–64 символа, только латиница, цифры, «_» и «.»."
+            state.error = L10n.usernameInvalid
             return false
         }
         state.flow = .register
@@ -72,7 +72,7 @@ final class AuthViewModel: ObservableObject {
             )
         } onSuccess: {
             state.phase = .code
-            state.info = "Код подтверждения отправлен на \(normalizedEmail)."
+            state.info = L10n.codeSent(normalizedEmail)
         }
     }
 
@@ -81,7 +81,7 @@ final class AuthViewModel: ObservableObject {
     func verify(code: String) async -> Bool {
         let normalizedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedCode.isEmpty else {
-            state.error = "Введите код из письма."
+            state.error = L10n.codeRequired
             return false
         }
         let flow = state.flow
@@ -109,7 +109,7 @@ final class AuthViewModel: ObservableObject {
                 try await repository.resendVerification(email: email)
             }
         } onSuccess: {
-            state.info = "Код отправлен повторно на \(email)."
+            state.info = L10n.codeSentAgain(email)
         }
     }
 

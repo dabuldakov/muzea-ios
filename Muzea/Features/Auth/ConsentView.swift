@@ -13,7 +13,7 @@ struct ConsentView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Условия и обработка персональных данных")
+                    Text(L10n.consentTitle)
                         .font(.title2)
                         .bold()
 
@@ -23,8 +23,8 @@ struct ConsentView: View {
                         .textSelection(.enabled)
 
                     VStack(alignment: .leading, spacing: 12) {
-                        legalLink("Открыть Пользовательское соглашение", url: Legal.termsURL)
-                        legalLink("Открыть Политику обработки персональных данных", url: Legal.policyURL)
+                        legalLink(L10n.consentOpenTerms, url: Legal.termsURL)
+                        legalLink(L10n.consentOpenPolicy, url: Legal.policyURL)
                     }
                 }
                 .padding()
@@ -35,13 +35,13 @@ struct ConsentView: View {
                     consent.accept()
                     onAccept()
                 } label: {
-                    Text("Принять и продолжить").frame(maxWidth: .infinity)
+                    Text(L10n.consentAccept).frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
 
                 // Как и на Android, отказ закрывает приложение: без согласия
                 // обработка персональных данных недопустима.
-                Button("Не принимать") { exit(0) }
+                Button(L10n.consentDecline) { exit(0) }
                     .foregroundColor(.secondary)
             }
             .padding()

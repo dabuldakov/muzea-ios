@@ -9,29 +9,29 @@ struct OperatorInfoView: View {
     var body: some View {
         List {
             Section {
-                Text("Персональные данные пользователей обрабатывает:")
+                Text(L10n.operatorTitle)
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
 
             Section {
-                LabeledContent("ФИО", value: Legal.operatorName)
-                LabeledContent("Статус", value: Legal.operatorStatus)
-                LabeledContent("ИНН", value: Legal.operatorINN)
-                LabeledContent("Адрес", value: Legal.operatorAddress)
+                LabeledContent(L10n.operatorName, value: Legal.operatorName)
+                LabeledContent(L10n.operatorStatus, value: Legal.operatorStatus)
+                LabeledContent(L10n.operatorINN, value: Legal.operatorINN)
+                LabeledContent(L10n.operatorAddress, value: Legal.operatorAddress)
             }
 
-            Section("Обращения") {
-                link("Почта", detail: Legal.operatorEmail, url: Legal.operatorEmailURL)
-                link("Телефон", detail: Legal.operatorPhone, url: Legal.operatorPhoneURL)
+            Section(L10n.operatorContacts) {
+                link(L10n.operatorEmail, detail: Legal.operatorEmail, url: Legal.operatorEmailURL)
+                link(L10n.operatorPhone, detail: Legal.operatorPhone, url: Legal.operatorPhoneURL)
             }
 
-            Section("Документы") {
-                link("Политика обработки персональных данных", detail: nil, url: Legal.policyURL)
-                link("Пользовательское соглашение", detail: nil, url: Legal.termsURL)
+            Section(L10n.operatorDocuments) {
+                link(L10n.policyLink, detail: nil, url: Legal.policyURL)
+                link(L10n.termsLink, detail: nil, url: Legal.termsURL)
             }
         }
-        .navigationTitle("Оператор персональных данных")
+        .navigationTitle(L10n.operatorLink)
         .navigationBarTitleDisplayMode(.inline)
     }
 
