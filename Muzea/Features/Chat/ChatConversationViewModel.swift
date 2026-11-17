@@ -595,6 +595,10 @@ final class ChatConversationViewModel: ObservableObject {
         state.error = nil
     }
 
+    func reportValidationError(_ message: String) {
+        state.error = message
+    }
+
     func consumeNotice() {
         state.notice = nil
     }
