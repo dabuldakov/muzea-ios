@@ -17,14 +17,14 @@ the iOS backlog: update the status as work lands. Status values:
 |---|---|---|---|
 | UI.01 | Theme components | partial | SwiftUI native; need a shared theme/design tokens layer |
 | UI.02 | Fonts | partial | system fonts; custom sizes not unified |
-| UI.03 | Chat screen, bubbles | partial | text + replies, forwarding, reactions, pins; attachments/media missing |
+| UI.03 | Chat screen, bubbles | partial | text + replies, reactions, pins, link previews; attachments/media missing |
 | UI.04 | Animations | missing | charge button, delete, transitions |
 | UI.05 | Haptics | missing | |
 | UI.06 | Dark theme | partial | follows system; explicit palette needed |
 | UI.07 | Accessibility | missing | labels, dynamic type, contrast |
 | UI.08 | Adaptivity | partial | iPhone portrait only |
 | UI.09 | Localization | partial | RU strings; EN + pluralization missing |
-| UI.10 | 6-line composer | partial | `1...6` implemented; device check pending |
+| UI.10 | 6-line composer | partial | UIViewRepresentable editor, 1...6 lines, cursor-aware; device check pending |
 | UI.11 | Hide tab bar in chat | partial | `.toolbar(.hidden, for: .tabBar)`; device check pending |
 | UI.12 | Emoji + GIF button | missing | |
 | UI.13 | Composer layout | partial | attach button/width |
@@ -39,20 +39,21 @@ the iOS backlog: update the status as work lands. Status values:
 | MSG.01 | Text engine | done | optimistic send + reducer |
 | MSG.02 | Send-button charge | partial | hold-to-charge 0..100, `power` in send body, haptics; tests in `ChatTextParityTests`; device check pending |
 | MSG.03 | Cancel mechanics | partial | swipe up/left cancels, red indicator; tests in `ChatTextParityTests`; device check pending |
-| MSG.04 | Local cache + outbox | missing | disk outbox, retry, persistence |
+| MSG.04 | Local cache + outbox | partial | disk `chat-outbox.json`, same `clientMessageId` on retry, auto-retry every 15 s; no network monitor |
 | MSG.05 | Replies / edits / forward | partial | reply/edit/delete/forward + comment; tests in `ChatTextParityTests`; device smoke pending |
-| MSG.06 | @mentions | partial | composer suggestions from group participants; tests in `ChatTextParityTests` |
+| MSG.06 | @mentions | partial | cursor-aware suggestions in any text position; tests in `ChatTextParityTests` |
 | MSG.07 | Multi-select | partial | select, forward, delete; tests in `ChatTextParityTests` |
 | MSG.08 | Pinned messages | partial | top bar, pin/unpin, jump; tests in `ChatTextParityTests` |
-| MSG.09 | Read receipts | partial | ticks from receipts + group status sheet; tests in `ChatTextParityTests` |
+| MSG.09 | Read receipts | partial | exact `/status/{messageUuid}` times + read-on-scroll; tests in `ChatTextParityTests` |
 | MSG.10 | Message search | missing | backend has endpoints |
 | MSG.11 | Drafts | partial | `UserDefaultsChatDraftStore`; tests in `ChatTextParityTests` |
 | MSG.12 | Scroll anchor | partial | verify on device |
 | MSG.13 | Group rename | missing | API exists (`PUT /api/chats/{uuid}`) |
 | MSG.14 | Remove participant | missing | API exists |
 | MSG.15 | Remove contact | missing | API exists |
-| MSG.16 | Reactions | partial | toggle + inline chips + menu; full refresh every 15 s (not in `/updated`); tests in `ChatTextParityTests` |
+| MSG.16 | Reactions | partial | 24 emoji, recent history, picker sheet, authors in details; full refresh every 15 s; tests in `ChatTextParityTests` |
 | MSG.17 | Unread in chat list | partial | reload on return from conversation; tests/device check pending |
+| — | Link previews (Open Graph) | partial | first URL, og/twitter/title parse, 24h cache, SSRF guard; tests in `ChatTextParityTests` |
 
 ## MEDIA — chat attachments
 
@@ -109,7 +110,7 @@ the iOS backlog: update the status as work lands. Status values:
 | SEC.01 | Transport | done | ATS, HTTPS only |
 | SEC.02 | Tokens on device | partial | access+refresh in Keychain, no password; legacy purge implemented |
 | SEC.03 | Message cache | partial | in-memory; no encryption |
-| SEC.04 | Anti-abuse (report/block) | missing | UGC requirement |
+| SEC.04 | Anti-abuse (report/block) | partial | chat report/block implemented; news/video reports missing |
 | SEC.05 | Admin panel | n/a | web product |
 | SEC.06 | Account deletion | done | deactivation in all three services: data kept, login closed, names hidden, private chats read-only, support restore via `X-Support-Token` |
 
@@ -117,7 +118,7 @@ the iOS backlog: update the status as work lands. Status values:
 
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
-| QA.01 | Unit tests | partial | 232 vs 1151 on Android (1 Keychain test skipped on unsigned simulator); chat text parity covered |
+| QA.01 | Unit tests | partial | 248 vs 1151 on Android (1 Keychain test skipped on unsigned simulator); chat text parity covered |
 | QA.02 | Robolectric | n/a | |
 | QA.03 | Integration (mock network) | partial | `MockURLProtocol`; add shared fixtures |
 | QA.04 | Device tests | missing | XCUITest for 4 critical paths |

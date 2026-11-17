@@ -192,7 +192,8 @@ Muzea/
 ├── App/            точка входа, DI-контейнер, Router, таб-бар
 ├── Domain/
 │   ├── Repositories/ протоколы репозиториев
-│   ├── Chat/         ChatMessageReducer, статусы, действия, упоминания, черновики
+│   ├── Chat/         ChatMessageReducer, статусы, действия, упоминания,
+│   │                 черновики, outbox, link previews
 │   ├── UseCase/      OpenPrivateChatUseCase
 │   └── ViewState/    ChatListUiState/ChatListViewState
 ├── Core/
@@ -207,7 +208,7 @@ Muzea/
 │   ├── News/       лента, детали, создание, фильтр
 │   ├── Video/      список, детали (удаление), загрузка с превью
 │   ├── Chat/       список чатов, переписка (ответы/правки/пересылка, реакции,
-│   │               закрепы, статусы, мультивыбор, черновики), группы
+│   │               закрепы, статусы, мультивыбор, черновики, outbox, отчеты)
 │   ├── Contact/    контакты
 │   └── Profile/    профиль, аватар, оператор ПДн, удаление аккаунта
 └── Resources/      Info.plist, Assets
