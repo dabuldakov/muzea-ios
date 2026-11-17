@@ -2,7 +2,6 @@ import Foundation
 import Network
 
 /// Наблюдение за сетью для баннера и автоповтора очередей.
-@MainActor
 final class NetworkMonitor: ObservableObject {
     @Published private(set) var isOnline = true
     @Published private(set) var isExpensive = false
@@ -12,7 +11,7 @@ final class NetworkMonitor: ObservableObject {
 
     init() {
         monitor.pathUpdateHandler = { [weak self] path in
-            Task { @MainActor in
+            DispatchQueue.main.async {
                 self?.isOnline = path.status == .satisfied
                 self?.isExpensive = path.isExpensive
             }
