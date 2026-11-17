@@ -2,7 +2,7 @@ import Foundation
 
 /// Единое состояние ленты новостей.
 struct NewsFeedUiState: Equatable {
-    var news: [NewsResponse] = []
+    var news: [News] = []
     var isLoading = false
     var isRefreshing = false
     var endReached = false
@@ -18,7 +18,7 @@ final class NewsListViewModel: ObservableObject {
     private let ownUsername: String?
     private let pageSize = Config.newsPageSize
 
-    private var raw: [NewsResponse] = []
+    private var raw: [News] = []
     private var contactUsernames: Set<String> = []
     private var contactsLoaded = false
     private var page = 0
@@ -77,13 +77,13 @@ final class NewsListViewModel: ObservableObject {
         isLoading = false
     }
 
-    func loadMoreIfNeeded(currentItem: NewsResponse) async {
+    func loadMoreIfNeeded(currentItem: News) async {
         guard !endReached, !isLoading else { return }
         guard let index = state.news.firstIndex(of: currentItem), index >= state.news.count - 2 else { return }
         await load(reset: false)
     }
 
-    func delete(_ item: NewsResponse) async -> Bool {
+    func delete(_ item: News) async -> Bool {
         do {
             try await newsRepository.deleteNews(item.id)
             raw.removeAll { $0.id == item.id }

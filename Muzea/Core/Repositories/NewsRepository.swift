@@ -8,8 +8,8 @@ final class NewsRepositoryImpl: NewsRepository {
         self.client = client
     }
 
-    func getNews(page: Int, size: Int) async throws -> PageResponse<NewsResponse> {
-        try await client.request(
+    func getNews(page: Int, size: Int) async throws -> Page<News> {
+        let response: PageResponse<NewsDTO> = try await client.request(
             "GET",
             "/api/news",
             query: [
@@ -17,10 +17,12 @@ final class NewsRepositoryImpl: NewsRepository {
                 URLQueryItem(name: "size", value: "\(size)")
             ]
         )
+        return response.toDomain { $0.toDomain() }
     }
 
-    func getNewsById(_ id: Int64) async throws -> NewsResponse {
-        try await client.request("GET", "/api/news/\(id)")
+    func getNewsById(_ id: Int64) async throws -> News {
+        let dto: NewsDTO = try await client.request("GET", "/api/news/\(id)")
+        return dto.toDomain()
     }
 
     func createNews(title: String, content: String, videoId: Int64?, image: UploadFile?) async throws -> NewsCreateResponse {

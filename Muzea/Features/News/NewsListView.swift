@@ -59,7 +59,7 @@ struct NewsListView: View {
 }
 
 struct NewsRow: View {
-    let item: NewsResponse
+    let item: News
 
     var body: some View {
         HStack(spacing: 12) {

@@ -116,11 +116,11 @@ final class PrivateChatCache {
 
 /// Кэш списка видео в памяти процесса (аналог `VideoListCache`).
 final class VideoListCache {
-    private let store = LRUStore<Int64, VideoResponse>(limit: 200)
+    private let store = LRUStore<Int64, Video>(limit: 200)
 
-    func get() -> [VideoResponse] { store.all() }
+    func get() -> [Video] { store.all() }
     func has() -> Bool { !store.isEmpty() }
-    func put(_ list: [VideoResponse]) {
+    func put(_ list: [Video]) {
         store.replace(list.map { ($0.id, $0) })
     }
     func clear() { store.clear() }

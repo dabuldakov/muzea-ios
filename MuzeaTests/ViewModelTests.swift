@@ -175,8 +175,8 @@ final class ContactListViewModelTests: XCTestCase {
 @MainActor
 final class VideoListViewModelTests: XCTestCase {
 
-    private func video(_ id: Int64, by author: String) -> VideoResponse {
-        VideoResponse(
+    private func video(_ id: Int64, by author: String) -> Video {
+        Video(
             id: id,
             title: "V\(id)",
             description: nil,
@@ -419,7 +419,7 @@ final class CreateGroupViewModelTests: XCTestCase {
 @MainActor
 final class ProfileViewModelTests: XCTestCase {
 
-    private let user = UserResponse(
+    private let user = User(
         id: 7,
         userName: "me",
         email: "me@example.com",

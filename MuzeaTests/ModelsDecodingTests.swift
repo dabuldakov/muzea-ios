@@ -29,7 +29,7 @@ final class ModelsDecodingTests: XCTestCase {
           }
         }
         """
-        let news = try TestSupport.decode(NewsResponse.self, json)
+        let news = try TestSupport.decode(NewsDTO.self, json)
 
         XCTAssertEqual(news.id, 54)
         XCTAssertEqual(news.author, "dabuldakov")
@@ -50,7 +50,7 @@ final class ModelsDecodingTests: XCTestCase {
         {"id": 1, "title": "T", "content": "C", "imageUrl": null,
          "publishedAt": "2026-09-22T06:48:24Z", "author": "a", "relatedVideo": null}
         """
-        let news = try TestSupport.decode(NewsResponse.self, json)
+        let news = try TestSupport.decode(NewsDTO.self, json)
         XCTAssertNil(news.imageUrl)
         XCTAssertNil(news.relatedVideo)
     }
@@ -62,7 +62,7 @@ final class ModelsDecodingTests: XCTestCase {
          "fileSize": 10, "durationSeconds": 10, "views": 5, "likes": 2,
          "likedByMe": true, "uploadedBy": "me", "uploadedAt": "2026-01-01T00:00:00"}
         """
-        let video = try TestSupport.decode(VideoResponse.self, json)
+        let video = try TestSupport.decode(VideoDTO.self, json)
         XCTAssertEqual(video.fullVideoURL?.absoluteString, "https://cdn.example.com/v.mp4")
         XCTAssertNil(video.fullThumbnailURL)
         XCTAssertEqual(video.durationSeconds, 10)
@@ -173,7 +173,7 @@ final class ModelsDecodingTests: XCTestCase {
         {"id":7,"userName":"alice","email":"a@b.c","fullName":"Alice",
          "avatarUrl":null,"role":"USER","createdAt":null,"enabled":true}
         """
-        let user = try TestSupport.decode(UserResponse.self, json)
+        let user = try TestSupport.decode(UserDTO.self, json)
         XCTAssertEqual(user.id, 7)
         XCTAssertEqual(user.userName, "alice")
     }
@@ -184,7 +184,7 @@ final class ModelsDecodingTests: XCTestCase {
         {"id":7,"userName":"alice","fullName":"Alice",
          "avatarUrl":null,"role":"USER","createdAt":null,"enabled":true}
         """
-        let user = try TestSupport.decode(UserResponse.self, json)
+        let user = try TestSupport.decode(UserDTO.self, json)
         XCTAssertEqual(user.userName, "alice")
         XCTAssertNil(user.email)
     }

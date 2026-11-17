@@ -7,7 +7,7 @@ final class DeleteAccountTests: XCTestCase {
 
     private var store: TokenStore!
 
-    private let sampleUser = UserResponse(
+    private let sampleUser = User(
         id: 7,
         userName: "me",
         email: "me@example.com",

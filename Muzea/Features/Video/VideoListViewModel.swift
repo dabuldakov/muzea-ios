@@ -2,7 +2,7 @@ import Foundation
 
 /// Единое состояние ленты видео.
 struct VideoFeedUiState: Equatable {
-    var videos: [VideoResponse] = []
+    var videos: [Video] = []
     var isLoading = false
     var error: String?
 }

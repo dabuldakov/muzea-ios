@@ -83,7 +83,7 @@ struct NewsDetailView: View {
         }
     }
 
-    private func canDelete(_ news: NewsResponse) -> Bool {
+    private func canDelete(_ news: News) -> Bool {
         guard let ownUsername = container.tokenStore.username, !ownUsername.isEmpty else { return false }
         return news.author == ownUsername
     }

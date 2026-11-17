@@ -475,15 +475,15 @@ final class FakeChatSessionRepository: ChatSessionRepository {
 }
 
 final class FakeUserRepository: UserRepository {
-    var user: UserResponse?
+    var user: User?
     var deletedIds: [Int64] = []
     var deleteError: Error?
 
-    func currentUser() async throws -> UserResponse {
+    func currentUser() async throws -> User {
         guard let user else { throw APIError.server(500, "no user") }
         return user
     }
-    func updateUser(id: Int64, fullName: String, email: String) async throws -> UserResponse {
+    func updateUser(id: Int64, fullName: String, email: String) async throws -> User {
         guard let user else { throw APIError.server(500, "no user") }
         return user
     }
@@ -494,14 +494,14 @@ final class FakeUserRepository: UserRepository {
 }
 
 final class FakeNewsRepository: NewsRepository {
-    var pages: [PageResponse<NewsResponse>] = []
-    var byId: [Int64: NewsResponse] = [:]
+    var pages: [Page<News>] = []
+    var byId: [Int64: News] = [:]
     var deleted: [Int64] = []
 
-    func getNews(page: Int, size: Int) async throws -> PageResponse<NewsResponse> {
-        page < pages.count ? pages[page] : PageResponse(content: [], empty: true, first: false, last: true, number: page, numberOfElements: 0, size: size, totalElements: 0, totalPages: 0)
+    func getNews(page: Int, size: Int) async throws -> Page<News> {
+        page < pages.count ? pages[page] : Page(content: [], totalElements: 0, totalPages: 0, number: page)
     }
-    func getNewsById(_ id: Int64) async throws -> NewsResponse {
+    func getNewsById(_ id: Int64) async throws -> News {
         guard let item = byId[id] else { throw APIError.server(404, "not found") }
         return item
     }
@@ -512,18 +512,18 @@ final class FakeNewsRepository: NewsRepository {
 }
 
 final class FakeVideoRepository: VideoRepository {
-    var videos: [VideoResponse] = []
-    var cached: [VideoResponse] = []
+    var videos: [Video] = []
+    var cached: [Video] = []
     var deleted: [Int64] = []
 
-    func getVideos() async throws -> [VideoResponse] { videos }
-    func cachedVideos() -> [VideoResponse] { cached }
-    func getVideoById(_ id: Int64) async throws -> VideoResponse {
+    func getVideos() async throws -> [Video] { videos }
+    func cachedVideos() -> [Video] { cached }
+    func getVideoById(_ id: Int64) async throws -> Video {
         guard let video = videos.first(where: { $0.id == id }) else { throw APIError.server(404, "not found") }
         return video
     }
-    func uploadVideo(title: String, description: String?, data: Data, fileName: String, mimeType: String, thumbnail: UploadFile?) async throws -> VideoResponse {
-        videos.first ?? VideoResponse(id: 1, title: title, description: description, url: "", thumbnailUrl: nil, fileSize: nil, durationSeconds: nil, views: 0, likes: nil, likedByMe: nil, uploadedBy: "me", uploadedAt: "")
+    func uploadVideo(title: String, description: String?, data: Data, fileName: String, mimeType: String, thumbnail: UploadFile?) async throws -> Video {
+        videos.first ?? Video(id: 1, title: title, description: description, url: "", thumbnailUrl: nil, fileSize: nil, durationSeconds: nil, views: 0, likes: nil, likedByMe: nil, uploadedBy: "me", uploadedAt: "")
     }
     func deleteVideo(_ id: Int64) async throws { deleted.append(id) }
 }

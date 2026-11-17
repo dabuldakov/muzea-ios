@@ -5,7 +5,7 @@ enum Route: Hashable {
     case conversation(Chat)
     case groupSettings(Chat)
     case newsDetail(Int64)
-    case videoDetail(VideoResponse)
+    case videoDetail(Video)
     case operatorInfo
 }
 

@@ -25,7 +25,7 @@ final class HTTPClientTests: XCTestCase {
             (MockURLProtocol.response(for: request), TestSupport.data(#"{"id":1,"userName":"u","email":"e","role":"USER"}"#))
         }
 
-        let _: UserResponse = try await client().request("GET", "/api/users/me")
+        let _: UserDTO = try await client().request("GET", "/api/users/me")
 
         XCTAssertEqual(MockURLProtocol.requests.first?.value(forHTTPHeaderField: "Authorization"), "Bearer abc")
     }
@@ -82,7 +82,7 @@ final class HTTPClientTests: XCTestCase {
             (MockURLProtocol.response(for: request, status: 401), Data())
         }
         do {
-            let _: UserResponse = try await client().request("GET", "/api/users/me")
+            let _: UserDTO = try await client().request("GET", "/api/users/me")
             XCTFail("Ожидалась ошибка авторизации")
         } catch let error as APIError {
             guard case .unauthorized = error else {
@@ -98,7 +98,7 @@ final class HTTPClientTests: XCTestCase {
             (MockURLProtocol.response(for: request, status: 500), TestSupport.data("boom"))
         }
         do {
-            let _: UserResponse = try await client().request("GET", "/api/users/me")
+            let _: UserDTO = try await client().request("GET", "/api/users/me")
             XCTFail("Ожидалась ошибка сервера")
         } catch let error as APIError {
             guard case .server(let code, let message) = error else {
@@ -116,7 +116,7 @@ final class HTTPClientTests: XCTestCase {
             (MockURLProtocol.response(for: request), TestSupport.data(#"{"unexpected":true}"#))
         }
         do {
-            let _: UserResponse = try await client().request("GET", "/api/users/me")
+            let _: UserDTO = try await client().request("GET", "/api/users/me")
             XCTFail("Ожидалась ошибка разбора")
         } catch let error as APIError {
             guard case .decoding = error else {
@@ -130,7 +130,7 @@ final class HTTPClientTests: XCTestCase {
     func testTransportErrorIsWrapped() async {
         MockURLProtocol.handler = { _ in throw URLError(.cannotConnectToHost) }
         do {
-            let _: UserResponse = try await client().request("GET", "/api/users/me")
+            let _: UserDTO = try await client().request("GET", "/api/users/me")
             XCTFail("Ожидалась сетевая ошибка")
         } catch let error as APIError {
             guard case .transport = error else {

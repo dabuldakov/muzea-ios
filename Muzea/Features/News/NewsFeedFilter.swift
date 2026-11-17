@@ -4,10 +4,10 @@ enum NewsFeedFilter {
     /// Оставляет новости авторов из контактов и свои собственные.
     /// Регистрозависимо, значения обрезаются от пробелов.
     static func filter(
-        _ news: [NewsResponse],
+        _ news: [News],
         contactUsernames: Set<String>,
         ownUsername: String?
-    ) -> [NewsResponse] {
+    ) -> [News] {
         let contacts = Set(
             contactUsernames
                 .map { $0.trimmingCharacters(in: .whitespaces) }

@@ -8,16 +8,18 @@ final class UserRepositoryImpl: UserRepository {
         self.client = client
     }
 
-    func currentUser() async throws -> UserResponse {
-        try await client.request("GET", "/api/users/me")
+    func currentUser() async throws -> User {
+        let dto: UserDTO = try await client.request("GET", "/api/users/me")
+        return dto.toDomain()
     }
 
-    func updateUser(id: Int64, fullName: String, email: String) async throws -> UserResponse {
-        try await client.request(
+    func updateUser(id: Int64, fullName: String, email: String) async throws -> User {
+        let dto: UserDTO = try await client.request(
             "PUT",
             "/api/users/\(id)",
             body: UpdateUserRequest(fullName: fullName, email: email, enabled: true)
         )
+        return dto.toDomain()
     }
 
     /// Деактивация профиля на основном бэкенде: новости, видео, лайки и файлы

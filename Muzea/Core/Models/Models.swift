@@ -8,7 +8,7 @@ struct UpdateUserRequest: Encodable {
     let enabled: Bool
 }
 
-struct UserResponse: Decodable {
+struct UserDTO: Decodable {
     let id: Int64
     let userName: String
     /// В makeup email больше не хранится — он живёт в auth-service.
@@ -20,12 +20,12 @@ struct UserResponse: Decodable {
     let enabled: Bool?
 }
 
-struct NewsResponse: Decodable, Identifiable, Hashable {
+struct NewsDTO: Decodable, Identifiable, Hashable {
     let id: Int64
     let title: String
     let content: String
     let imageUrl: String?
-    let relatedVideo: VideoResponse?
+    let relatedVideo: VideoDTO?
     let author: String
     let publishedAt: String
 }
@@ -34,7 +34,7 @@ struct NewsCreateResponse: Decodable {
     let id: Int64
 }
 
-struct VideoResponse: Decodable, Identifiable, Hashable {
+struct VideoDTO: Decodable, Identifiable, Hashable {
     let id: Int64
     let title: String
     let description: String?

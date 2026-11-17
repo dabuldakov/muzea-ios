@@ -10,18 +10,20 @@ final class VideoRepositoryImpl: VideoRepository {
         self.cache = cache
     }
 
-    func getVideos() async throws -> [VideoResponse] {
-        let videos: [VideoResponse] = try await client.request("GET", "/api/videos")
+    func getVideos() async throws -> [Video] {
+        let dtos: [VideoDTO] = try await client.request("GET", "/api/videos")
+        let videos = dtos.map { $0.toDomain() }
         cache.put(videos)
         return videos
     }
 
-    func cachedVideos() -> [VideoResponse] {
+    func cachedVideos() -> [Video] {
         cache.get()
     }
 
-    func getVideoById(_ id: Int64) async throws -> VideoResponse {
-        try await client.request("GET", "/api/videos/\(id)")
+    func getVideoById(_ id: Int64) async throws -> Video {
+        let dto: VideoDTO = try await client.request("GET", "/api/videos/\(id)")
+        return dto.toDomain()
     }
 
     func uploadVideo(
@@ -31,7 +33,7 @@ final class VideoRepositoryImpl: VideoRepository {
         fileName: String,
         mimeType: String,
         thumbnail: UploadFile?
-    ) async throws -> VideoResponse {
+    ) async throws -> Video {
         var fields = ["title": title]
         if let description, !description.isEmpty { fields["description"] = description }
 
@@ -48,7 +50,12 @@ final class VideoRepositoryImpl: VideoRepository {
                 )
             )
         }
-        return try await client.upload("/api/videos/upload", fields: fields, files: files)
+        let dto: VideoDTO = try await client.upload(
+            "/api/videos/upload",
+            fields: fields,
+            files: files
+        )
+        return dto.toDomain()
     }
 
     func deleteVideo(_ id: Int64) async throws {

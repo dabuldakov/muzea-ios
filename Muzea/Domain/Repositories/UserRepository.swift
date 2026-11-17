@@ -3,8 +3,8 @@ import Foundation
 /// Профиль пользователя на основном бэкенде: чтение, правка и удаление аккаунта.
 
 protocol UserRepository {
-    func currentUser() async throws -> UserResponse
-    func updateUser(id: Int64, fullName: String, email: String) async throws -> UserResponse
+    func currentUser() async throws -> User
+    func updateUser(id: Int64, fullName: String, email: String) async throws -> User
     func deleteAccount(id: Int64) async throws
 }
 

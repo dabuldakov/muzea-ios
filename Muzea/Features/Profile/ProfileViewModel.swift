@@ -12,7 +12,7 @@ enum DeleteAccountOutcome: Equatable {
 
 /// Единое состояние экрана профиля.
 struct ProfileUiState {
-    var user: UserResponse?
+    var user: User?
     /// Email живёт в auth-service, а не в makeup.
     var email: String?
     var avatarUrl: String?
@@ -35,7 +35,7 @@ final class ProfileViewModel: ObservableObject {
         avatarRepository: AvatarRepository,
         chatSessionRepository: ChatSessionRepository,
         authRepository: AuthRepositoryProtocol,
-        initialUser: UserResponse? = nil,
+        initialUser: User? = nil,
         initialEmail: String? = nil
     ) {
         self.userRepository = userRepository

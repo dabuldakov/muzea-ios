@@ -134,8 +134,8 @@ final class MemoryCachesTests: XCTestCase {
     func testVideoListCacheKeepsInsertionOrder() {
         let cache = VideoListCache()
         cache.put([
-            VideoResponse(id: 2, title: "B", description: nil, url: "", thumbnailUrl: nil, fileSize: nil, durationSeconds: nil, views: 0, likes: nil, likedByMe: nil, uploadedBy: "me", uploadedAt: ""),
-            VideoResponse(id: 1, title: "A", description: nil, url: "", thumbnailUrl: nil, fileSize: nil, durationSeconds: nil, views: 0, likes: nil, likedByMe: nil, uploadedBy: "me", uploadedAt: "")
+            Video(id: 2, title: "B", description: nil, url: "", thumbnailUrl: nil, fileSize: nil, durationSeconds: nil, views: 0, likes: nil, likedByMe: nil, uploadedBy: "me", uploadedAt: ""),
+            Video(id: 1, title: "A", description: nil, url: "", thumbnailUrl: nil, fileSize: nil, durationSeconds: nil, views: 0, likes: nil, likedByMe: nil, uploadedBy: "me", uploadedAt: "")
         ])
 
         XCTAssertEqual(cache.get().map(\.id), [2, 1])

@@ -64,7 +64,7 @@ struct VideoListView: View {
 }
 
 struct VideoCell: View {
-    let video: VideoResponse
+    let video: Video
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {

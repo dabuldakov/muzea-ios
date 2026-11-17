@@ -6,8 +6,8 @@ final class FeedFilterTests: XCTestCase {
 
     // MARK: - News
 
-    private func news(id: Int64, author: String) -> NewsResponse {
-        NewsResponse(
+    private func news(id: Int64, author: String) -> News {
+        News(
             id: id,
             title: "Title \(id)",
             content: "Content \(id)",
@@ -58,8 +58,8 @@ final class FeedFilterTests: XCTestCase {
 
     // MARK: - Video
 
-    private func video(id: Int64, uploadedBy: String) -> VideoResponse {
-        VideoResponse(
+    private func video(id: Int64, uploadedBy: String) -> Video {
+        Video(
             id: id,
             title: "Title \(id)",
             description: nil,

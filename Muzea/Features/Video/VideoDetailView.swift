@@ -3,7 +3,7 @@ import AVKit
 import AVFoundation
 
 struct VideoDetailView: View {
-    let video: VideoResponse
+    let video: Video
     let container: AppContainer
 
     @Environment(\.dismiss) private var dismiss
@@ -11,7 +11,7 @@ struct VideoDetailView: View {
     @State private var player: AVPlayer?
     @State private var showDeleteConfirm = false
 
-    init(video: VideoResponse, container: AppContainer) {
+    init(video: Video, container: AppContainer) {
         self.video = video
         self.container = container
         _viewModel = StateObject(wrappedValue: VideoDetailViewModel(repository: container.videoRepository))

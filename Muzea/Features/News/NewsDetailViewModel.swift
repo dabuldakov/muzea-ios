@@ -2,7 +2,7 @@ import Foundation
 
 @MainActor
 final class NewsDetailViewModel: ObservableObject {
-    @Published private(set) var news: NewsResponse?
+    @Published private(set) var news: News?
     @Published private(set) var isLoading = false
     @Published private(set) var isDeleting = false
     @Published private(set) var error: String?

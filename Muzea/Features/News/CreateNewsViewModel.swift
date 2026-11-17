@@ -2,7 +2,7 @@ import Foundation
 
 @MainActor
 final class CreateNewsViewModel: ObservableObject {
-    @Published private(set) var ownVideos: [VideoResponse] = []
+    @Published private(set) var ownVideos: [Video] = []
     @Published private(set) var isSubmitting = false
     @Published private(set) var error: String?
 
