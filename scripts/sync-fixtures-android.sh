@@ -10,9 +10,11 @@ if [[ -z "$ANDROID_REPO" ]]; then
 fi
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TARGET="$ANDROID_REPO/app/src/test/resources/fixtures/chat"
+TARGET_CHAT="$ANDROID_REPO/app/src/test/resources/fixtures/chat"
+TARGET_MAKEUP="$ANDROID_REPO/app/src/test/resources/fixtures/makeup"
 
-mkdir -p "$TARGET"
-cp "$ROOT"/docs/fixtures/chat/*.json "$TARGET"/
-cp "$ROOT/docs/fixtures/README.md" "$TARGET/README.md"
-echo "fixtures synced to $TARGET"
+mkdir -p "$TARGET_CHAT" "$TARGET_MAKEUP"
+cp "$ROOT"/docs/fixtures/chat/*.json "$TARGET_CHAT"/
+cp "$ROOT"/docs/fixtures/makeup/*.json "$TARGET_MAKEUP"/
+cp "$ROOT/docs/fixtures/README.md" "$TARGET_CHAT/README.md"
+echo "fixtures synced to $ANDROID_REPO/app/src/test/resources/fixtures"

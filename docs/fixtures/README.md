@@ -25,4 +25,6 @@ chat-service.
 - `chat/attachment.json` — ответ загрузки вложения;
 - `chat/participants.json` — участники группы;
 - `chat/media_types.json` — golden-таблица типов/лимитов вложений;
-- `chat/gif_search.json` — ответ Klipy.
+- `chat/gif_search.json` — ответ Klipy;
+- `makeup/news_page.json`, `news.json`, `videos.json`, `user.json`,
+  `news_created.json` — ответы makeup/feed/profile.
