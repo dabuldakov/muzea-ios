@@ -154,11 +154,14 @@ final class ChatConversationViewModel: ObservableObject {
                 beforeMessageUuid: oldest.messageUuid,
                 limit: Config.messagePageSize
             )
-            if older.count < Config.messagePageSize {
+            let known = Set(state.messages.map(\.messageUuid))
+            let fresh = older.filter { !known.contains($0.messageUuid) }
+            // Сервер вернул только уже известные сообщения — дальше страниц нет.
+            if older.count < Config.messagePageSize || fresh.isEmpty {
                 state.hasMoreHistory = false
             }
-            if !older.isEmpty {
-                merge(older)
+            if !fresh.isEmpty {
+                merge(fresh)
             }
         } catch {
             // Сеть вернётся — догрузим при следующем появлении сентинела.

@@ -59,7 +59,7 @@ struct ChatConversationView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 6) {
-                        if viewModel.state.hasMoreHistory {
+                        if viewModel.state.hasMoreHistory, didScrollToUnread {
                             historyLoader(proxy)
                         }
 

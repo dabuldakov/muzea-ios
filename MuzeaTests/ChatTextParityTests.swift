@@ -509,6 +509,17 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.state.messages.isEmpty)
     }
 
+    func testLoadOlderMessagesStopsWhenServerRepeatsKnownMessages() async {
+        let newest = TestData.message("m1", createdAt: "2026-01-01T00:00:01")
+        let (viewModel, repository) = makeViewModel(messages: [newest])
+        repository.olderMessages = [newest]
+
+        await viewModel.loadOlderMessages()
+
+        XCTAssertEqual(viewModel.state.messages.map(\.messageUuid), ["m1"])
+        XCTAssertFalse(viewModel.state.hasMoreHistory)
+    }
+
     func testLoadOlderMessagesKeepsHistoryOnError() async {
         let newest = TestData.message("m1", createdAt: "2026-01-01T00:00:01")
         let (viewModel, repository) = makeViewModel(messages: [newest])
