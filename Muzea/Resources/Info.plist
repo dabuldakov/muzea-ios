@@ -42,6 +42,8 @@
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Нужен доступ к фото, чтобы загружать изображения и видео.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Нужен доступ, чтобы сохранять фото и видео из чата в галерею.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Нужен доступ к микрофону, чтобы записывать голосовые сообщения.</string>
 	<key>NSCameraUsageDescription</key>

@@ -58,7 +58,11 @@ struct MessageRow: View {
                     MessageAttachmentsView(
                         attachments: attachments,
                         isMine: isMine,
-                        messageType: message.messageType
+                        messageType: message.messageType,
+                        senderName: message.senderDeleted == true
+                            ? "Удалённый пользователь"
+                            : message.senderName,
+                        createdAt: message.createdAt
                     )
                 }
 

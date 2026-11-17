@@ -1,4 +1,5 @@
 import AVKit
+import Photos
 import SwiftUI
 import UIKit
 
@@ -23,6 +24,10 @@ struct MessageAttachmentsView: View {
     let attachments: [ChatAttachment]
     let isMine: Bool
     let messageType: String?
+    let senderName: String?
+    let createdAt: String?
+
+    @State private var gallery: GalleryState?
 
     private var images: [ChatAttachment] {
         attachments.filter { kind($0) == .image }
@@ -41,8 +46,19 @@ struct MessageAttachmentsView: View {
                         : [GridItem(.flexible()), GridItem(.flexible())],
                     spacing: 4
                 ) {
-                    ForEach(images) { attachment in
-                        AttachmentImageCell(attachment: attachment, large: images.count == 1)
+                    ForEach(Array(images.enumerated()), id: \.element.id) { index, attachment in
+                        AttachmentImageCell(
+                            attachment: attachment,
+                            large: images.count == 1,
+                            onOpen: {
+                                gallery = GalleryState(
+                                    attachments: images,
+                                    startIndex: index,
+                                    senderName: senderName,
+                                    createdAt: createdAt
+                                )
+                            }
+                        )
                     }
                 }
                 .frame(maxWidth: 250)
@@ -65,6 +81,14 @@ struct MessageAttachmentsView: View {
                 }
             }
         }
+        .sheet(item: $gallery) { state in
+            ImageGalleryViewer(
+                attachments: state.attachments,
+                startIndex: state.startIndex,
+                senderName: state.senderName,
+                createdAt: state.createdAt
+            )
+        }
     }
 
     private func kind(_ attachment: ChatAttachment) -> AttachmentKind {
@@ -79,10 +103,10 @@ struct MessageAttachmentsView: View {
 private struct AttachmentImageCell: View {
     let attachment: ChatAttachment
     let large: Bool
+    let onOpen: () -> Void
 
     @EnvironmentObject private var container: AppContainer
     @State private var image: UIImage?
-    @State private var viewer: ImageViewerItem?
 
     var body: some View {
         ZStack {
@@ -90,7 +114,7 @@ private struct AttachmentImageCell: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
-                    .onTapGesture { viewer = ImageViewerItem(image: image) }
+                    .onTapGesture(perform: onOpen)
             } else {
                 Color(.tertiarySystemBackground)
                 ProgressView()
@@ -102,9 +126,6 @@ private struct AttachmentImageCell: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .task(id: attachment.id) {
             image = await loadImage()
-        }
-        .sheet(item: $viewer) { item in
-            ImageAttachmentViewer(image: item.image)
         }
     }
 
@@ -119,25 +140,60 @@ private struct AttachmentImageCell: View {
     }
 }
 
-private struct ImageViewerItem: Identifiable {
+private struct GalleryState: Identifiable {
     let id = UUID()
-    let image: UIImage
+    let attachments: [ChatAttachment]
+    let startIndex: Int
+    let senderName: String?
+    let createdAt: String?
 }
 
-struct ImageAttachmentViewer: View {
-    let image: UIImage
+/// Полноэкранная галерея фото: свайпы, автор/дата, share и сохранение в Photos.
+struct ImageGalleryViewer: View {
+    let attachments: [ChatAttachment]
+    let senderName: String?
+    let createdAt: String?
+
+    @EnvironmentObject private var container: AppContainer
     @Environment(\.dismiss) private var dismiss
+    @State private var index: Int
+    @State private var images: [String: UIImage] = [:]
     @State private var shareFile: ShareFileItem?
+
+    init(
+        attachments: [ChatAttachment],
+        startIndex: Int,
+        senderName: String?,
+        createdAt: String?
+    ) {
+        self.attachments = attachments
+        self.senderName = senderName
+        self.createdAt = createdAt
+        _index = State(initialValue: min(max(startIndex, 0), max(attachments.count - 1, 0)))
+    }
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
+
+            TabView(selection: $index) {
+                ForEach(attachments.indices, id: \.self) { position in
+                    Group {
+                        if let image = images[attachments[position].id] {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                        } else {
+                            ProgressView().tint(.white)
+                        }
+                    }
+                    .tag(position)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+
             VStack {
-                HStack {
-                    Spacer()
+                HStack(spacing: 12) {
                     Button {
                         dismiss()
                     } label: {
@@ -145,28 +201,85 @@ struct ImageAttachmentViewer: View {
                             .font(.title)
                             .foregroundColor(.white)
                     }
-                    .padding()
-                }
-                Spacer()
-                HStack {
-                    Spacer()
-                    Button {
-                        if let data = image.jpegData(compressionQuality: 0.95),
-                           let url = AttachmentFiles.write(data: data, fileName: "photo.jpg") {
-                            shareFile = ShareFileItem(url: url)
+                    VStack(alignment: .leading, spacing: 2) {
+                        if let senderName, !senderName.isEmpty {
+                            Text(senderName)
+                                .font(.subheadline).bold()
+                                .foregroundColor(.white)
                         }
+                        if let createdAt, !createdAt.isEmpty {
+                            Text(DateTimeFormat.full(createdAt))
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+                    Spacer()
+                    if attachments.count > 1 {
+                        Text("\(index + 1)/\(attachments.count)")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                }
+                .padding()
+
+                Spacer()
+
+                HStack(spacing: 28) {
+                    Button {
+                        shareCurrent()
                     } label: {
                         Image(systemName: "square.and.arrow.up")
                             .font(.title2)
                             .foregroundColor(.white)
                     }
-                    .padding()
+                    Button {
+                        saveCurrent()
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                    }
                 }
+                .padding(.bottom, 30)
             }
+        }
+        .task(id: index) {
+            await load(index)
         }
         .sheet(item: $shareFile) { item in
             ActivityView(items: [item.url])
         }
+    }
+
+    private var currentImage: UIImage? {
+        images[attachments[index].id]
+    }
+
+    private func load(_ position: Int) async {
+        guard attachments.indices.contains(position),
+              let uuid = attachments[position].attachmentUuid else { return }
+        let key = "full-\(uuid)"
+        if let cached = AttachmentImageCache.shared.cached(key: key) {
+            images[attachments[position].id] = cached
+            return
+        }
+        guard let data = try? await container.attachmentRepository.download(
+            attachmentUuid: uuid
+        ), let image = UIImage(data: data) else { return }
+        AttachmentImageCache.shared.store(image, key: key)
+        images[attachments[position].id] = image
+    }
+
+    private func shareCurrent() {
+        guard let image = currentImage,
+              let data = image.jpegData(compressionQuality: 0.95),
+              let url = AttachmentFiles.write(data: data, fileName: "photo.jpg") else { return }
+        shareFile = ShareFileItem(url: url)
+    }
+
+    private func saveCurrent() {
+        guard let image = currentImage else { return }
+        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
     }
 }
 
@@ -257,6 +370,8 @@ private struct VideoAttachmentView: View {
     @State private var player: AVPlayer?
     @State private var isLoading = false
     @State private var showPlayer = false
+    @State private var shareFile: ShareFileItem?
+    @State private var saveError: String?
 
     var body: some View {
         Button {
@@ -290,6 +405,29 @@ private struct VideoAttachmentView: View {
         }
         .buttonStyle(.plain)
         .disabled(isLoading)
+        .contextMenu {
+            Button {
+                Task { await saveToPhotos() }
+            } label: {
+                Label("Сохранить в Photos", systemImage: "square.and.arrow.down")
+            }
+            Button {
+                Task { await share() }
+            } label: {
+                Label("Поделиться", systemImage: "square.and.arrow.up")
+            }
+        }
+        .sheet(item: $shareFile) { item in
+            ActivityView(items: [item.url])
+        }
+        .alert("Не удалось сохранить", isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(saveError ?? "")
+        }
         .fullScreenCover(isPresented: $showPlayer) {
             if let player {
                 VideoPlayer(player: player)
@@ -310,21 +448,42 @@ private struct VideoAttachmentView: View {
     }
 
     private func open() async {
-        guard player == nil, let uuid = attachment.attachmentUuid else {
-            showPlayer = player != nil
+        guard player == nil else {
+            showPlayer = true
             return
         }
-        isLoading = true
-        defer { isLoading = false }
-        guard let url = await AttachmentFileCache.shared.localURL(
-            attachmentUuid: uuid,
-            fileName: attachment.fileName ?? "video.mp4",
-            repository: container.attachmentRepository
-        ) else { return }
+        guard let url = await downloadURL() else { return }
         let player = AVPlayer(url: url)
         self.player = player
         showPlayer = true
         player.play()
+    }
+
+    private func downloadURL() async -> URL? {
+        guard let uuid = attachment.attachmentUuid else { return nil }
+        isLoading = true
+        defer { isLoading = false }
+        return await AttachmentFileCache.shared.localURL(
+            attachmentUuid: uuid,
+            fileName: attachment.fileName ?? "video.mp4",
+            repository: container.attachmentRepository
+        )
+    }
+
+    private func share() async {
+        guard let url = await downloadURL() else { return }
+        shareFile = ShareFileItem(url: url)
+    }
+
+    private func saveToPhotos() async {
+        guard let url = await downloadURL() else { return }
+        do {
+            try await PHPhotoLibrary.shared().performChanges {
+                PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
+            }
+        } catch {
+            saveError = error.localizedDescription
+        }
     }
 }
 
@@ -486,11 +645,12 @@ private struct FileAttachmentView: View {
 
     @EnvironmentObject private var container: AppContainer
     @State private var isDownloading = false
+    @State private var previewItem: FilePreviewItem?
     @State private var shareFile: ShareFileItem?
 
     var body: some View {
         Button {
-            Task { await open() }
+            Task { await open(share: false) }
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "doc")
@@ -523,6 +683,16 @@ private struct FileAttachmentView: View {
         }
         .buttonStyle(.plain)
         .disabled(isDownloading)
+        .contextMenu {
+            Button {
+                Task { await open(share: true) }
+            } label: {
+                Label("Поделиться", systemImage: "square.and.arrow.up")
+            }
+        }
+        .sheet(item: $previewItem) { item in
+            QuickLookView(url: item.url)
+        }
         .sheet(item: $shareFile) { item in
             ActivityView(items: [item.url])
         }
@@ -535,7 +705,7 @@ private struct FileAttachmentView: View {
         return "Файл"
     }
 
-    private func open() async {
+    private func open(share: Bool) async {
         guard let uuid = attachment.attachmentUuid else { return }
         isDownloading = true
         defer { isDownloading = false }
@@ -544,8 +714,17 @@ private struct FileAttachmentView: View {
             fileName: attachment.fileName ?? "attachment",
             repository: container.attachmentRepository
         ) else { return }
-        shareFile = ShareFileItem(url: url)
+        if share {
+            shareFile = ShareFileItem(url: url)
+        } else {
+            previewItem = FilePreviewItem(url: url)
+        }
     }
+}
+
+private struct FilePreviewItem: Identifiable {
+    let id = UUID()
+    let url: URL
 }
 
 private struct ShareFileItem: Identifiable {
