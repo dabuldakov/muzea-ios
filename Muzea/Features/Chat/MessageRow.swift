@@ -52,6 +52,10 @@ struct MessageRow: View {
                         .stroke(Color.accentColor, lineWidth: isSelected ? 2 : 0)
                 )
 
+                if let url = LinkPreviewExtractor.firstURL(in: message.text) {
+                    LinkPreviewView(url: url)
+                }
+
                 if let reactions = message.reactions, !reactions.isEmpty {
                     reactionRow(reactions)
                 }

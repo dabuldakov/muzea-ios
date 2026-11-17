@@ -402,6 +402,66 @@ extension ChatTextParityTests {
     }
 }
 
+// MARK: - Link previews
+
+extension ChatTextParityTests {
+
+    func testExtractsFirstURLAndStripsTrailingPunctuation() {
+        XCTAssertEqual(
+            LinkPreviewExtractor.firstURL(in: "look https://example.com/a?b=1, ok")?.absoluteString,
+            "https://example.com/a?b=1"
+        )
+        XCTAssertNil(LinkPreviewExtractor.firstURL(in: "no links here"))
+    }
+
+    func testParsesOpenGraphRegardlessOfAttributeOrder() {
+        let html = """
+        <html><head>
+        <meta content="Site" property="og:site_name">
+        <meta property="og:title" content="Hello &amp; world">
+        <meta property="og:description" content="Desc">
+        <meta property="og:image" content="/img.png">
+        </head></html>
+        """
+
+        let preview = LinkPreviewParser.parse(
+            html,
+            baseURL: URL(string: "https://example.com/page")!
+        )
+
+        XCTAssertEqual(preview?.title, "Hello & world")
+        XCTAssertEqual(preview?.description, "Desc")
+        XCTAssertEqual(preview?.siteName, "Site")
+        XCTAssertEqual(preview?.imageURL?.absoluteString, "https://example.com/img.png")
+    }
+
+    func testFallsBackToTitleTag() {
+        let html = "<html><head><title>Plain title</title></head></html>"
+        let preview = LinkPreviewParser.parse(
+            html,
+            baseURL: URL(string: "https://example.com")!
+        )
+        XCTAssertEqual(preview?.title, "Plain title")
+    }
+
+    func testBlocksLocalAndPrivateHosts() {
+        XCTAssertTrue(LinkPreviewSafety.isBlockedHost("localhost"))
+        XCTAssertTrue(LinkPreviewSafety.isBlockedHost("metadata.google.internal"))
+        XCTAssertTrue(LinkPreviewSafety.isBlockedHost("192.168.1.5"))
+        XCTAssertTrue(LinkPreviewSafety.isBlockedHost("10.0.0.1"))
+        XCTAssertTrue(LinkPreviewSafety.isBlockedHost("127.0.0.1"))
+        XCTAssertTrue(LinkPreviewSafety.isBlockedHost("intranet"))
+        XCTAssertFalse(LinkPreviewSafety.isBlockedHost("8.8.8.8"))
+        XCTAssertFalse(LinkPreviewSafety.isBlockedHost("example.com"))
+    }
+
+    func testUnsafeSchemesAndHostsAreRejected() {
+        XCTAssertFalse(LinkPreviewSafety.isSafe(URL(string: "file:///etc/passwd")!))
+        XCTAssertFalse(LinkPreviewSafety.isSafe(URL(string: "https://127.0.0.1/")!))
+        XCTAssertTrue(LinkPreviewSafety.isSafe(URL(string: "https://8.8.8.8/")!))
+    }
+}
+
 // MARK: - ViewModel scenarios
 
 @MainActor

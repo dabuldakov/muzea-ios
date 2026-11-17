@@ -1,0 +1,83 @@
+import Foundation
+
+/// Загрузка и кэширование Open Graph превью. Ходит на произвольные сайты,
+/// поэтому каждый URL и каждый редирект проверяются `LinkPreviewSafety`.
+actor LinkPreviewService {
+    static let shared = LinkPreviewService()
+
+    private struct Entry {
+        let preview: LinkPreview?
+        let at: Date
+    }
+
+    private var cache: [String: Entry] = [:]
+    private let ttl: TimeInterval = 24 * 60 * 60
+    private let maxBytes = 512 * 1024
+
+    private let session: URLSession
+
+    init() {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 8
+        configuration.timeoutIntervalForResource = 10
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        session = URLSession(configuration: configuration)
+    }
+
+    func load(_ url: URL) async -> LinkPreview? {
+        let key = url.absoluteString
+        if let entry = cache[key], Date().timeIntervalSince(entry.at) < ttl {
+            return entry.preview
+        }
+
+        let preview = await fetch(url)
+        cache[key] = Entry(preview: preview, at: Date())
+        return preview
+    }
+
+    private func fetch(_ url: URL) async -> LinkPreview? {
+        guard LinkPreviewSafety.isSafe(url) else { return nil }
+
+        var request = URLRequest(url: url)
+        request.setValue(
+            "Mozilla/5.0 (compatible; Muzea/1.0)",
+            forHTTPHeaderField: "User-Agent"
+        )
+        request.setValue(
+            "text/html,application/xhtml+xml",
+            forHTTPHeaderField: "Accept"
+        )
+
+        do {
+            let delegate = LinkPreviewRedirectGuard()
+            let (data, response) = try await session.data(for: request, delegate: delegate)
+            guard let http = response as? HTTPURLResponse,
+                  (200..<300).contains(http.statusCode),
+                  http.mimeType?.lowercased().contains("html") == true,
+                  !data.isEmpty else {
+                return nil
+            }
+            let html = String(decoding: data.prefix(maxBytes), as: UTF8.self)
+            return LinkPreviewParser.parse(html, baseURL: http.url ?? url)
+        } catch {
+            return nil
+        }
+    }
+}
+
+/// Не даёт URLSession уйти на локальный адрес через редирект.
+private final class LinkPreviewRedirectGuard: NSObject, URLSessionTaskDelegate {
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        guard let url = request.url, LinkPreviewSafety.isSafe(url) else {
+            completionHandler(nil)
+            return
+        }
+        completionHandler(request)
+    }
+}
