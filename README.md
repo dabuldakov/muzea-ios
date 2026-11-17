@@ -214,8 +214,10 @@ Muzea/
 └── Resources/      Info.plist, Assets
 
 docs/
-├── API_CONTRACT.md контракт бэкенда (auth/chat/makeup) для iOS
-└── PARITY.md       матрица паритета Android → iOS
+├── API_CONTRACT.md  контракт бэкенда (auth/chat/makeup) для iOS
+├── PARITY.md        матрица паритета Android → iOS
+├── TRANSFER_GUIDE.md правила переноса фич и слоёв
+└── fixtures/chat/   общие JSON-фикстуры для Android и iOS тестов
 ```
 
 ## Присутствие «в сети»
