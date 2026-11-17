@@ -142,8 +142,8 @@ the iOS backlog: update the status as work lands. Status values:
   push. Upload outbox uses background `URLSession` where possible.
 - **Self-update**: APK-style update is impossible; link to TestFlight/App Store.
 - **Downloads**: Files/Share Sheet instead of MediaStore.
-- **Deep links**: Universal Links require an AASA file on the server + entitlements;
-  otherwise a custom scheme.
+- **Deep links**: Universal Links готовы на клиенте (entitlement + capability);
+  до выкладки AASA работает `muzea://` (см. `DEEP_LINKS.md`).
 - **Certificate pinning**: Android pins the CA; decide separately for iOS.
 - **GIF**: Klipy search must go directly from the device (provider requirement);
   the server stores metadata only.
@@ -167,9 +167,9 @@ the iOS backlog: update the status as work lands. Status values:
    makeup has none, chat has springdoc. Commit a generated spec or expose staging.
 4. Push: FCM is data-only today. Verify `content-available`/APNs behavior if
    background sync is expected; confirm the iOS Firebase app/APNs key.
-5. Chat protocol gaps: reactions are not in `/updated`; GIF sends ignore
-   `clientMessageId` (not idempotent); `durationSeconds` is always null;
-   presigned MinIO URLs may be unreachable from devices (use proxied endpoints).
+5. Chat protocol gaps: реакции не приходят в `/updated`; отправка GIF без
+   `clientMessageId` (не идемпотентна); presigned MinIO URL могут быть
+   недоступны с устройств (используем прокси-эндпоинты).
 
 ## Definition of done per feature
 

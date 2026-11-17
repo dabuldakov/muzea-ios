@@ -221,6 +221,8 @@ docs/
 ├── TRANSFER_GUIDE.md правила переноса фич и слоёв
 ├── XCODE_CLOUD.md   сборка и TestFlight через Xcode Cloud
 ├── TESTFLIGHT.md    ручной TestFlight workflow и manual signing
+├── SMOKE.md         чек-лист проверки на устройстве
+├── DEEP_LINKS.md    Universal Links, AASA и схемы
 ├── fixtures/chat/   общие JSON-фикстуры для Android и iOS тестов
 └── fixtures/makeup/ фикстуры новостей, видео и профиля
 ```
