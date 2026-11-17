@@ -18,8 +18,8 @@ the iOS backlog: update the status as work lands. Status values:
 | UI.01 | Theme components | partial | `Theme` tokens: spacing, radius, palette, outgoing gradient |
 | UI.02 | Fonts | partial | system fonts; custom sizes not unified |
 | UI.03 | Chat screen, bubbles | partial | text + replies, reactions, pins, link previews; attachments/media missing |
-| UI.04 | Animations | missing | charge button, delete, transitions |
-| UI.05 | Haptics | missing | |
+| UI.04 | Animations | partial | заряд, появление/удаление сообщений, панели выбора и закрепов; переходы экранов pending |
+| UI.05 | Haptics | partial | `Haptics`: заряд, запись/отмена, реакции, отправка, сохранение фото |
 | UI.06 | Dark theme | partial | follows system; explicit palette needed |
 | UI.07 | Accessibility | partial | labels/hints в чате, галерее и композере; dynamic type/contrast pending |
 | UI.08 | Adaptivity | partial | iPhone portrait only |

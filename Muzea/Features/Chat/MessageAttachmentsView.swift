@@ -279,6 +279,7 @@ struct ImageGalleryViewer: View {
     private func saveCurrent() {
         guard let image = currentImage else { return }
         UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+        Haptics.success()
     }
 }
 

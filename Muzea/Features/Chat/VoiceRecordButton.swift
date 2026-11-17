@@ -38,9 +38,13 @@ struct VoiceRecordButton: View {
                 .onChanged { value in
                     if startedAt == nil { start() }
                     if isRecording {
-                        cancelled = ChargeCalculator.isCancelled(
+                        let nowCancelled = ChargeCalculator.isCancelled(
                             translationY: value.translation.height
                         )
+                        if nowCancelled != cancelled {
+                            Haptics.warning()
+                        }
+                        cancelled = nowCancelled
                     }
                 }
                 .onEnded { _ in finish() }
@@ -68,6 +72,7 @@ struct VoiceRecordButton: View {
             }
             self.recorder = recorder
             isRecording = true
+            Haptics.impact(.medium)
             ticker = Task { @MainActor in
                 while !Task.isCancelled, isRecording {
                     elapsed = Int(Date().timeIntervalSince(startedAt ?? Date()))

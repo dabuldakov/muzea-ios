@@ -68,7 +68,7 @@ struct ChargeSendButton: View {
                     let level = ChargeCalculator.hapticLevel(power: power)
                     if level > lastHaptic {
                         lastHaptic = level
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        Haptics.impact(.light)
                     }
                 }
                 try? await Task.sleep(nanoseconds: 50_000_000)
@@ -85,7 +85,11 @@ struct ChargeSendButton: View {
         startedAt = nil
         power = 0
         cancelled = false
-        guard !wasCancelled else { return }
+        guard !wasCancelled else {
+            Haptics.warning()
+            return
+        }
+        Haptics.impact(.medium)
         // До секунды удержания — обычное сообщение без заряда, как на Android.
         onSend(ChargeCalculator.isCharged(elapsed: elapsed) ? finalPower : 0)
     }

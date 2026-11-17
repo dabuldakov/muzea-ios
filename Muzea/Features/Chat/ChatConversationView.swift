@@ -62,9 +62,11 @@ struct ChatConversationView: View {
                         ForEach(viewModel.state.messages) { message in
                             row(for: message)
                                 .id(message.messageUuid)
+                                .transition(.opacity)
                         }
                     }
                     .padding(8)
+                    .animation(.easeInOut(duration: 0.18), value: viewModel.state.messages.count)
                 }
                 .onChange(of: viewModel.state.messages.count) { _ in
                     scroll(proxy)
@@ -110,6 +112,8 @@ struct ChatConversationView: View {
                 )
             }
         }
+        .animation(.easeInOut(duration: 0.18), value: viewModel.state.isSelecting)
+        .animation(.easeInOut(duration: 0.18), value: viewModel.state.pinned.count)
         .navigationTitle(chat.title ?? L10n.chat)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
@@ -528,6 +532,7 @@ struct ChatConversationView: View {
         Task {
             let ok = await viewModel.send(text, power: power)
             if ok {
+                Haptics.success()
                 draftBeforeEdit = ""
                 viewModel.saveDraft("")
             } else if wasEditing {

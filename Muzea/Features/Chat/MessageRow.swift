@@ -124,6 +124,7 @@ struct MessageRow: View {
         HStack(spacing: 4) {
             ForEach(reactions, id: \.emoji) { reaction in
                 Button {
+                    Haptics.selection()
                     onReaction(reaction.emoji)
                 } label: {
                     HStack(spacing: 2) {
