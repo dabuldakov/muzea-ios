@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         if FirebaseApp.app() != nil {
             Messaging.messaging().apnsToken = deviceToken
+            PushManager.shared.refreshFcmToken()
         }
     }
 

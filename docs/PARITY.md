@@ -96,7 +96,7 @@ the iOS backlog: update the status as work lands. Status values:
 |---|---|---|---|
 | NET.01 | Auth | partial | passwordless OTP + refresh; `SENT/NOT_FOUND/UNVERIFIED/DELETED` показываются в UI; device smoke pending |
 | NET.02 | Sync | partial | `/after` 3 s, full 15 s, `/before` догрузка истории вверх; background sync pending |
-| NET.03 | Push (FCM/APNs) | partial | data-only FCM, локальные уведомления, чат/новость, подавление открытого чата; APNs background задеплоен; device smoke pending |
+| NET.03 | Push (FCM/APNs) | partial | APNs alert+data, локальный fallback, чат/новость, подавление открытого чата; нужен device smoke после build 8 |
 | NET.04 | Offline + retry | partial | disk outbox, вложения, офлайн-баннер, retry при возврате сети; background sync pending |
 | NET.05 | Invites | n/a | not in code |
 | NET.06 | Deep links | partial | muzea:// и https://muzea.su/...; AASA выложен, Apple CDN видит JSON; device smoke pending |

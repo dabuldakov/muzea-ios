@@ -235,6 +235,7 @@ docs/
 ├── SMOKE.md         чек-лист проверки на устройстве
 ├── DEEP_LINKS.md    Universal Links, AASA и схемы
 ├── SECURITY.md      транспорт, токены, SSRF, диагностика, приватность
+├── PUSH.md          APNs/FCM, токены и диагностика уведомлений
 ├── fixtures/chat/   общие JSON-фикстуры для Android и iOS тестов
 └── fixtures/makeup/ фикстуры новостей, видео и профиля
 ```
