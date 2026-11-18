@@ -25,6 +25,8 @@ struct VideoDetailView: View {
                 if let player {
                     VideoPlayer(player: player)
                         .frame(height: 220)
+                        .frame(maxWidth: .infinity)
+                        .clipped()
                         .cornerRadius(8)
                 }
 

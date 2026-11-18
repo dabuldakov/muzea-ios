@@ -76,6 +76,7 @@ struct VideoCell: View {
                 }
             }
             .frame(height: 120)
+            .frame(maxWidth: .infinity)
             .clipped()
             .cornerRadius(8)
 

@@ -44,6 +44,7 @@ struct VideoUploadView: View {
                             .resizable()
                             .scaledToFill()
                             .frame(height: 140)
+                            .frame(maxWidth: .infinity)
                             .clipped()
                             .cornerRadius(8)
                     }

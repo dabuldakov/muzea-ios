@@ -29,6 +29,7 @@ struct NewsDetailView: View {
                             }
                         }
                         .frame(height: 240)
+                        .frame(maxWidth: .infinity)
                         .clipped()
                     }
 
