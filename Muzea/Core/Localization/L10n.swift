@@ -225,6 +225,7 @@ enum L10n {
     static var contactsTitle: String { t("contact.title") }
     static var addContact: String { t("contact.add") }
     static var contactsEmpty: String { t("contact.empty") }
+    static var contactFallbackName: String { t("contact.fallbackName") }
     static var contactNoUuid: String { t("contact.error.noUuid") }
 
     // MARK: - News

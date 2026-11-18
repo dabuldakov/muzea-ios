@@ -158,7 +158,7 @@ struct Contact: Identifiable, Hashable {
     let lastSeenAt: String?
     let addedAt: String?
 
-    var displayName: String { contactName ?? fullName ?? username ?? "Contact" }
+    var displayName: String { contactName ?? fullName ?? username ?? L10n.contactFallbackName }
 
     // Ключ присутствия приходит как "online" (ContactDto помечен @JsonProperty).
     // Со старым "isOnline" декодирование падало на обязательном Bool.
@@ -385,7 +385,7 @@ struct ChatParticipant: Identifiable, Hashable {
     let lastSeenAt: String?
     let joinedAt: String?
 
-    var displayName: String { fullName ?? username ?? "Participant" }
+    var displayName: String { fullName ?? username ?? L10n.participant }
 }
 
 struct AddContactRequest: Encodable {

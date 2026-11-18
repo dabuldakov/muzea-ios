@@ -292,3 +292,4 @@
 "auth.code.title" = "Enter the code";
 "auth.error.codeTooShort" = "Enter the full code from the email.";
 "error.withDetails" = "Error: %@";
+"contact.fallbackName" = "Contact";

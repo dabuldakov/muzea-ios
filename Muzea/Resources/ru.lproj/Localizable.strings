@@ -292,3 +292,4 @@
 "auth.code.title" = "Введите код";
 "auth.error.codeTooShort" = "Введите код из письма полностью.";
 "error.withDetails" = "Ошибка: %@";
+"contact.fallbackName" = "Контакт";

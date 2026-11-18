@@ -124,7 +124,9 @@ jobs:
             exit 0
           fi
           xcrun xccov view --report --json build/TestResults.xcresult > build/coverage.json
-          python3 scripts/coverage_report.py build/coverage.json --min "${COVERAGE_MIN:-0}"
+          python3 scripts/coverage_report.py build/coverage.json \
+            --min "${COVERAGE_MIN:-0}" \
+            --min-logic "${COVERAGE_MIN_LOGIC:-0}"
 
       - name: Upload coverage report
         if: always()
