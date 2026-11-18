@@ -125,6 +125,18 @@ struct PendingChatAttachment: Identifiable, Equatable {
     var normalizedProgress: Double {
         min(1, max(0, progress))
     }
+
+    /// Текст для VoiceOver: имя, ошибка или процент загрузки.
+    func accessibilityLabel() -> String {
+        if let error {
+            return "\(fileName), \(error)"
+        }
+        if isUploaded {
+            return fileName
+        }
+        let percent = Int((normalizedProgress * 100).rounded())
+        return percent > 0 ? "\(fileName), \(percent)%" : fileName
+    }
 }
 
 /// Абсолютные URL вложений. Сервер отдаёт `fileUrl` ключом MinIO, поэтому

@@ -26,6 +26,10 @@ final class LocalizationStore: ObservableObject {
 
     private let defaults: UserDefaults
     private let key = "app.language"
+    /// Бандлы кэшируются: `L10n` дергается на каждый текст в каждом рендере,
+    /// а `Bundle(path:)` — не бесплатная операция.
+    private var bundleCache: [String: Bundle] = [:]
+    private let lock = NSLock()
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -68,12 +72,25 @@ final class LocalizationStore: ObservableObject {
 
     /// Бандл с таблицами строк. Если языка нет в сборке — основной бандл.
     var bundle: Bundle {
-        guard let path = Bundle.main.path(
-            forResource: resolvedLanguageCode,
-            ofType: "lproj"
-        ), let bundle = Bundle(path: path) else {
-            return .main
+        let code = resolvedLanguageCode
+        lock.lock()
+        if let cached = bundleCache[code] {
+            lock.unlock()
+            return cached
         }
-        return bundle
+        lock.unlock()
+
+        let resolved: Bundle
+        if let path = Bundle.main.path(forResource: code, ofType: "lproj"),
+           let bundle = Bundle(path: path) {
+            resolved = bundle
+        } else {
+            resolved = .main
+        }
+
+        lock.lock()
+        bundleCache[code] = resolved
+        lock.unlock()
+        return resolved
     }
 }

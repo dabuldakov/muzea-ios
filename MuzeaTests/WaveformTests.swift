@@ -49,6 +49,14 @@ final class WaveformTests: XCTestCase {
         XCTAssertTrue(bars.allSatisfy { $0 >= Waveform.minimumLevel && $0 <= 1 })
     }
 
+    func testBarHeightKeepsMinimumAndScales() {
+        XCTAssertEqual(Waveform.barHeight(level: 0, totalHeight: 100), 3)
+        XCTAssertEqual(Waveform.barHeight(level: Waveform.minimumLevel, totalHeight: 100), 12, accuracy: 0.001)
+        XCTAssertEqual(Waveform.barHeight(level: 1, totalHeight: 100), 100)
+        XCTAssertEqual(Waveform.barHeight(level: 2, totalHeight: 100), 100)
+        XCTAssertEqual(Waveform.barHeight(level: -1, totalHeight: 100), 3)
+    }
+
     func testPlayedCountFollowsProgress() {
         XCTAssertEqual(Waveform.playedCount(total: 10, progress: 0), 0)
         XCTAssertEqual(Waveform.playedCount(total: 10, progress: 0.5), 5)

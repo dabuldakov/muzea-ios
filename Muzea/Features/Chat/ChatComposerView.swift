@@ -71,7 +71,11 @@ struct ChatComposerView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(pendingAttachments) { attachment in
-                            pendingAttachmentChip(attachment)
+                            PendingAttachmentChip(
+                                attachment: attachment,
+                                onRemove: { onRemoveAttachment(attachment.id) },
+                                onRetry: { onRetryAttachment(attachment.id) }
+                            )
                         }
                     }
                     .padding(.horizontal, Theme.Spacing.m)
@@ -145,86 +149,6 @@ struct ChatComposerView: View {
         }
     }
 
-    /// Чип вложения: имя, прогресс загрузки или ошибка с повтором.
-    @ViewBuilder
-    private func pendingAttachmentChip(_ attachment: PendingChatAttachment) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            HStack(spacing: Theme.Spacing.xs) {
-                Image(systemName: icon(for: attachment.kind))
-                Text(attachment.fileName)
-                    .lineLimit(1)
-
-                if attachment.isUploaded {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                } else if attachment.error != nil {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .foregroundColor(.red)
-                }
-
-                Button {
-                    onRemoveAttachment(attachment.id)
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                }
-                .accessibilityLabel(L10n.removeAttachment)
-                .buttonStyle(.plain)
-            }
-
-            if let error = attachment.error {
-                Text(error)
-                    .font(.caption2)
-                    .foregroundColor(.red)
-                    .lineLimit(2)
-            } else if !attachment.isUploaded {
-                if attachment.normalizedProgress > 0 {
-                    ProgressView(value: attachment.normalizedProgress)
-                        .progressViewStyle(.linear)
-                        .tint(.accentColor)
-                        .frame(width: 120)
-                } else {
-                    ProgressView()
-                        .scaleEffect(0.6)
-                        .frame(width: 120, alignment: .leading)
-                }
-            }
-        }
-        .font(.caption)
-        .frame(maxWidth: 180, alignment: .leading)
-        .padding(.horizontal, Theme.Spacing.s)
-        .padding(.vertical, 5)
-        .background(Theme.Palette.incomingBubble)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.field))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.field)
-                .stroke(attachment.error == nil ? Color.clear : Color.red.opacity(0.6))
-        )
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if attachment.error != nil {
-                onRetryAttachment(attachment.id)
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(chipAccessibilityLabel(attachment))
-        .accessibilityHint(attachment.error == nil ? "" : L10n.retry)
-    }
-
-    private func chipAccessibilityLabel(_ attachment: PendingChatAttachment) -> String {
-        if let error = attachment.error {
-            return "\(attachment.fileName), \(error)"
-        }
-        if attachment.isUploaded {
-            return attachment.fileName
-        }
-        let percent = Int((attachment.normalizedProgress * 100).rounded())
-        return percent > 0
-            ? "\(attachment.fileName), \(percent)%"
-            : attachment.fileName
-    }
-
-    /// Отправка недоступна, пока хоть одно вложение не загрузилось: иначе
-    /// сообщение уйдёт без файла или с ошибкой.
     private var canSubmit: Bool {
         guard !isUploadingAttachments else { return false }
         guard pendingAttachments.allSatisfy(\.isUploaded) else { return false }
@@ -261,13 +185,4 @@ struct ChatComposerView: View {
         .background(Color(.secondarySystemBackground))
     }
 
-    private func icon(for kind: AttachmentKind) -> String {
-        switch kind {
-        case .image: return "photo"
-        case .video: return "play.rectangle"
-        case .audio: return "waveform"
-        case .gif: return "sparkles"
-        case .document: return "doc"
-        }
-    }
 }

@@ -421,6 +421,6 @@ enum L10n {
     }
 
     private static func format(_ key: String, _ args: CVarArg...) -> String {
-        String(format: t(key), locale: Locale.current, arguments: args)
+        String(format: t(key), locale: LocalizationStore.shared.locale, arguments: args)
     }
 }

@@ -28,8 +28,8 @@ the iOS backlog: update the status as work lands. Status values:
 | UI.11 | Hide tab bar in chat | partial | `.toolbar(.hidden, for: .tabBar)`; device check pending |
 | UI.12 | Emoji + GIF button | partial | emoji grid + GIF search sheet; device check pending |
 | UI.13 | Composer layout | partial | paperclip + emoji/GIF + attachment chips; device check pending |
-| UI.14 | Settings screen | missing | |
-| UI.15 | Tab order | missing | |
+| UI.14 | Settings screen | missing | planned и в Android |
+| UI.15 | Tab order | missing | planned и в Android |
 | UI.16 | Insets/keyboard | partial | verify on device |
 
 ## MSG — messenger
@@ -45,12 +45,12 @@ the iOS backlog: update the status as work lands. Status values:
 | MSG.07 | Multi-select | partial | select, forward, delete; tests in `ChatTextParityTests` |
 | MSG.08 | Pinned messages | partial | top bar, pin/unpin, jump; tests in `ChatTextParityTests` |
 | MSG.09 | Read receipts | partial | exact `/status/{messageUuid}` times + read-on-scroll; tests in `ChatTextParityTests` |
-| MSG.10 | Message search | missing | backend has endpoints |
+| MSG.10 | Message search | missing | planned и в Android (эндпоинты есть) |
 | MSG.11 | Drafts | partial | `UserDefaultsChatDraftStore`; tests in `ChatTextParityTests` |
 | MSG.12 | Scroll anchor | partial | verify on device |
-| MSG.13 | Group rename | missing | API exists (`PUT /api/chats/{uuid}`) |
-| MSG.14 | Remove participant | missing | API exists |
-| MSG.15 | Remove contact | missing | API exists |
+| MSG.13 | Group rename | missing | planned и в Android (API есть) |
+| MSG.14 | Remove participant | missing | planned и в Android (API есть) |
+| MSG.15 | Remove contact | missing | planned и в Android (API есть) |
 | MSG.16 | Reactions | partial | 24 emoji, recent history, picker sheet, authors in details; full refresh every 15 s; tests in `ChatTextParityTests` |
 | MSG.17 | Unread in chat list | partial | reload on return from conversation; tests/device check pending |
 | — | Link previews (Open Graph) | partial | first URL, og/twitter/title parse, 24h cache, SSRF guard; tests in `ChatTextParityTests` |
@@ -80,8 +80,8 @@ the iOS backlog: update the status as work lands. Status values:
 | FEED.01 | News creation | done | image + related video |
 | FEED.02 | Feed filter (contacts + self) | done | |
 | FEED.03 | Post TTL | n/a | not implemented |
-| FEED.04 | Author subscriptions | missing | |
-| FEED.05 | Feed periods | missing | |
+| FEED.04 | Author subscriptions | missing | planned и в Android |
+| FEED.05 | Feed periods | missing | planned и в Android |
 | FEED.06 | Rename to “Blams” | n/a | product decision |
 | — | Video feed/upload/delete/playback | partial | upload/delete/playback/report; block UI и device smoke pending |
 | — | News report (UGC) | done | `/api/reports`, кнопка в деталях новости |
@@ -121,8 +121,8 @@ the iOS backlog: update the status as work lands. Status values:
 | QA.01 | Unit tests | partial | 300 vs 1151 on Android (1 Keychain test skipped); contract fixtures chat/makeup; UI/device tests pending |
 | QA.02 | Robolectric | n/a | |
 | QA.03 | Integration (mock network) | partial | `MockURLProtocol`; add shared fixtures |
-| QA.04 | Device tests | missing | XCUITest for 4 critical paths |
-| QA.05 | Coverage gate | missing | per-layer targets in CI |
+| QA.04 | Device tests | missing | XCUITest на 4 пути; в Android `androidTest` тоже planned |
+| QA.05 | Coverage gate | missing | гейт включён в CI (`COVERAGE_MIN`), порог поднимаем до Android-уровня |
 | QA.06 | Mutation testing | n/a | |
 | DIST.01 | Signing | done | distribution cert, App Store profiles, signed TestFlight build 1.1 (2) |
 | DIST.02 | Self-update | n/a | App Store/TestFlight |
@@ -131,7 +131,7 @@ the iOS backlog: update the status as work lands. Status values:
 | DIST.05 | Changelog | missing | generate from commits |
 | — | SDK deadline | watch | ITMS-90725: с апреля 2027 нужен Xcode 27/iOS 27 SDK; CI на `latest-stable` |
 | DIST.06 | Staged rollout | planned | TestFlight groups |
-| OBS.01 | Crash reporting | missing | Firebase Crashlytics or telemetry upload |
+| OBS.01 | Crash reporting | missing | в Android-каталоге `done`, но в коде клиента реализации нет; нужен Crashlytics |
 | OBS.02 | Product analytics | n/a | not planned |
 | OBS.03 | Server metrics | n/a | |
 

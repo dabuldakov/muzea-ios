@@ -41,6 +41,21 @@ final class AttachmentPolicyTests: XCTestCase {
         XCTAssertEqual(AttachmentPolicy.kind(of: Self.attachment(type: nil, fileName: nil)), .document)
     }
 
+    func testPendingAttachmentAccessibilityLabel() {
+        var pending = PendingChatAttachment(
+            id: "a",
+            fileName: "photo.jpg",
+            kind: .image
+        )
+        XCTAssertEqual(pending.accessibilityLabel(), "photo.jpg")
+
+        pending.progress = 0.42
+        XCTAssertEqual(pending.accessibilityLabel(), "photo.jpg, 42%")
+
+        pending.error = "boom"
+        XCTAssertEqual(pending.accessibilityLabel(), "photo.jpg, boom")
+    }
+
     func testImagesFilterKeepsOnlyImages() {
         let attachments = [
             Self.attachment(type: "IMAGE", uuid: "a"),
@@ -304,6 +319,63 @@ final class AttachmentRepositoryTests: XCTestCase {
 }
 
 @MainActor
+final class ImagePreparationTests: XCTestCase {
+
+    func testInvalidDataReturnsNil() {
+        XCTAssertNil(ImagePreparation.jpeg(from: Data([0, 1, 2])))
+    }
+
+    func testLargeImageIsScaledToMaxDimension() throws {
+        let source = UIGraphicsImageRenderer(size: CGSize(width: 3000, height: 1000)).image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 3000, height: 1000))
+        }
+        let data = try XCTUnwrap(source.jpegData(compressionQuality: 0.9))
+
+        let prepared = try XCTUnwrap(ImagePreparation.jpeg(from: data))
+
+        XCTAssertEqual(prepared.width, 2048)
+        XCTAssertEqual(prepared.height, 683)
+        XCTAssertFalse(prepared.data.isEmpty)
+        XCTAssertNotNil(UIImage(data: prepared.data))
+    }
+
+    func testSmallImageKeepsSize() throws {
+        let source = UIGraphicsImageRenderer(size: CGSize(width: 100, height: 50)).image { context in
+            UIColor.blue.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 100, height: 50))
+        }
+        let data = try XCTUnwrap(source.jpegData(compressionQuality: 0.9))
+
+        let prepared = try XCTUnwrap(ImagePreparation.jpeg(from: data))
+
+        XCTAssertEqual(prepared.width, 100)
+        XCTAssertEqual(prepared.height, 50)
+    }
+}
+
+final class AttachmentFilesTests: XCTestCase {
+
+    func testSanitizeKeepsSafeCharactersOnly() {
+        XCTAssertEqual(AttachmentFiles.sanitize("../../etc/passwd"), ".._.._etc_passwd")
+        XCTAssertEqual(AttachmentFiles.sanitize("photo 1.jpg"), "photo 1.jpg")
+        XCTAssertEqual(AttachmentFiles.sanitize(""), "attachment")
+    }
+
+    func testWriteUsesSanitizedName() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("attachment-files-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let url = try XCTUnwrap(
+            AttachmentFiles.write(data: Data([1, 2]), fileName: "../a b.jpg", directory: directory)
+        )
+
+        XCTAssertEqual(url.lastPathComponent, ".._a b.jpg")
+        XCTAssertEqual(try Data(contentsOf: url), Data([1, 2]))
+    }
+}
+
 final class AudioPreparationTests: XCTestCase {
 
     func testBrokenDataHasNoDuration() async {

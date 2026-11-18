@@ -19,12 +19,16 @@ chat-service.
 Файлы:
 
 - `chat/chats.json` — список чатов;
-- `chat/messages_page.json` — страница сообщений с текстом, медиа и реакциями;
+- `chat/messages_page.json` — страница сообщений с текстом, медиа, реакциями,
+  `senderDeleted` и `power`;
 - `chat/receipts.json` — водяные знаки участников;
 - `chat/message_statuses.json` — точные статусы по сообщению;
 - `chat/attachment.json` — ответ загрузки вложения;
+- `chat/message_gif.json` — GIF-сообщение с `gifKey`, `mp4Url` и размерами;
+- `chat/chat_peer_deleted.json` — личный чат с деактивированным собеседником;
 - `chat/participants.json` — участники группы;
-- `chat/media_types.json` — golden-таблица типов/лимитов вложений;
+- `chat/media_types.json` — golden-таблица типов/лимитов вложений (все
+  расширения из `AttachmentPolicy`);
 - `chat/gif_search.json` — ответ Klipy;
 - `makeup/news_page.json`, `news.json`, `videos.json`, `user.json`,
   `news_created.json` — ответы makeup/feed/profile.

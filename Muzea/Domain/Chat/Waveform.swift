@@ -34,6 +34,12 @@ enum Waveform {
         }
     }
 
+    /// Высота столбца в точках: не меньше 3 pt, чтобы тишина читалась.
+    static func barHeight(level: Double, totalHeight: CGFloat) -> CGFloat {
+        let clamped = min(1, max(0, level))
+        return max(3, totalHeight * CGFloat(clamped))
+    }
+
     /// Доля проигранных столбцов для текущего прогресса 0...1.
     static func playedCount(total: Int, progress: Double) -> Int {
         guard total > 0 else { return 0 }

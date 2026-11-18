@@ -591,6 +591,8 @@ final class FakeNewsRepository: NewsRepository {
     var deleted: [Int64] = []
     var loadError: Error?
     var deleteError: Error?
+    var createError: Error?
+    var created: [(title: String, content: String, videoId: Int64?)] = []
 
     func getNews(page: Int, size: Int) async throws -> Page<News> {
         page < pages.count ? pages[page] : Page(content: [], totalElements: 0, totalPages: 0, number: page)
@@ -601,7 +603,9 @@ final class FakeNewsRepository: NewsRepository {
         return item
     }
     func createNews(title: String, content: String, videoId: Int64?, image: UploadFile?) async throws -> NewsCreateResponse {
-        NewsCreateResponse(id: 1)
+        if let createError { throw createError }
+        created.append((title, content, videoId))
+        return NewsCreateResponse(id: 1)
     }
     func deleteNews(_ id: Int64) async throws {
         if let deleteError { throw deleteError }
