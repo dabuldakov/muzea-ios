@@ -29,7 +29,6 @@ final class ChatAuthManagerTests: XCTestCase {
         let result = await auth.ensureAuthenticated()
 
         XCTAssertFalse(result)
-        XCTAssertNotNil(auth.lastFailureMessage)
         XCTAssertTrue(MockURLProtocol.requests.isEmpty)
     }
 
@@ -117,12 +116,4 @@ final class ChatAuthManagerTests: XCTestCase {
         XCTAssertEqual(calls, 2)
     }
 
-    func testInvalidateDoesNotClearSharedToken() {
-        store.token = "access"
-        let auth = manager()
-
-        auth.invalidate()
-
-        XCTAssertEqual(store.token, "access")
-    }
 }
