@@ -131,7 +131,7 @@ the iOS backlog: update the status as work lands. Status values:
 | DIST.05 | Changelog | missing | generate from commits |
 | — | SDK deadline | watch | ITMS-90725: с апреля 2027 нужен Xcode 27/iOS 27 SDK; CI на `latest-stable` |
 | DIST.06 | Staged rollout | planned | TestFlight groups |
-| OBS.01 | Crash reporting | missing | в Android-каталоге `done`, но в коде клиента реализации нет; нужен Crashlytics |
+| OBS.01 | Crash reporting | partial | как Android: диск-буфер, `logCaught`, NSException + фатальные сигналы, отправка `/api/telemetry/errors` при старте/входе; стек сигналов не пишется |
 | OBS.02 | Product analytics | n/a | not planned |
 | OBS.03 | Server metrics | n/a | |
 

@@ -204,6 +204,7 @@ final class AuthViewModel: ObservableObject {
         } catch {
             state.isLoading = false
             state.error = AuthErrorMapper.message(for: error)
+            ErrorReporter.logCaught("Auth", error)
             return false
         }
     }

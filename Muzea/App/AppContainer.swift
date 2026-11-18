@@ -78,6 +78,26 @@ final class AppContainer: ObservableObject {
         let chatAuth = ChatAuthManager(client: api.chat, store: store)
         let authorization = ChatAuthorization(client: api.chat, auth: chatAuth)
 
+        ErrorReporter.shared.configure(
+            uploader: { [authorization] request in
+                do {
+                    let _: ErrorReportResponse = try await authorization.authorized {
+                        try await authorization.client.request(
+                            "POST",
+                            "/api/telemetry/errors",
+                            body: request
+                        )
+                    }
+                    return true
+                } catch {
+                    return false
+                }
+            },
+            userIdProvider: { [store] in store.chatUserUuid }
+        )
+        ErrorReporter.shared.install()
+        ErrorReporter.shared.uploadPending()
+
         let listCache = ChatListCache()
         chatListCache = listCache
         let messagesCache = ChatMessagesCache()
@@ -175,6 +195,7 @@ final class AppContainer: ObservableObject {
 
     func didLogin() {
         isLoggedIn = true
+        ErrorReporter.shared.uploadPending()
     }
 
     func didAcceptConsent() {

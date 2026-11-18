@@ -117,6 +117,7 @@ final class ProfileViewModel: ObservableObject {
             try await chatSessionRepository.deleteAccount()
             chatErased = true
         } catch {
+            ErrorReporter.logCaught("ProfileDeleteChat", error)
             chatErased = false
         }
 
@@ -127,12 +128,14 @@ final class ProfileViewModel: ObservableObject {
         do {
             try await userRepository.deleteAccount(id: id)
         } catch {
+            ErrorReporter.logCaught("ProfileDelete", error)
             return .failed(Legal.deleteFailedMessage())
         }
 
         do {
             try await authRepository.deleteAccount()
         } catch {
+            ErrorReporter.logCaught("ProfileDeleteAuth", error)
             return .failed(Legal.deleteFailedMessage())
         }
 

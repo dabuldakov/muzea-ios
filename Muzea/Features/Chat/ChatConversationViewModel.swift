@@ -487,6 +487,7 @@ final class ChatConversationViewModel: ObservableObject {
                 messageUuid: optimistic.messageUuid
             )
             state.error = error.localizedDescription
+            ErrorReporter.logCaught("ChatSend", error)
             recomputeStatuses()
         }
     }
@@ -632,6 +633,7 @@ final class ChatConversationViewModel: ObservableObject {
                 state.pendingAttachments[index].progress = 1
             }
         } catch {
+            ErrorReporter.logCaught("ChatUpload", error)
             // Файл остаётся в дисковой очереди: повтор — тапом по вложению.
             let message = error.localizedDescription
             if let index = state.pendingAttachments.firstIndex(where: { $0.id == id }) {
@@ -872,6 +874,7 @@ final class ChatConversationViewModel: ObservableObject {
             merge(loaded)
             await markDelivered()
         } catch {
+            ErrorReporter.logCaught("ChatRefresh", error)
             state.isLoading = false
             state.error = error.localizedDescription
         }
