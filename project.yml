@@ -38,7 +38,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.cyber.muzea
         PRODUCT_NAME: Muzea
         MARKETING_VERSION: "1.1"
-        CURRENT_PROJECT_VERSION: "4"
+        CURRENT_PROJECT_VERSION: "5"
         GENERATE_INFOPLIST_FILE: "NO"
         INFOPLIST_FILE: Muzea/Resources/Info.plist
         TARGETED_DEVICE_FAMILY: "1"
@@ -68,7 +68,7 @@ targets:
         APPLICATION_EXTENSION_API_ONLY: "YES"
         TARGETED_DEVICE_FAMILY: "1"
         MARKETING_VERSION: "1.1"
-        CURRENT_PROJECT_VERSION: "4"
+        CURRENT_PROJECT_VERSION: "5"
 
   MuzeaTests:
     type: bundle.unit-test
