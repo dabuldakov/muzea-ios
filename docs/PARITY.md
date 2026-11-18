@@ -120,7 +120,7 @@ the iOS backlog: update the status as work lands. Status values:
 
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
-| QA.01 | Unit tests | partial | 460 тестов в 37 файлах; логика 86.1% (Android 82.4%), общее 69.9% с рендером вью; device tests pending |
+| QA.01 | Unit tests | partial | 479 тестов в 37 файлах; логика 86.0% (Android 82.4%), общее 71.1% с рендером вью; device tests pending |
 | QA.02 | Robolectric | n/a | |
 | QA.03 | Integration (mock network) | partial | `MockURLProtocol`: репозитории, загрузки, история, GIF, OG-превью; очередь вложений |
 | QA.04 | Device tests | missing | XCUITest на 4 пути; в Android `androidTest` тоже planned |
