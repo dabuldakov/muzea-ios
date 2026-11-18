@@ -119,11 +119,13 @@ final class NewsDetailViewModelTests: XCTestCase {
         let repository = FakeNewsRepository()
         let viewModel = NewsDetailViewModel(repository: repository)
 
-        XCTAssertTrue(await viewModel.delete(id: 7))
+        let deleted = await viewModel.delete(id: 7)
+        XCTAssertTrue(deleted)
         XCTAssertEqual(repository.deleted, [7])
 
         repository.deleteError = APIError.server(500, "boom")
-        XCTAssertFalse(await viewModel.delete(id: 8))
+        let failed = await viewModel.delete(id: 8)
+        XCTAssertFalse(failed)
         XCTAssertNotNil(viewModel.error)
     }
 }
