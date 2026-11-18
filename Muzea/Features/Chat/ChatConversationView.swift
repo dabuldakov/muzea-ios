@@ -505,7 +505,7 @@ struct ChatConversationView: View {
                 viewModel.reportValidationError(L10n.errorImageRead)
                 continue
             }
-            guard let prepared = ImagePreparation.jpeg(from: data) else {
+            guard let prepared = await ImagePreparation.jpegAsync(from: data) else {
                 viewModel.reportValidationError(L10n.errorImageUnsupported)
                 continue
             }
@@ -569,7 +569,7 @@ struct ChatConversationView: View {
             await viewModel.addAudio(data: data, fileName: fileName, duration: duration)
         case .image:
             // Через «Файл» тоже можно выбрать фото — сжимаем как из галереи.
-            guard let prepared = ImagePreparation.jpeg(from: data) else {
+            guard let prepared = await ImagePreparation.jpegAsync(from: data) else {
                 viewModel.reportValidationError(L10n.errorImageUnsupported)
                 return
             }

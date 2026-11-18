@@ -16,6 +16,7 @@ struct MultipartFile {
 final class HTTPClient {
     let baseURL: URL
     private let session: URLSession
+    private let pinningDelegate: PinnedSessionDelegate?
     private let tokenProvider: () -> String?
 
     /// Вызывается при 401 (и при 403, если `treatsForbiddenAsUnauthorized`):
@@ -30,6 +31,7 @@ final class HTTPClient {
         self.baseURL = baseURL
         self.tokenProvider = tokenProvider
         if let session {
+            self.pinningDelegate = nil
             self.session = session
         } else {
             let configuration = URLSessionConfiguration.default
@@ -41,7 +43,13 @@ final class HTTPClient {
             configuration.httpCookieStorage = nil
             configuration.httpShouldSetCookies = false
             configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-            self.session = URLSession(configuration: configuration)
+            let delegate = PinnedSessionDelegate()
+            self.pinningDelegate = delegate
+            self.session = URLSession(
+                configuration: configuration,
+                delegate: delegate,
+                delegateQueue: nil
+            )
         }
     }
 

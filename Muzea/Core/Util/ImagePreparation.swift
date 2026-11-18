@@ -1,7 +1,10 @@
+import Foundation
+import ImageIO
 import UIKit
 
-/// Подготовка фото к отправке: JPEG, ограничение длинной стороны и сжатие.
-/// HEIC и другие форматы галереи приводим к JPEG, который разрешён сервером.
+/// Подготовка изображений к отправке: downscale до 2048 px и JPEG.
+/// Использует ImageIO thumbnail, чтобы не декодировать 50-мегапиксельные фото
+/// в полном размере (иначе легко получить сотни мегабайт памяти).
 enum ImagePreparation {
     static let maxDimension: CGFloat = 2048
     static let jpegQuality: CGFloat = 0.82
@@ -12,33 +15,35 @@ enum ImagePreparation {
         let height: Int
     }
 
+    /// Синхронная версия для тестов и фоновых задач.
     static func jpeg(from data: Data) -> Prepared? {
-        guard let image = UIImage(data: data), image.size.width > 0, image.size.height > 0 else {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
             return nil
         }
-        let longest = max(image.size.width, image.size.height)
-        let scale = min(1, maxDimension / longest)
-        let target = CGSize(
-            width: max(1, (image.size.width * scale).rounded()),
-            height: max(1, (image.size.height * scale).rounded())
-        )
-
-        let rendered: UIImage
-        if scale < 1 {
-            let format = UIGraphicsImageRendererFormat()
-            format.scale = 1
-            rendered = UIGraphicsImageRenderer(size: target, format: format).image { _ in
-                image.draw(in: CGRect(origin: .zero, size: target))
-            }
-        } else {
-            rendered = image
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: Int(maxDimension),
+            kCGImageSourceShouldCacheImmediately: true
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(
+            source,
+            0,
+            options as CFDictionary
+        ) else {
+            return nil
         }
+        let image = UIImage(cgImage: cgImage)
+        guard let jpeg = image.jpegData(compressionQuality: jpegQuality) else {
+            return nil
+        }
+        return Prepared(data: jpeg, width: cgImage.width, height: cgImage.height)
+    }
 
-        guard let jpeg = rendered.jpegData(compressionQuality: jpegQuality) else { return nil }
-        return Prepared(
-            data: jpeg,
-            width: Int(target.width),
-            height: Int(target.height)
-        )
+    /// Асинхронная версия для UI: декодирование не блокирует главный поток.
+    static func jpegAsync(from data: Data) async -> Prepared? {
+        await Task.detached(priority: .userInitiated) {
+            jpeg(from: data)
+        }.value
     }
 }

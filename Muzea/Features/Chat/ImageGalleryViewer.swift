@@ -17,6 +17,7 @@ struct ImageGalleryViewer: View {
     @State private var index: Int
     @State private var images: [String: UIImage] = [:]
     @State private var shareFile: ShareFileItem?
+    @State private var saveError: String?
 
     init(
         attachments: [ChatAttachment],
@@ -133,6 +134,14 @@ struct ImageGalleryViewer: View {
         .sheet(item: $shareFile) { item in
             ActivityView(items: [item.url])
         }
+        .alert(L10n.saveFailed, isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button(L10n.done, role: .cancel) {}
+        } message: {
+            Text(saveError ?? "")
+        }
     }
 
     private var currentImage: UIImage? {
@@ -163,7 +172,16 @@ struct ImageGalleryViewer: View {
 
     private func saveCurrent() {
         guard let image = currentImage else { return }
-        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-        Haptics.success()
+        PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest.creationRequestForAsset(from: image)
+        } completionHandler: { success, error in
+            DispatchQueue.main.async {
+                if let error {
+                    saveError = error.localizedDescription
+                } else if success {
+                    Haptics.success()
+                }
+            }
+        }
     }
 }

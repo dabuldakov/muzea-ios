@@ -10,9 +10,6 @@ final class ChatAuthManager {
     private let client: HTTPClient
     private let store: TokenStore
 
-    /// Причина последней неудачной проверки (nil — успех).
-    private(set) var lastFailureMessage: String?
-
     init(client: HTTPClient, store: TokenStore) {
         self.client = client
         self.store = store
@@ -20,19 +17,12 @@ final class ChatAuthManager {
 
     @discardableResult
     func ensureAuthenticated() async -> Bool {
-        lastFailureMessage = nil
         guard let token = store.token, !token.isEmpty else {
-            lastFailureMessage = "No active session. Please log in."
             return false
         }
         await ensureChatProfile()
         await registerFcmTokenIfAny()
         return true
-    }
-
-    /// Токен единый; 401 обрабатывает `TokenRefresher` через `HTTPClient`.
-    func invalidate() {
-        // no-op
     }
 
     /// Однократно тянет профиль на chat-сервере: это провижинит локального

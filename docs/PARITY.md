@@ -107,10 +107,12 @@ the iOS backlog: update the status as work lands. Status values:
 
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
-| SEC.01 | Transport | done | ATS, HTTPS only |
+| SEC.01 | Transport | done | ATS, HTTPS only + SPKI-пиннинг CA как в Android |
 | SEC.02 | Tokens on device | partial | access+refresh in Keychain, no password; legacy purge implemented |
-| SEC.03 | Message cache | partial | in-memory; no encryption |
+| SEC.03 | Message cache | partial | память + file protection для очередей; шифрования БД нет |
 | SEC.04 | Anti-abuse (report/block) | partial | report чата/новости/видео + block в чате; block UI для контента pending |
+| — | Privacy manifest | done | `PrivacyInfo.xcprivacy`, required-reason API, RU/EN InfoPlist.strings |
+| — | SSRF/OG hardening | done | private/mapped IPv6, DNS-проверка, потоковый лимит, безопасный og:image |
 | SEC.05 | Admin panel | n/a | web product |
 | SEC.06 | Account deletion | done | deactivation in all three services: data kept, login closed, names hidden, private chats read-only, support restore via `X-Support-Token` |
 
