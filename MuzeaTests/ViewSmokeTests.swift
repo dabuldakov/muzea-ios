@@ -152,6 +152,25 @@ final class ViewSmokeTests: XCTestCase {
         ))
     }
 
+    func testConversationWithMessagesRenders() {
+        let repository = FakeMessageRepository()
+        let first = message("m-1", text: "Первое")
+        let second = message(
+            "m-2",
+            text: "Второе",
+            type: "IMAGE",
+            attachments: [imageAttachment]
+        )
+        repository.cached = [first, second]
+        repository.messages = [first, second]
+
+        host(ChatConversationView(
+            chat: TestData.chat("c-1"),
+            myUserUuid: "me",
+            services: ChatConversationServices.fake(messages: repository)
+        ))
+    }
+
     func testMessageRowWithAttachmentsRenders() {
         host(MessageRow(
             message: message(),

@@ -119,6 +119,12 @@ final class ErrorReporter {
         shared.recordCaught(tag: tag, error: error)
     }
 
+    /// Сброс неотправленных ошибок: после выхода они не должны уйти под
+    /// следующим аккаунтом (сервер берёт пользователя из Bearer-токена).
+    func clearPending() {
+        store.clear()
+    }
+
     func record(level: String, tag: String?, message: String?, stack: String?) {
         lock.lock()
         let userId = userIdProvider()

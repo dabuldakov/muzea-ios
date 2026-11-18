@@ -84,6 +84,7 @@ final class FileChatOutboxStore: ChatOutboxStore {
             )
             let data = try JSONEncoder().encode(messages)
             try data.write(to: fileURL, options: .atomic)
+            FileProtection.apply(to: fileURL)
         } catch {
             // Очередь не должна ронять отправку: худший случай — сообщение
             // останется только в памяти до перезапуска.

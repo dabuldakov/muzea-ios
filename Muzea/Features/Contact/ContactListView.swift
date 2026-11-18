@@ -7,7 +7,6 @@ struct ContactListView: View {
 
     @State private var showAdd = false
     @State private var newUsername = ""
-    @State private var presenceTask: Task<Void, Never>?
 
     init(container: AppContainer) {
         _viewModel = StateObject(wrappedValue: ContactListViewModel(
@@ -41,20 +40,14 @@ struct ContactListView: View {
         .task { await viewModel.load() }
         // Опрос статусов, пока экран на переднем плане: на возврате на экран
         // первый запрос уходит сразу, в фоне цикл снимается.
-        .onAppear {
-            guard presenceTask == nil else { return }
-            presenceTask = Task {
+        .task(id: router.path.count) {
+            guard router.path.count == 0 else { return }
+            await viewModel.refreshPresence()
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: Config.presencePollInterval)
+                if Task.isCancelled { break }
                 await viewModel.refreshPresence()
-                while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: Config.presencePollInterval)
-                    if Task.isCancelled { break }
-                    await viewModel.refreshPresence()
-                }
             }
-        }
-        .onDisappear {
-            presenceTask?.cancel()
-            presenceTask = nil
         }
     }
 

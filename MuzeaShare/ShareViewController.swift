@@ -59,8 +59,28 @@ final class ShareViewController: UIViewController {
             finish()
             return
         }
-        extensionContext?.open(url) { [weak self] _ in
-            self?.finish()
+        extensionContext?.open(url) { [weak self] success in
+            guard let self else { return }
+            if !success {
+                // В некоторых расширениях NSExtensionContext.open не умеет
+                // открывать custom scheme — пробуем responder chain.
+                self.openViaResponderChain(url)
+            }
+            self.finish()
+        }
+    }
+
+    /// Резервный путь для шаринга: UIApplication в расширении недоступен,
+    /// но хост-приложение можно попросить через responder chain.
+    private func openViaResponderChain(_ url: URL) {
+        let selector = Selector(("openURL:"))
+        var responder: UIResponder? = self
+        while let current = responder {
+            if current.responds(to: selector) {
+                current.perform(selector, with: url)
+                return
+            }
+            responder = current.next
         }
     }
 

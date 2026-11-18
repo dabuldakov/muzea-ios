@@ -170,12 +170,12 @@ struct ChatConversationView: View {
                 return Alert(
                     title: Text(L10n.error),
                     message: Text(message),
-                    dismissButton: .default(Text("OK")) { viewModel.consumeError() }
+                    dismissButton: .default(Text(L10n.done)) { viewModel.consumeError() }
                 )
             case .notice(let message):
                 return Alert(
                     title: Text(message),
-                    dismissButton: .default(Text("OK")) { viewModel.consumeNotice() }
+                    dismissButton: .default(Text(L10n.done)) { viewModel.consumeNotice() }
                 )
             case .delete(let message):
                 return Alert(

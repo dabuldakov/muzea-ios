@@ -57,15 +57,37 @@ actor LinkPreviewService {
 
         do {
             let delegate = LinkPreviewRedirectGuard()
-            let (data, response) = try await session.data(for: request, delegate: delegate)
+            let (stream, response) = try await session.bytes(for: request, delegate: delegate)
             guard let http = response as? HTTPURLResponse,
                   (200..<300).contains(http.statusCode),
-                  http.mimeType?.lowercased().contains("html") == true,
-                  !data.isEmpty else {
+                  http.mimeType?.lowercased().contains("html") == true else {
                 return nil
             }
-            let html = String(decoding: data.prefix(maxBytes), as: UTF8.self)
-            return LinkPreviewParser.parse(html, baseURL: http.url ?? url)
+
+            // Читаем не больше maxBytes: чужой сервер может отдать гигабайты.
+            var data = Data()
+            data.reserveCapacity(min(maxBytes, 64 * 1024))
+            for try await byte in stream {
+                data.append(byte)
+                if data.count >= maxBytes { break }
+            }
+            guard !data.isEmpty else { return nil }
+            let html = String(decoding: data, as: UTF8.self)
+            guard let preview = LinkPreviewParser.parse(html, baseURL: http.url ?? url) else {
+                return nil
+            }
+            // og:image грузится уже устройством, поэтому внутренние адреса
+            // отбрасываем так же, как и для самого HTML.
+            if let image = preview.imageURL, !LinkPreviewSafety.isSafe(image) {
+                return LinkPreview(
+                    url: preview.url,
+                    title: preview.title,
+                    description: preview.description,
+                    imageURL: nil,
+                    siteName: preview.siteName
+                )
+            }
+            return preview
         } catch {
             return nil
         }

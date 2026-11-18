@@ -1,0 +1,4 @@
+"NSPhotoLibraryUsageDescription" = "Access to photos is needed to upload images and videos.";
+"NSPhotoLibraryAddUsageDescription" = "Access is needed to save photos and videos from chats to your library.";
+"NSMicrophoneUsageDescription" = "Microphone access is needed to record voice messages.";
+"NSCameraUsageDescription" = "Camera access is needed to record video notes.";

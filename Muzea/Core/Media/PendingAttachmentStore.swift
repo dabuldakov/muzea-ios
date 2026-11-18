@@ -58,15 +58,18 @@ final class FilePendingAttachmentStore: PendingAttachmentStore {
 
         let directory = root.appendingPathComponent(record.id, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        FileProtection.apply(toDirectory: directory)
         let fileURL = directory.appendingPathComponent(
             AttachmentFiles.sanitize(record.fileName)
         )
         try data.write(to: fileURL, options: .atomic)
+        FileProtection.apply(to: fileURL)
 
         var thumbnailPath: String?
         if let thumbnail {
             let thumbURL = directory.appendingPathComponent("thumb.jpg")
             try thumbnail.write(to: thumbURL, options: .atomic)
+            FileProtection.apply(to: thumbURL)
             thumbnailPath = thumbURL.path
         }
 
@@ -139,8 +142,10 @@ final class FilePendingAttachmentStore: PendingAttachmentStore {
     private func writeAll(_ items: [StoredPendingAttachment]) {
         do {
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            FileProtection.apply(toDirectory: root)
             let data = try JSONEncoder().encode(items)
             try data.write(to: manifestURL, options: .atomic)
+            FileProtection.apply(to: manifestURL)
         } catch {
             // Очередь не должна ронять отправку.
         }

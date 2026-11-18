@@ -184,6 +184,8 @@ final class AttachmentPolicyTests: XCTestCase {
     func testFileNamesAreSanitized() {
         XCTAssertEqual(AttachmentFiles.sanitize("../etc/passwd"), ".._etc_passwd")
         XCTAssertEqual(AttachmentFiles.sanitize(""), "attachment")
+        XCTAssertEqual(AttachmentFiles.sanitize("."), "attachment")
+        XCTAssertEqual(AttachmentFiles.sanitize(".."), "attachment")
     }
 
     func testDurationFormatting() {
@@ -404,6 +406,8 @@ final class AttachmentFilesTests: XCTestCase {
         XCTAssertEqual(AttachmentFiles.sanitize("../../etc/passwd"), ".._.._etc_passwd")
         XCTAssertEqual(AttachmentFiles.sanitize("photo 1.jpg"), "photo 1.jpg")
         XCTAssertEqual(AttachmentFiles.sanitize(""), "attachment")
+        XCTAssertEqual(AttachmentFiles.sanitize("."), "attachment")
+        XCTAssertEqual(AttachmentFiles.sanitize(".."), "attachment")
     }
 
     func testWriteUsesSanitizedName() throws {

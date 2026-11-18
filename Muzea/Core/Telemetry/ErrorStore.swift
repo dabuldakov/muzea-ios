@@ -8,6 +8,7 @@ protocol ErrorStoring: AnyObject {
     func pending(limit: Int) -> [ErrorEvent]
     func remove(eventIds: Set<String>)
     func sizeBytes() -> Int64
+    func clear()
 }
 
 /// Дисковый буфер диагностики: JSON-lines в Application Support.
@@ -68,6 +69,7 @@ final class FileErrorStore: ErrorStoring {
             at: fileURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
         )
+        FileProtection.apply(toDirectory: fileURL.deletingLastPathComponent())
         if let handle = try? FileHandle(forWritingTo: fileURL) {
             defer { try? handle.close() }
             try? handle.seekToEnd()
@@ -75,6 +77,7 @@ final class FileErrorStore: ErrorStoring {
         } else {
             try? (data + Data([0x0A])).write(to: fileURL, options: .atomic)
         }
+        FileProtection.apply(to: fileURL)
     }
 
     func pending(limit: Int) -> [ErrorEvent] {
@@ -106,12 +109,20 @@ final class FileErrorStore: ErrorStoring {
             }
         let result = keep.isEmpty ? "" : keep.joined(separator: "\n") + "\n"
         try? result.write(to: fileURL, atomically: true, encoding: .utf8)
+        FileProtection.apply(to: fileURL)
     }
 
     func sizeBytes() -> Int64 {
         lock.lock()
         defer { lock.unlock() }
         return sizeBytesLocked()
+    }
+
+    func clear() {
+        lock.lock()
+        defer { lock.unlock() }
+        try? FileManager.default.removeItem(at: fileURL)
+        overflowed = false
     }
 
     private func sizeBytesLocked() -> Int64 {

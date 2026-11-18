@@ -22,10 +22,14 @@ struct VideoNotePreviewView: UIViewRepresentable {
         override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
 
         var previewLayer: AVCaptureVideoPreviewLayer {
-            guard let layer = layer as? AVCaptureVideoPreviewLayer else {
-                fatalError("Expected AVCaptureVideoPreviewLayer")
+            if let layer = layer as? AVCaptureVideoPreviewLayer {
+                return layer
             }
-            return layer
+            // layerClass гарантирует тип, но не роняем приложение, если UIKit
+            // когда-нибудь подменит слой.
+            let fallback = AVCaptureVideoPreviewLayer()
+            layer.addSublayer(fallback)
+            return fallback
         }
     }
 }

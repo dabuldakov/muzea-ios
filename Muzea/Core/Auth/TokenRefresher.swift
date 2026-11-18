@@ -60,8 +60,18 @@ actor TokenRefresher {
                 if let email = user.email { store.email = email }
             }
             return true
+        } catch let error as APIError {
+            switch error {
+            case .unauthorized:
+                expire()
+            case .server(let code, _) where [400, 401, 403].contains(code):
+                expire()
+            default:
+                // Сеть/5xx/разбор ответа: токены не трогаем, повторим позже.
+                break
+            }
+            return false
         } catch {
-            expire()
             return false
         }
     }

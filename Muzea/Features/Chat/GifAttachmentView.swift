@@ -82,7 +82,10 @@ final class PlayerContainerView: UIView {
     }
 
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        super.init(coder: coder)
+        layer.addSublayer(playerLayer)
+        playerLayer.videoGravity = .resizeAspectFill
+        backgroundColor = .secondarySystemBackground
     }
 
     override func layoutSubviews() {

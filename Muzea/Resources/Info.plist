@@ -43,19 +43,15 @@
 		<string>remote-notification</string>
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Нужен доступ к фото, чтобы загружать изображения и видео.</string>
+	<string>Access to photos is needed to upload images and videos.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Нужен доступ, чтобы сохранять фото и видео из чата в галерею.</string>
+	<string>Access is needed to save photos and videos from chats to your library.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Нужен доступ к микрофону, чтобы записывать голосовые сообщения.</string>
+	<string>Microphone access is needed to record voice messages.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Нужен доступ к камере, чтобы записывать видео-кружки.</string>
+	<string>Camera access is needed to record video notes.</string>
 	<key>KLIPY_APP_KEY</key>
 	<string>$(KLIPY_APP_KEY)</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

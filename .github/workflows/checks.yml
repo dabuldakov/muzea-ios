@@ -23,6 +23,18 @@ jobs:
       - name: Check localization tables
         run: python3 scripts/check_localization.py
 
+  release-config:
+    name: Release config and security
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check Info.plist, PrivacyInfo, AASA and secrets
+        run: python3 scripts/check_release.py
+
   swift-syntax:
     name: Swift syntax (parse)
     runs-on: ubuntu-latest

@@ -15,6 +15,7 @@ struct VideoUploadView: View {
     @State private var thumbnail: UploadFile?
     @State private var previewImage: UIImage?
     @State private var fileName = "video.mp4"
+    @State private var mimeType = "video/mp4"
 
     init(container: AppContainer) {
         self.container = container
@@ -79,7 +80,10 @@ struct VideoUploadView: View {
         guard let item else { return }
         guard let data = try? await item.loadTransferable(type: Data.self) else { return }
         videoData = data
-        fileName = "video_\(Int(Date().timeIntervalSince1970)).mp4"
+        let type = item.supportedContentTypes.first
+        let ext = type?.preferredFilenameExtension ?? "mp4"
+        fileName = "video_\(Int(Date().timeIntervalSince1970)).\(ext)"
+        mimeType = type?.preferredMIMEType ?? "video/mp4"
         await makeThumbnail(from: data)
     }
 
@@ -115,7 +119,7 @@ struct VideoUploadView: View {
                 description: videoDescription.isEmpty ? nil : videoDescription,
                 data: data,
                 fileName: fileName,
-                mimeType: "video/mp4",
+                mimeType: mimeType,
                 thumbnail: thumbnail
             )
             if success {

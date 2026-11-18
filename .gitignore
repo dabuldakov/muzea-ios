@@ -21,3 +21,9 @@ GoogleService-Info.plist
 *.p8
 AuthKey_*.p8
 *.mobileprovision
+
+# Local secrets
+.env
+.env.*
+*.key
+*.pem

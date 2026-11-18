@@ -239,5 +239,10 @@ final class AppContainer: ObservableObject {
         chatDraftStore.clearAll()
         chatOutboxStore.clearAll()
         pendingAttachmentStore.clearAll()
+        URLCache.shared.removeAllCachedResponses()
+        AttachmentFileCache.shared.removeAll()
+        AttachmentImageCache.shared.clear()
+        ErrorReporter.shared.clearPending()
+        Task { await GifCache.shared.clearAll() }
     }
 }

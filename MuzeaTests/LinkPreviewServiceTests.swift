@@ -47,6 +47,29 @@ final class LinkPreviewServiceTests: XCTestCase {
         XCTAssertEqual(MockURLProtocol.requests.count, 1)
     }
 
+    func testUnsafeImageURLIsDropped() async throws {
+        MockURLProtocol.handler = { request in
+            (
+                MockURLProtocol.response(
+                    for: request,
+                    headers: ["Content-Type": "text/html"]
+                ),
+                self.html("""
+                <html><head>
+                <meta property="og:title" content="Title">
+                <meta property="og:image" content="http://127.0.0.1/secret.png">
+                </head></html>
+                """)
+            )
+        }
+        let service = LinkPreviewService(session: TestSupport.session())
+
+        let preview = await service.load(URL(string: "https://example.com/page")!)
+
+        XCTAssertEqual(preview?.title, "Title")
+        XCTAssertNil(preview?.imageURL)
+    }
+
     func testUnsafeURLIsNotRequested() async {
         MockURLProtocol.handler = { request in
             (MockURLProtocol.response(for: request), self.html("<html></html>"))

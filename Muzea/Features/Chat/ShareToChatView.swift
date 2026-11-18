@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Выбор чата для текста из Share Extension/ссылк�� `muzea://share`.
+/// Выбор чата для текста из Share Extension/ссылки `muzea://share`.
 struct ShareToChatView: View {
     let text: String
     let container: AppContainer
@@ -66,7 +66,7 @@ struct ShareToChatView: View {
                 get: { error != nil },
                 set: { if !$0 { error = nil } }
             )) {
-                Button("OK", role: .cancel) {}
+                Button(L10n.done, role: .cancel) {}
             } message: {
                 Text(error ?? "")
             }
@@ -86,7 +86,11 @@ struct ShareToChatView: View {
                 power: 0
             )
             dismiss()
-            onSent(chat)
+            // Даём листу закрыться, иначе push в ChatListView конфликтует
+            // с идущей анимацией презентации.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                onSent(chat)
+            }
         } catch {
             self.error = error.localizedDescription
         }

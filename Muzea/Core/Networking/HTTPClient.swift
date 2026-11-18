@@ -35,6 +35,12 @@ final class HTTPClient {
             let configuration = URLSessionConfiguration.default
             configuration.timeoutIntervalForRequest = 30
             configuration.timeoutIntervalForResource = 60
+            // Приватные ответы не должны оседать в дисковом URLCache или куках:
+            // у чата/ленты есть собственные кэши, которые чистятся при выходе.
+            configuration.urlCache = nil
+            configuration.httpCookieStorage = nil
+            configuration.httpShouldSetCookies = false
+            configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
             self.session = URLSession(configuration: configuration)
         }
     }

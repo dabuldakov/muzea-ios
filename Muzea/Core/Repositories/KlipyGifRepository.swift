@@ -47,6 +47,7 @@ actor GifCache {
         )
         if let data = try? JSONEncoder().encode(all) {
             try? data.write(to: fileURL, options: .atomic)
+            FileProtection.apply(to: fileURL)
         }
     }
 

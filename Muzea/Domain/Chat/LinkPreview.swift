@@ -173,15 +173,35 @@ enum LinkPreviewSafety {
         var ipv6 = in6_addr()
         if inet_pton(AF_INET6, host, &ipv6) == 1 {
             let bytes = withUnsafeBytes(of: &ipv6) { Array($0) }
-            if bytes.count == 16 {
-                if bytes.allSatisfy({ $0 == 0 }) { return true } // ::
-                let loopback = bytes.dropLast().allSatisfy { $0 == 0 } && bytes.last == 1
-                if loopback { return true } // ::1
-                if bytes[0] == 0xFE && (bytes[1] & 0xC0) == 0x80 { return true } // fe80::/10
-                if (bytes[0] & 0xFE) == 0xFC { return true } // fc00::/7
-                if bytes[0] == 0xFF { return true } // multicast
+            guard bytes.count == 16 else { return false }
+            if bytes.allSatisfy({ $0 == 0 }) { return true } // ::
+            let loopback = bytes.dropLast().allSatisfy { $0 == 0 } && bytes.last == 1
+            if loopback { return true } // ::1
+            // IPv4-mapped (::ffff:a.b.c.d) и IPv4-compatible (::a.b.c.d):
+            // проверяем вложенный IPv4, иначе 127.0.0.1 проходил как «IPv6».
+            let mapped = bytes[0..<10].allSatisfy { $0 == 0 }
+                && bytes[10] == 0xFF && bytes[11] == 0xFF
+            let compatible = bytes[0..<12].allSatisfy { $0 == 0 }
+            if mapped || compatible {
+                return isPrivateIPv4(Array(bytes[12..<16]))
             }
+            if bytes[0] == 0xFE && (bytes[1] & 0xC0) == 0x80 { return true } // fe80::/10
+            if (bytes[0] & 0xFE) == 0xFC { return true } // fc00::/7
+            if bytes[0] == 0xFF { return true } // multicast
         }
+        return false
+    }
+
+    private static func isPrivateIPv4(_ bytes: [UInt8]) -> Bool {
+        guard bytes.count == 4 else { return true }
+        let first = bytes[0]
+        let second = bytes[1]
+        if first == 0 || first == 10 || first == 127 { return true }
+        if first == 169 && second == 254 { return true }
+        if first == 172 && (16...31).contains(second) { return true }
+        if first == 192 && second == 168 { return true }
+        if first == 100 && (64...127).contains(second) { return true }
+        if first >= 224 { return true }
         return false
     }
 

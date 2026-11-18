@@ -1,0 +1,4 @@
+"NSPhotoLibraryUsageDescription" = "Нужен доступ к фото, чтобы загружать изображения и видео.";
+"NSPhotoLibraryAddUsageDescription" = "Нужен доступ, чтобы сохранять фото и видео из чата в галерею.";
+"NSMicrophoneUsageDescription" = "Нужен доступ к микрофону, чтобы записывать голосовые сообщения.";
+"NSCameraUsageDescription" = "Нужен доступ к камере, чтобы записывать видео-кружки.";

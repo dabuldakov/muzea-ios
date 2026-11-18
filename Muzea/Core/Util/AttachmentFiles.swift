@@ -11,8 +11,10 @@ enum AttachmentFiles {
                 at: targetDirectory,
                 withIntermediateDirectories: true
             )
+            FileProtection.apply(toDirectory: targetDirectory)
             let url = targetDirectory.appendingPathComponent(safeName)
             try data.write(to: url, options: .atomic)
+            FileProtection.apply(to: url)
             return url
         } catch {
             return nil
@@ -25,6 +27,9 @@ enum AttachmentFiles {
         let cleaned = fileName.unicodeScalars
             .map { allowed.contains($0) ? Character($0) : "_" }
         let result = String(cleaned)
-        return result.isEmpty ? "attachment" : result
+        if result.isEmpty || result == "." || result == ".." {
+            return "attachment"
+        }
+        return result
     }
 }

@@ -135,6 +135,10 @@ private final class FakeErrorStore: ErrorStoring {
     func pending(limit: Int) -> [ErrorEvent] { Array(events.prefix(limit)) }
     func remove(eventIds: Set<String>) { events.removeAll { eventIds.contains($0.eventId) } }
     func sizeBytes() -> Int64 { Int64(events.count) }
+    func clear() {
+        events.removeAll()
+        overflowed = false
+    }
 }
 
 final class ErrorReporterTests: XCTestCase {
@@ -262,5 +266,62 @@ final class ErrorReporterTests: XCTestCase {
             os: "iOS 18",
             userId: nil
         )
+    }
+}
+
+final class LinkPreviewSecurityTests: XCTestCase {
+
+    func testIPv4MappedIPv6IsBlocked() {
+        XCTAssertTrue(LinkPreviewSafety.isBlockedHost("::ffff:127.0.0.1"))
+        XCTAssertTrue(LinkPreviewSafety.isBlockedHost("::ffff:10.1.2.3"))
+        XCTAssertTrue(LinkPreviewSafety.isBlockedHost("::ffff:192.168.1.1"))
+        XCTAssertTrue(LinkPreviewSafety.isBlockedHost("::127.0.0.1"))
+        XCTAssertFalse(LinkPreviewSafety.isBlockedHost("::ffff:8.8.8.8"))
+    }
+
+    func testMappedLocalURLIsUnsafe() {
+        XCTAssertFalse(LinkPreviewSafety.isSafe(URL(string: "http://[::ffff:127.0.0.1]/secret")!))
+    }
+
+    func testPublicURLsAreSafe() {
+        XCTAssertTrue(LinkPreviewSafety.isSafe(URL(string: "https://8.8.8.8/chat/1")!))
+        XCTAssertFalse(LinkPreviewSafety.isSafe(URL(string: "file:///etc/passwd")!))
+        XCTAssertFalse(LinkPreviewSafety.isSafe(URL(string: "http://localhost:8080")!))
+        XCTAssertFalse(LinkPreviewSafety.isSafe(URL(string: "http://169.254.169.254/latest")!))
+    }
+
+    func testErrorBufferIsClearedOnLogout() {
+        let store = FakeErrorStore()
+        store.events = [
+            ErrorEvent(
+                eventId: "a",
+                level: "ERROR",
+                tag: nil,
+                message: "boom",
+                stack: nil,
+                appVersion: "1",
+                versionCode: 1,
+                buildType: "debug",
+                device: "iPhone",
+                os: "iOS",
+                userId: "u-1"
+            )
+        ]
+        let reporter = ErrorReporter(
+            store: store,
+            signals: CrashSignalRecorder(pendingURL: URL(fileURLWithPath: "/dev/null")),
+            metadata: ErrorMetadata(
+                appVersion: "1",
+                versionCode: 1,
+                buildType: "debug",
+                device: "iPhone",
+                os: "iOS"
+            )
+        )
+
+        reporter.clearPending()
+
+        XCTAssertTrue(store.events.isEmpty)
+        XCTAssertFalse(store.overflowed)
     }
 }

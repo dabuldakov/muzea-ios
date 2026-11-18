@@ -35,7 +35,11 @@ struct ChatListView: View {
                 .navigationDestination(for: Route.self) { RouteDestinationView(route: $0) }
         }
         .environmentObject(router)
-        .task { await viewModel.startAutoRefresh() }
+        // Опрос списка нужен только на корне: в переписке свой поллинг.
+        .task(id: router.path.count) {
+            guard router.path.count == 0 else { return }
+            await viewModel.startAutoRefresh()
+        }
         .onAppear {
             openPendingChat()
             if let text = appRouter.consumeSharedText(), !text.isEmpty {
@@ -80,7 +84,8 @@ struct ChatListView: View {
     }
 
     @ViewBuilder
-    private var content: some View {        switch viewModel.state.viewState {
+    private var content: some View {
+        switch viewModel.state.viewState {
         case .list:
             List(viewModel.state.chats) { chat in
                 NavigationLink(value: Route.conversation(chat)) {

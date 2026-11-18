@@ -119,6 +119,42 @@ final class TokenRefresherTests: XCTestCase {
         XCTAssertNil(store.username)
     }
 
+    func testTransportErrorKeepsSession() async {
+        store.token = "old-access"
+        store.refreshToken = "old-refresh"
+        MockURLProtocol.handler = { _ in throw URLError(.notConnectedToInternet) }
+        let expired = expectation(description: "not expired")
+        expired.isInverted = true
+        let refresher = refresher()
+        await refresher.setExpiredHandler { expired.fulfill() }
+
+        let ok = await refresher.refresh(failedToken: "old-access")
+        await fulfillment(of: [expired], timeout: 0.3)
+
+        XCTAssertFalse(ok)
+        XCTAssertEqual(store.token, "old-access")
+        XCTAssertEqual(store.refreshToken, "old-refresh")
+    }
+
+    func testServerErrorKeepsSession() async {
+        store.token = "old-access"
+        store.refreshToken = "old-refresh"
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request, status: 503), Data())
+        }
+        let expired = expectation(description: "not expired")
+        expired.isInverted = true
+        let refresher = refresher()
+        await refresher.setExpiredHandler { expired.fulfill() }
+
+        let ok = await refresher.refresh(failedToken: "old-access")
+        await fulfillment(of: [expired], timeout: 0.3)
+
+        XCTAssertFalse(ok)
+        XCTAssertEqual(store.token, "old-access")
+        XCTAssertEqual(store.refreshToken, "old-refresh")
+    }
+
     func testMissingRefreshTokenDoesNotCallNetwork() async {
         store.token = "old-access"
         store.refreshToken = nil

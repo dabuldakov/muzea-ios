@@ -36,6 +36,7 @@ final class CrashSignalRecorder {
             open($0, O_WRONLY | O_CREAT | O_APPEND, 0o644)
         }
         guard Self.descriptor >= 0 else { return }
+        FileProtection.apply(to: pendingURL)
 
         for number in Self.signals {
             signal(number, crashHandler)

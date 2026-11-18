@@ -13,6 +13,10 @@ final class AttachmentImageCache {
     func store(_ image: UIImage, key: String) {
         cache.setObject(image, forKey: key as NSString)
     }
+
+    func clear() {
+        cache.removeAllObjects()
+    }
 }
 
 /// Вложения в пузыре: сетка фото, видео, аудио и документы. Каждый тип — свой
