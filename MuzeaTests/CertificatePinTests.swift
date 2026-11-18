@@ -52,6 +52,14 @@ final class CertificatePinTests: XCTestCase {
         ))
     }
 
+    func testRSASubjectPublicKeyInfoWrapsPKCS1() {
+        let pkcs1 = Data(repeating: 0xAB, count: 270)
+        let spki = CertificatePin.rsaSubjectPublicKeyInfo(pkcs1)
+
+        XCTAssertEqual(spki.first, 0x30)
+        XCTAssertTrue(spki.suffix(270).elementsEqual(pkcs1))
+    }
+
     func testECSubjectPublicKeyInfoRejectsUnknownCurve() {
         XCTAssertNil(CertificatePin.ecSubjectPublicKeyInfo(Data(repeating: 4, count: 10)))
         XCTAssertNotNil(CertificatePin.ecSubjectPublicKeyInfo(Data(repeating: 4, count: 65)))

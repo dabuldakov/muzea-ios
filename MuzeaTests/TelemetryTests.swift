@@ -97,6 +97,21 @@ final class FileErrorStoreTests: XCTestCase {
         XCTAssertEqual(store.pending(limit: 10).map(\.eventId), ["a"])
     }
 
+    func testClearRemovesBufferAndOverflow() {
+        let (store, root, defaults, suite) = makeStore()
+        defer {
+            try? FileManager.default.removeItem(at: root)
+            defaults.removePersistentDomain(forName: suite)
+        }
+        store.append(event("a"))
+        store.overflowed = true
+
+        store.clear()
+
+        XCTAssertTrue(store.pending(limit: 10).isEmpty)
+        XCTAssertFalse(store.overflowed)
+    }
+
     func testLastUploadedAtPersists() {
         let (store, root, defaults, suite) = makeStore()
         defer {
@@ -234,6 +249,25 @@ final class ErrorReporterTests: XCTestCase {
 
         XCTAssertEqual(uploaded, [100, 50])
         XCTAssertTrue(store.events.isEmpty)
+    }
+
+    func testMessageAndStackAreTruncated() {
+        let store = FakeErrorStore()
+        let reporter = ErrorReporter(
+            store: store,
+            signals: CrashSignalRecorder(pendingURL: URL(fileURLWithPath: "/dev/null")),
+            metadata: metadata
+        )
+
+        reporter.record(
+            level: "ERROR",
+            tag: "Long",
+            message: String(repeating: "m", count: 5_000),
+            stack: String(repeating: "s", count: 30_000)
+        )
+
+        XCTAssertEqual(store.events.first?.message?.count, 1_000)
+        XCTAssertEqual(store.events.first?.stack?.count, 20_000)
     }
 
     func testRequestEncodingMatchesServerContract() throws {

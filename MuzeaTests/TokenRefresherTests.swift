@@ -119,6 +119,23 @@ final class TokenRefresherTests: XCTestCase {
         XCTAssertNil(store.username)
     }
 
+    func testBadRequestExpiresSession() async {
+        store.token = "old-access"
+        store.refreshToken = "old-refresh"
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request, status: 400), Data())
+        }
+        let expired = expectation(description: "expired")
+        let refresher = refresher()
+        await refresher.setExpiredHandler { expired.fulfill() }
+
+        let ok = await refresher.refresh(failedToken: "old-access")
+        await fulfillment(of: [expired], timeout: 1)
+
+        XCTAssertFalse(ok)
+        XCTAssertNil(store.token)
+    }
+
     func testTransportErrorKeepsSession() async {
         store.token = "old-access"
         store.refreshToken = "old-refresh"

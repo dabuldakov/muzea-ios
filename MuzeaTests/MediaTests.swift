@@ -381,6 +381,24 @@ final class ImagePreparationTests: XCTestCase {
         XCTAssertNotNil(UIImage(data: prepared.data))
     }
 
+    func testAsyncPreparationWorks() async throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let source = UIGraphicsImageRenderer(
+            size: CGSize(width: 80, height: 40),
+            format: format
+        ).image { context in
+            UIColor.green.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 80, height: 40))
+        }
+        let data = try XCTUnwrap(source.jpegData(compressionQuality: 0.9))
+
+        let prepared = await ImagePreparation.jpegAsync(from: data)
+
+        XCTAssertEqual(prepared?.width, 80)
+        XCTAssertEqual(prepared?.height, 40)
+    }
+
     func testSmallImageKeepsSize() throws {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
