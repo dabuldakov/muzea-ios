@@ -32,7 +32,7 @@ struct Video: Identifiable, Hashable {
     let thumbnailUrl: String?
     let fileSize: Int64?
     /// Бэкенд отдаёт `durationSeconds`, а не строку `duration`.
-    let durationSeconds: Double?
+    let durationSeconds: Int?
     let views: Int
     let likes: Int?
     let likedByMe: Bool?

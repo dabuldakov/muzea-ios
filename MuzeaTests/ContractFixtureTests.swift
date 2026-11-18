@@ -27,7 +27,16 @@ final class ContractFixtureTests: XCTestCase {
         XCTAssertEqual(chats[0].chatType, "PRIVATE")
         XCTAssertEqual(chats[0].lastMessage?.text, "hello")
         XCTAssertEqual(chats[0].unreadCount, 3)
+        XCTAssertEqual(chats[0].peerDeleted, false)
         XCTAssertEqual(chats[1].chatType, "GROUP")
+    }
+
+    func testPeerDeletedChatFixture() throws {
+        let chat = try decode(ChatDTO.self, "chat/chat_peer_deleted.json").toDomain()
+
+        XCTAssertEqual(chat.chatType, "PRIVATE")
+        XCTAssertEqual(chat.peerDeleted, true)
+        XCTAssertNil(chat.lastMessage)
     }
 
     func testMessagesFixtureDecodesMediaReactionsAndReply() throws {
@@ -41,6 +50,7 @@ final class ContractFixtureTests: XCTestCase {
         XCTAssertEqual(text.isPinned, true)
         XCTAssertEqual(text.reactions?.first?.emoji, "👍")
         XCTAssertEqual(text.reactions?.first?.users?.first?.userUuid, "u-bob")
+        XCTAssertEqual(text.senderDeleted, false)
 
         let media = messages[1]
         XCTAssertEqual(media.messageType, "IMAGE")
@@ -48,6 +58,19 @@ final class ContractFixtureTests: XCTestCase {
         XCTAssertEqual(media.power, 42)
         XCTAssertEqual(media.attachments?.first?.attachmentUuid, "cccccccc-cccc-cccc-cccc-cccccccccccc")
         XCTAssertEqual(media.attachments?.first?.type, "IMAGE")
+        XCTAssertEqual(media.senderDeleted, true)
+    }
+
+    func testGifMessageFixture() throws {
+        let message = try decode(ChatMessageDTO.self, "chat/message_gif.json").toDomain()
+        let attachment = try XCTUnwrap(message.attachments?.first)
+
+        XCTAssertEqual(message.messageType, "GIF")
+        XCTAssertEqual(attachment.type, "GIF")
+        XCTAssertEqual(attachment.gifKey, "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+        XCTAssertEqual(attachment.mp4Url, "https://cdn/hd.mp4")
+        XCTAssertEqual(attachment.width, 480)
+        XCTAssertEqual(attachment.height, 270)
     }
 
     func testReceiptsAndStatusesFixtures() throws {

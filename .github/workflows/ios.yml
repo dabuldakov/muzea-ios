@@ -102,15 +102,37 @@ jobs:
           UDID=$(xcrun simctl list devices available -j \
             | python3 -c 'import sys,json; d=json.load(sys.stdin)["devices"]; ids=[x["udid"] for v in d.values() for x in v if x.get("isAvailable") and x["name"].startswith("iPhone")]; print(ids[0])')
           echo "Using simulator: $UDID"
+          rm -rf build/TestResults.xcresult
           xcodebuild test \
             -project Muzea.xcodeproj \
             -scheme Muzea \
             -configuration Debug \
             -destination "platform=iOS Simulator,id=$UDID" \
             -derivedDataPath build \
+            -enableCodeCoverage YES \
+            -resultBundlePath build/TestResults.xcresult \
             KLIPY_APP_KEY="$KLIPY_APP_KEY" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
+
+      - name: Coverage report
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ ! -d build/TestResults.xcresult ]; then
+            echo "Нет TestResults.xcresult — тесты не дошли до запуска"
+            exit 0
+          fi
+          xcrun xccov view --report --json build/TestResults.xcresult > build/coverage.json
+          python3 scripts/coverage_report.py build/coverage.json --min "${COVERAGE_MIN:-0}"
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-coverage
+          path: build/coverage.json
+          if-no-files-found: ignore
 
   # Релизная сборка запускается только после успешных сборки и ВСЕХ тестов:
   # релизный артефакт не должен собираться из красного состояния.

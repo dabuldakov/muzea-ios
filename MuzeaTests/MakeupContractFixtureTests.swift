@@ -45,7 +45,7 @@ final class MakeupContractFixtureTests: XCTestCase {
 
         XCTAssertEqual(videos.count, 1)
         let video = videos[0]
-        XCTAssertEqual(video.durationSeconds, 12.5)
+        XCTAssertEqual(video.durationSeconds, 12)
         XCTAssertEqual(video.likes, 3)
         XCTAssertEqual(
             video.fullVideoURL?.absoluteString,
