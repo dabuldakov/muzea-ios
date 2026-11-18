@@ -289,3 +289,5 @@
 "profile.language" = "Язык";
 "profile.language.title" = "Выберите язык";
 "profile.language.system" = "Как в системе";
+"auth.code.title" = "Введите код";
+"auth.error.codeTooShort" = "Введите код из письма полностью.";

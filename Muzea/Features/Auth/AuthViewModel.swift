@@ -116,6 +116,10 @@ final class AuthViewModel: ObservableObject {
             state.error = L10n.codeRequired
             return false
         }
+        guard normalizedCode.count >= 4 else {
+            state.error = L10n.codeTooShort
+            return false
+        }
         let flow = state.flow
         let email = state.email
         return await perform {

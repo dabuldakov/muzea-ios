@@ -89,6 +89,9 @@ struct LoginView: View {
 
     @ViewBuilder
     private var codeStep: some View {
+        Text(L10n.codeTitle)
+            .font(.headline)
+
         if let info = viewModel.state.info {
             Text(info)
                 .font(.footnote)

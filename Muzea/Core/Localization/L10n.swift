@@ -184,11 +184,13 @@ enum L10n {
     static var registerAction: String { t("auth.register.action") }
     static var confirmEmailSection: String { t("auth.confirm.section") }
     static var codeField: String { t("auth.code") }
+    static var codeTitle: String { t("auth.code.title") }
     static var confirmAction: String { t("auth.confirm.action") }
     static var resendCode: String { t("auth.resend") }
     static var changeData: String { t("auth.changeData") }
     static var emailInvalid: String { t("auth.error.email") }
     static var codeRequired: String { t("auth.error.code") }
+    static var codeTooShort: String { t("auth.error.codeTooShort") }
     static var usernameInvalid: String { t("auth.error.username") }
     static var consentTitle: String { t("auth.consent.title") }
     static var consentOpenTerms: String { t("auth.consent.terms") }

@@ -80,6 +80,8 @@ struct RegisterView: View {
     @ViewBuilder
     private var confirmationForm: some View {
         Section(L10n.confirmEmailSection) {
+            Text(L10n.codeTitle)
+                .font(.headline)
             if let info = viewModel.state.info {
                 Text(info).font(.footnote).foregroundColor(.secondary)
             }

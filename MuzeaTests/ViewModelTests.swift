@@ -280,6 +280,18 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.state.phase, .code)
     }
 
+    func testVerifyRejectsTooShortCode() async {
+        let repository = FakeAuthRepository()
+        let viewModel = AuthViewModel(repository: repository)
+        _ = await viewModel.requestLoginCode(email: "a@b.c")
+
+        let ok = await viewModel.verify(code: "12")
+
+        XCTAssertFalse(ok)
+        XCTAssertTrue(repository.verifiedLogins.isEmpty)
+        XCTAssertEqual(viewModel.state.error, L10n.codeTooShort)
+    }
+
     func testInvalidEmailDoesNotCallRepository() async {
         let repository = FakeAuthRepository()
         let viewModel = AuthViewModel(repository: repository)

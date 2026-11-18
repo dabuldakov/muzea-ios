@@ -289,3 +289,5 @@
 "profile.language" = "Language";
 "profile.language.title" = "Choose language";
 "profile.language.system" = "System";
+"auth.code.title" = "Enter the code";
+"auth.error.codeTooShort" = "Enter the full code from the email.";
