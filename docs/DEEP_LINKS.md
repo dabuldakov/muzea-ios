@@ -23,9 +23,10 @@
   в App Store Connect (через API), App Store профиль перевыпущен;
 - `docs/aasa/apple-app-site-association` — готовый файл AASA.
 
-## Что нужно выложить на сервер
+## Выкладка на сервер (сделано)
 
-Файл должен открываться **без редиректов** по адресу:
+Файл выложен по FTP в `/www/muzea.su/.well-known/apple-app-site-association`
+и открывается **без редиректов** по адресу:
 
 ```
 https://muzea.su/.well-known/apple-app-site-association
@@ -57,8 +58,10 @@ https://muzea.su/.well-known/apple-app-site-association
 }
 ```
 
-Положить в веб-корень muzea.su в каталог `.well-known/` и добавить файл в
-`FILES` в `muzea-legal/deploy.sh`, чтобы он не терялся при выкладке.
+Файл уже добавлен в `FILES` в `muzea-legal/deploy.sh`, чтобы не терялся при
+следующих выкладках. Проверено: Apple CDN
+`https://app-site-association.cdn-apple.com/a/v1/muzea.su` отдаёт `200`,
+`Apple-Origin-Format: json` и тот же JSON.
 
 ## Проверка
 

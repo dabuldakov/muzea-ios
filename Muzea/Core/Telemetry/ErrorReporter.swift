@@ -82,7 +82,7 @@ final class ErrorReporter {
         guard !installed else { return }
         installed = true
 
-        Self.previousExceptionHandler = NSGetUncaughtExceptionHandler()
+        ErrorReporter.previousExceptionHandler = NSGetUncaughtExceptionHandler()
         NSSetUncaughtExceptionHandler { exception in
             ErrorReporter.shared.record(
                 level: "CRASH",
@@ -90,7 +90,7 @@ final class ErrorReporter {
                 message: exception.reason,
                 stack: exception.callStackSymbols.joined(separator: "\n")
             )
-            Self.previousExceptionHandler?(exception)
+            ErrorReporter.previousExceptionHandler?(exception)
         }
 
         signals.install()
