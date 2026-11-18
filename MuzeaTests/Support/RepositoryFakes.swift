@@ -589,24 +589,32 @@ final class FakeNewsRepository: NewsRepository {
     var pages: [Page<News>] = []
     var byId: [Int64: News] = [:]
     var deleted: [Int64] = []
+    var loadError: Error?
+    var deleteError: Error?
 
     func getNews(page: Int, size: Int) async throws -> Page<News> {
         page < pages.count ? pages[page] : Page(content: [], totalElements: 0, totalPages: 0, number: page)
     }
     func getNewsById(_ id: Int64) async throws -> News {
+        if let loadError { throw loadError }
         guard let item = byId[id] else { throw APIError.server(404, "not found") }
         return item
     }
     func createNews(title: String, content: String, videoId: Int64?, image: UploadFile?) async throws -> NewsCreateResponse {
         NewsCreateResponse(id: 1)
     }
-    func deleteNews(_ id: Int64) async throws { deleted.append(id) }
+    func deleteNews(_ id: Int64) async throws {
+        if let deleteError { throw deleteError }
+        deleted.append(id)
+    }
 }
 
 final class FakeVideoRepository: VideoRepository {
     var videos: [Video] = []
     var cached: [Video] = []
     var deleted: [Int64] = []
+    var uploadError: Error?
+    var uploads: [(title: String, description: String?, fileName: String)] = []
 
     func getVideos() async throws -> [Video] { videos }
     func cachedVideos() -> [Video] { cached }
@@ -615,7 +623,9 @@ final class FakeVideoRepository: VideoRepository {
         return video
     }
     func uploadVideo(title: String, description: String?, data: Data, fileName: String, mimeType: String, thumbnail: UploadFile?) async throws -> Video {
-        videos.first ?? Video(id: 1, title: title, description: description, url: "", thumbnailUrl: nil, fileSize: nil, durationSeconds: nil, views: 0, likes: nil, likedByMe: nil, uploadedBy: "me", uploadedAt: "")
+        if let uploadError { throw uploadError }
+        uploads.append((title, description, fileName))
+        return videos.first ?? Video(id: 1, title: title, description: description, url: "", thumbnailUrl: nil, fileSize: nil, durationSeconds: nil, views: 0, likes: nil, likedByMe: nil, uploadedBy: "me", uploadedAt: "")
     }
     func deleteVideo(_ id: Int64) async throws { deleted.append(id) }
 }

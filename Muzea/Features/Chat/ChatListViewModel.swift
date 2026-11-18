@@ -28,7 +28,7 @@ final class ChatListViewModel: ObservableObject {
             state.isLoading = false
             // Список из кэша ценнее сообщения об ошибке: не даём ошибке занять
             // место данных, но и молча не проглатываем.
-            state.error = state.chats.isEmpty ? error.localizedDescription : "Error: \(error.localizedDescription)"
+            state.error = state.chats.isEmpty ? error.localizedDescription : L10n.errorDetails(error.localizedDescription)
         }
         isLoading = false
     }

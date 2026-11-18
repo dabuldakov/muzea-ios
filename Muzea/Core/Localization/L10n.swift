@@ -360,6 +360,10 @@ enum L10n {
     static var recorderTooShort: String { t("recorder.tooShort") }
     static var recorderReadFailed: String { t("recorder.readFailed") }
 
+    static func errorDetails(_ details: String) -> String {
+        format("error.withDetails", details)
+    }
+
     static func serverError(_ code: Int, _ message: String) -> String {
         format("error.server", code, message)
     }
