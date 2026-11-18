@@ -326,7 +326,12 @@ final class ImagePreparationTests: XCTestCase {
     }
 
     func testLargeImageIsScaledToMaxDimension() throws {
-        let source = UIGraphicsImageRenderer(size: CGSize(width: 3000, height: 1000)).image { context in
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let source = UIGraphicsImageRenderer(
+            size: CGSize(width: 3000, height: 1000),
+            format: format
+        ).image { context in
             UIColor.red.setFill()
             context.fill(CGRect(x: 0, y: 0, width: 3000, height: 1000))
         }
@@ -341,7 +346,12 @@ final class ImagePreparationTests: XCTestCase {
     }
 
     func testSmallImageKeepsSize() throws {
-        let source = UIGraphicsImageRenderer(size: CGSize(width: 100, height: 50)).image { context in
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let source = UIGraphicsImageRenderer(
+            size: CGSize(width: 100, height: 50),
+            format: format
+        ).image { context in
             UIColor.blue.setFill()
             context.fill(CGRect(x: 0, y: 0, width: 100, height: 50))
         }

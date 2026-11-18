@@ -570,11 +570,17 @@ final class ProfileViewModelTests: XCTestCase {
         let withoutUser = await viewModel.update(fullName: "N", email: "e@x.y")
         XCTAssertFalse(withoutUser)
 
-        users.user = user
+        let loaded = ProfileViewModel(
+            userRepository: users,
+            avatarRepository: FakeAvatarRepository(),
+            chatSessionRepository: FakeChatSessionRepository(),
+            authRepository: FakeAuthRepository(),
+            initialUser: user
+        )
         users.updateError = APIError.server(500, "boom")
-        let failed = await viewModel.update(fullName: "N", email: "e@x.y")
+        let failed = await loaded.update(fullName: "N", email: "e@x.y")
         XCTAssertFalse(failed)
-        XCTAssertNotNil(viewModel.state.error)
+        XCTAssertNotNil(loaded.state.error)
     }
 
     func testAvatarUploadAndDeleteErrors() async {

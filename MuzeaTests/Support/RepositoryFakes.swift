@@ -613,7 +613,8 @@ final class FakeNewsRepository: NewsRepository {
     var created: [(title: String, content: String, videoId: Int64?)] = []
 
     func getNews(page: Int, size: Int) async throws -> Page<News> {
-        page < pages.count ? pages[page] : Page(content: [], totalElements: 0, totalPages: 0, number: page)
+        if let loadError { throw loadError }
+        return page < pages.count ? pages[page] : Page(content: [], totalElements: 0, totalPages: 0, number: page)
     }
     func getNewsById(_ id: Int64) async throws -> News {
         if let loadError { throw loadError }

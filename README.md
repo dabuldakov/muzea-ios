@@ -90,21 +90,32 @@ xcodebuild \
   и `ChatListViewState`;
 - `ViewModelTests` — ViewModel-и на ручных тест-дублях протоколов
   (`MuzeaTests/Support/RepositoryFakes.swift`): оптимистичная отправка, присутствие
-  без переупорядочивания, дедупликация чатов, фильтры лент, вход/регистрация.
+  без переупорядочивания, дедупликация чатов, фильтры лент, вход/регистрация;
+- `ContractFixtureTests`, `MakeupContractFixtureTests` — общие с Android фикстуры
+  `docs/fixtures` (чат, вложения, GIF, статусы, новости, видео, профиль);
+- `ViewSmokeTests` — тело каждого SwiftUI-экрана собирается без крашей;
+- `LocalizationStoreTests`, `L10nCoverageTests` — переключение языка и все ключи;
+- `AuthNoticeTests`, `DTOEdgeCaseTests`, `CoreStorageTests`, `FeedViewModelTests`,
+  `ListAndDetailViewModelTests`, `LinkPreviewServiceTests` — новые краевые случаи.
 
-Запуск всех тестов из командной строки:
+Запуск всех тестов и отчёт покрытия:
 
 ```bash
 xcodebuild test \
   -project Muzea.xcodeproj \
   -scheme Muzea \
   -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -enableCodeCoverage YES \
+  -resultBundlePath build/TestResults.xcresult \
   CODE_SIGNING_ALLOWED=NO
+
+xcrun xccov view --report --json build/TestResults.xcresult > build/coverage.json
+python3 scripts/coverage_report.py build/coverage.json --min-logic 80
 ```
 
 ## CI (GitHub Actions)
 
-Workflow `.github/workflows/ios.yml` на каждый push/PR:
+Workflow `.github/workflows/ios.yml` запускается вручную (`workflow_dispatch`):
 
 1. `macos-15`, Xcode 16 (latest stable)
 2. `brew install xcodegen`
