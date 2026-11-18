@@ -1,5 +1,8 @@
 # TestFlight через GitHub Actions
 
+Полный процесс деплоя (версии, проверка сборки, App Store, откат) — в
+[`DEPLOY.md`](DEPLOY.md). Здесь — детали workflow и manual signing.
+
 Workflow: `.github/workflows/testflight.yml` (ручной запуск).
 
 ```bash

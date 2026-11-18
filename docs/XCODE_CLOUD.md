@@ -1,7 +1,7 @@
 # Xcode Cloud для Muzea
 
-Основная сборка iOS и загрузка в TestFlight идут через Xcode Cloud, без
-macOS-минут GitHub Actions.
+Резервный путь сборки и загрузки в TestFlight — без macOS-минут GitHub Actions.
+Основной процесс деплоя описан в [`DEPLOY.md`](DEPLOY.md).
 
 ## Проект и локализация
 

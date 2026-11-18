@@ -117,39 +117,43 @@ python3 scripts/coverage_report.py build/coverage.json --min-logic 83
 
 Workflow `.github/workflows/ios.yml` запускается вручную (`workflow_dispatch`):
 
-1. `macos-15`, Xcode 16 (latest stable)
+1. `macos-15`, Xcode `latest-stable`
 2. `brew install xcodegen`
 3. `xcodegen generate`
 4. `xcodebuild` для симулятора без подписи (`CODE_SIGNING_ALLOWED=NO`)
 5. job **Unit tests** — `xcodebuild test` на доступном iPhone-симуляторе
 6. job **Release .ipa** (конфигурация `Release`) запускается только после успешных
    сборки и всех тестов (`needs: [build, test]`), поэтому релизный артефакт не
-   собирается из красного состояния. Триггерится на push в `main`, PR и теги `v*`.
+   собирается из красного состояния. Гейты покрытия: логика ≥ 83 %, общее ≥ 60 %.
+   На теге `v*`, если запустить workflow на этом теге вручную, `.ipa` публикуется
+   в GitHub Release.
 
-## Распространение: TestFlight
+## Деплой и TestFlight
 
 Целевой способ установки — **TestFlight** (тестовый релиз в App Store Connect), а не
-Sideloadly и не ссылка с сайта. Для этого нужен Apple Developer Program (есть).
+Sideloadly и не ссылка с сайта. Сборка и загрузка идут через GitHub Actions,
+workflow `testflight.yml` (ручной запуск): archive, manual signing, export `.ipa`,
+upload через `xcrun altool`.
 
-Что настроить один раз:
+Коротко:
 
-1. Bundle ID в App Store Connect. Сейчас в `project.yml` —
-   `com.cyber.muzea`; для TestFlight лучше задать нормальный (например
-   `su.muzea.app`) в `project.yml` и в repository variable `IOS_BUNDLE_ID`.
-2. GitHub Secrets:
-   - `APPLE_TEAM_ID` — Team ID;
-   - `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_KEY_ID`,
-     `APP_STORE_CONNECT_PRIVATE_KEY` — App Store Connect API key (`.p8` целиком).
-3. Workflow **TestFlight** (`.github/workflows/testflight.yml`) запускается вручную:
-   Actions → TestFlight → Run workflow. Он делает archive с автоматической
-   подписью (`-allowProvisioningUpdates`), export и загрузку через `altool`.
-4. Подпись/сертификаты создаются Xcode автоматически по API-ключу; для push нужен
-   paid-профиль с `aps-environment`.
+```bash
+# 1. поднять CURRENT_PROJECT_VERSION в project.yml, закоммитить
+xcodegen generate && git commit -am "build: 1.1 (9)" && git push
 
-Пока CI собирает **неподписанный** `.ipa` (job **Release .ipa**) — он годится для
-локальной отладки: [Releases](https://github.com/dabuldakov/muzea-ios/releases) или
-артефакт Actions. Локально на Mac: открыть `Muzea.xcodeproj`, выбрать свою команду и
-собрать на iPhone; для push нужен paid-профиль с `aps-environment`.
+# 2. загрузить в TestFlight
+gh workflow run testflight.yml --repo dabuldakov/muzea-ios --ref main \
+  -f changelog="Что проверять"
+```
+
+Полный процесс — настройка сертификатов/профилей/секретов, проверка сборки в
+App Store Connect, smoke, откат, публикация в App Store и диагностика:
+[`docs/DEPLOY.md`](docs/DEPLOY.md). Детали manual signing — в
+[`docs/TESTFLIGHT.md`](docs/TESTFLIGHT.md), альтернатива через Xcode Cloud — в
+[`docs/XCODE_CLOUD.md`](docs/XCODE_CLOUD.md).
+
+Неподписанный `.ipa` из job **Release .ipa** годится только для локальной отладки:
+[Releases](https://github.com/dabuldakov/muzea-ios/releases) или артефакт Actions.
 
 ## Push-уведомления
 
@@ -161,7 +165,12 @@ Sideloadly и не ссылка с сайта. Для этого нужен Appl
    при этом проходит).
 2. Положи файл в `Muzea/Resources/GoogleService-Info.plist` (он в `.gitignore`,
    в репозиторий не коммитится).
-3. Включи APNs-ключ в Firebase (Project settings → Cloud Messaging).
+3. Загрузи в Firebase **APNs Authentication Key** (Project settings → Cloud
+   Messaging → Apple app configuration, оба слота — Development и Production).
+   Ключ создаётся в developer.apple.com → Certificates, Identifiers & Profiles →
+   Keys → «+» → Apple Push Notifications service (APNs); роль Account Holder или
+   Admin. Ключи App Store Connect API для APNs не подходят. Один ключ работает и
+   для sandbox, и для production. Диагностика — в [`docs/PUSH.md`](docs/PUSH.md).
 
 Без файла приложение собирается и работает, но FCM отключается (в лог пишется
 предупреждение), push-токен не регистрируется.
@@ -232,6 +241,7 @@ docs/
 ├── TRANSFER_GUIDE.md правила переноса фич и слоёв
 ├── XCODE_CLOUD.md   сборка и TestFlight через Xcode Cloud
 ├── TESTFLIGHT.md    ручной TestFlight workflow и manual signing
+├── DEPLOY.md        полный процесс деплоя: TestFlight, App Store, откат
 ├── SMOKE.md         чек-лист проверки на устройстве
 ├── DEEP_LINKS.md    Universal Links, AASA и схемы
 ├── SECURITY.md      транспорт, токены, SSRF, диагностика, приватность
