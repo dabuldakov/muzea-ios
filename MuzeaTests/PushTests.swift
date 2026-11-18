@@ -148,23 +148,6 @@ final class ActiveChatTrackerTests: XCTestCase {
     }
 }
 
-final class ActiveChatTrackerTests: XCTestCase {
-
-    func testEnterAndLeave() {
-        let tracker = ActiveChatTracker()
-
-        tracker.enter("c-1")
-        XCTAssertEqual(tracker.chatUuid, "c-1")
-
-        // Выход из другого чата не сбрасывает активный.
-        tracker.leave("c-2")
-        XCTAssertEqual(tracker.chatUuid, "c-1")
-
-        tracker.leave("c-1")
-        XCTAssertNil(tracker.chatUuid)
-    }
-}
-
 final class PushManagerTokenTests: XCTestCase {
 
     func testTokenIsForwardedAndFlushed() {
