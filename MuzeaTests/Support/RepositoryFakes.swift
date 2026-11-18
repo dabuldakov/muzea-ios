@@ -543,10 +543,22 @@ final class FakeAvatarRepository: AvatarRepository {
     var uploadedAvatar: String?
     var chatAvatar: String?
     var deleted = false
+    var loadError: Error?
+    var uploadError: Error?
+    var deleteError: Error?
 
-    func loadAvatar() async throws -> String? { avatar }
-    func uploadAvatar(data: Data, fileName: String, mimeType: String) async throws -> String? { uploadedAvatar }
-    func deleteAvatar() async throws { deleted = true }
+    func loadAvatar() async throws -> String? {
+        if let loadError { throw loadError }
+        return avatar
+    }
+    func uploadAvatar(data: Data, fileName: String, mimeType: String) async throws -> String? {
+        if let uploadError { throw uploadError }
+        return uploadedAvatar
+    }
+    func deleteAvatar() async throws {
+        if let deleteError { throw deleteError }
+        deleted = true
+    }
     func uploadChatAvatar(chatUuid: String, data: Data, fileName: String, mimeType: String) async throws -> String? {
         chatAvatar
     }
@@ -570,12 +582,18 @@ final class FakeUserRepository: UserRepository {
     var user: User?
     var deletedIds: [Int64] = []
     var deleteError: Error?
+    var currentUserError: Error?
+    var updateError: Error?
+    var updated: [(id: Int64, fullName: String, email: String)] = []
 
     func currentUser() async throws -> User {
+        if let currentUserError { throw currentUserError }
         guard let user else { throw APIError.server(500, "no user") }
         return user
     }
     func updateUser(id: Int64, fullName: String, email: String) async throws -> User {
+        if let updateError { throw updateError }
+        updated.append((id, fullName, email))
         guard let user else { throw APIError.server(500, "no user") }
         return user
     }

@@ -1,8 +1,8 @@
 import XCTest
 @testable import Muzea
 
-/// Каждый геттер L10n должен существовать в обеих таблицах и не падать.
-/// Файл генерируется из `L10n.swift`; проверка ключей — в scripts/check_localization.py.
+/// Каждый публичный геттер L10n должен существовать в таблицах и не падать.
+/// Проверка ключей — в scripts/check_localization.py.
 final class L10nCoverageTests: XCTestCase {
 
     func testAllSimpleGettersResolve() {
@@ -267,20 +267,20 @@ final class L10nCoverageTests: XCTestCase {
     }
 
     func testFormattersResolve() {
-        XCTAssertFalse(L10n.replyBanner(name).isEmpty, "replyBanner")
+        XCTAssertFalse(L10n.replyBanner("name").isEmpty, "replyBanner")
         XCTAssertFalse(L10n.pinnedMany(3).isEmpty, "pinnedMany")
         XCTAssertFalse(L10n.selectedCount(3).isEmpty, "selectedCount")
         XCTAssertFalse(L10n.attachmentLimit(10).isEmpty, "attachmentLimit")
         XCTAssertFalse(L10n.groupMembers(3).isEmpty, "groupMembers")
         XCTAssertFalse(L10n.reactionAccessibility("👍", 2).isEmpty, "reactionAccessibility")
-        XCTAssertFalse(L10n.codeSent(email).isEmpty, "codeSent")
-        XCTAssertFalse(L10n.codeSentAgain(email).isEmpty, "codeSentAgain")
-        XCTAssertFalse(L10n.verificationSent(email).isEmpty, "verificationSent")
-        XCTAssertFalse(L10n.newsAuthor().isEmpty, "newsAuthor")
-        XCTAssertFalse(L10n.newsWatch().isEmpty, "newsWatch")
-        XCTAssertFalse(L10n.videoAuthor().isEmpty, "videoAuthor")
-        XCTAssertFalse(L10n.videoViews().isEmpty, "videoViews")
-        XCTAssertFalse(L10n.videoLikes().isEmpty, "videoLikes")
+        XCTAssertFalse(L10n.codeSent("email").isEmpty, "codeSent")
+        XCTAssertFalse(L10n.codeSentAgain("email").isEmpty, "codeSentAgain")
+        XCTAssertFalse(L10n.verificationSent("email").isEmpty, "verificationSent")
+        XCTAssertFalse(L10n.newsAuthor("name").isEmpty, "newsAuthor")
+        XCTAssertFalse(L10n.newsWatch("title").isEmpty, "newsWatch")
+        XCTAssertFalse(L10n.videoAuthor("name").isEmpty, "videoAuthor")
+        XCTAssertFalse(L10n.videoViews(3).isEmpty, "videoViews")
+        XCTAssertFalse(L10n.videoLikes(3).isEmpty, "videoLikes")
         XCTAssertFalse(L10n.errorDetails("boom").isEmpty, "errorDetails")
         XCTAssertFalse(L10n.serverError(500, "boom").isEmpty, "serverError")
         XCTAssertFalse(L10n.serverCode(500).isEmpty, "serverCode")
@@ -293,7 +293,5 @@ final class L10nCoverageTests: XCTestCase {
         XCTAssertFalse(L10n.recorderWriteFailed("err").isEmpty, "recorderWriteFailed")
         XCTAssertFalse(L10n.deactivateFallback("support@muzea.su").isEmpty, "deactivateFallback")
         XCTAssertFalse(L10n.consentBody("support@muzea.su").isEmpty, "consentBody")
-        XCTAssertFalse(L10n.t().isEmpty, "t")
-        XCTAssertFalse(L10n.format().isEmpty, "format")
     }
 }

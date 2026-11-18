@@ -537,6 +537,150 @@ final class ProfileViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.state.email, "alice@example.com")
     }
 
+    func testLoadKeepsEmailAndAvatarWhenMakeupFails() async {
+        let users = FakeUserRepository()
+        users.currentUserError = APIError.server(500, "boom")
+        let avatars = FakeAvatarRepository()
+        avatars.avatar = "/a.png"
+        let viewModel = ProfileViewModel(
+            userRepository: users,
+            avatarRepository: avatars,
+            chatSessionRepository: FakeChatSessionRepository(),
+            authRepository: FakeAuthRepository()
+        )
+
+        await viewModel.load()
+
+        XCTAssertNil(viewModel.state.user)
+        XCTAssertNotNil(viewModel.state.error)
+        XCTAssertEqual(viewModel.state.email, "alice@example.com")
+        XCTAssertEqual(viewModel.state.avatarUrl, "/a.png")
+        XCTAssertFalse(viewModel.state.isLoading)
+    }
+
+    func testUpdateWithoutUserAndWithError() async {
+        let users = FakeUserRepository()
+        let viewModel = ProfileViewModel(
+            userRepository: users,
+            avatarRepository: FakeAvatarRepository(),
+            chatSessionRepository: FakeChatSessionRepository(),
+            authRepository: FakeAuthRepository()
+        )
+
+        let withoutUser = await viewModel.update(fullName: "N", email: "e@x.y")
+        XCTAssertFalse(withoutUser)
+
+        users.user = user
+        users.updateError = APIError.server(500, "boom")
+        let failed = await viewModel.update(fullName: "N", email: "e@x.y")
+        XCTAssertFalse(failed)
+        XCTAssertNotNil(viewModel.state.error)
+    }
+
+    func testAvatarUploadAndDeleteErrors() async {
+        let avatars = FakeAvatarRepository()
+        let viewModel = ProfileViewModel(
+            userRepository: FakeUserRepository(),
+            avatarRepository: avatars,
+            chatSessionRepository: FakeChatSessionRepository(),
+            authRepository: FakeAuthRepository()
+        )
+
+        avatars.uploadedAvatar = "/new.png"
+        await viewModel.uploadAvatar(data: Data([1]), fileName: "a.jpg", mimeType: "image/jpeg")
+        XCTAssertEqual(viewModel.state.avatarUrl, "/new.png")
+
+        avatars.uploadError = APIError.server(500, "boom")
+        await viewModel.uploadAvatar(data: Data([1]), fileName: "a.jpg", mimeType: "image/jpeg")
+        XCTAssertNotNil(viewModel.state.error)
+
+        avatars.deleteError = APIError.server(500, "boom")
+        await viewModel.deleteAvatar()
+        XCTAssertNotNil(viewModel.state.error)
+
+        viewModel.consumeError()
+        XCTAssertNil(viewModel.state.error)
+    }
+
+    func testDeleteAvatarClearsUrl() async {
+        let avatars = FakeAvatarRepository()
+        let viewModel = ProfileViewModel(
+            userRepository: FakeUserRepository(),
+            avatarRepository: avatars,
+            chatSessionRepository: FakeChatSessionRepository(),
+            authRepository: FakeAuthRepository()
+        )
+        await viewModel.uploadAvatar(data: Data([1]), fileName: "a.jpg", mimeType: "image/jpeg")
+        viewModel.reportValidationError("x")
+        viewModel.consumeError()
+
+        await viewModel.deleteAvatar()
+
+        XCTAssertNil(viewModel.state.avatarUrl)
+        XCTAssertTrue(avatars.deleted)
+    }
+
+    func testDeleteAccountOutcomes() async {
+        let sessions = FakeChatSessionRepository()
+        sessions.deleteError = APIError.server(500, "chat")
+        let users = FakeUserRepository()
+        users.user = user
+        let viewModel = ProfileViewModel(
+            userRepository: users,
+            avatarRepository: FakeAvatarRepository(),
+            chatSessionRepository: sessions,
+            authRepository: FakeAuthRepository(),
+            initialUser: user
+        )
+
+        let chatFailed = await viewModel.deleteAccount()
+        XCTAssertEqual(chatFailed, .chatFailed)
+
+        let makeupFailedVM = ProfileViewModel(
+            userRepository: {
+                let repo = FakeUserRepository()
+                repo.user = user
+                repo.deleteError = APIError.server(500, "makeup")
+                return repo
+            }(),
+            avatarRepository: FakeAvatarRepository(),
+            chatSessionRepository: FakeChatSessionRepository(),
+            authRepository: FakeAuthRepository(),
+            initialUser: user
+        )
+        let makeupOutcome = await makeupFailedVM.deleteAccount()
+        if case .failed = makeupOutcome {
+        } else {
+            XCTFail("Ожидалось failed при ошибке makeup")
+        }
+
+        let auth = FakeAuthRepository()
+        auth.deleteError = APIError.server(500, "auth")
+        let authFailedVM = ProfileViewModel(
+            userRepository: users,
+            avatarRepository: FakeAvatarRepository(),
+            chatSessionRepository: FakeChatSessionRepository(),
+            authRepository: auth,
+            initialUser: user
+        )
+        let authOutcome = await authFailedVM.deleteAccount()
+        if case .failed = authOutcome {
+        } else {
+            XCTFail("Ожидалось failed при ошибке IdP")
+        }
+
+        users.deleteError = nil
+        let successVM = ProfileViewModel(
+            userRepository: users,
+            avatarRepository: FakeAvatarRepository(),
+            chatSessionRepository: FakeChatSessionRepository(),
+            authRepository: FakeAuthRepository(),
+            initialUser: user
+        )
+        let deleted = await successVM.deleteAccount()
+        XCTAssertEqual(deleted, .deleted)
+    }
+
     func testUpdateDelegatesToRepository() async {
         let users = FakeUserRepository()
         users.user = user
