@@ -24,9 +24,23 @@
 - `GoogleService-Info.plist` должен быть скачан именно для этого iOS-приложения.
   Старый plist с `BUNDLE_ID=com.example.muzea` даёт неверный FCM-токен и
   уведомления не приходят.
-- В Firebase Console → Project settings → Cloud Messaging должен быть загружен
-  APNs Authentication Key (Team ID `5HGZ927RW5`), иначе FCM вернёт
+- В Firebase Console → Project settings → Cloud Messaging → Apple app
+  configuration должен быть загружен **APNs Authentication Key** (Team ID
+  `5HGZ927RW5`) в слоты Development и Production. Один и тот же ключ подходит для
+  обеих сред, отдельные ключи не нужны. Иначе FCM вернёт
   `THIRD_PARTY_AUTH_ERROR`.
+- Ключ создаётся только в developer.apple.com → Certificates, Identifiers &
+  Profiles → **Keys** → «+» → **Apple Push Notifications service (APNs)**
+  (роль Account Holder или Admin), файл `AuthKey_<KeyID>.p8` скачивается один раз.
+  Ключи из App Store Connect → Users and Access → Integrations (App Store
+  Connect API) для APNs **не подходят**, даже с ролью Admin: Apple отвечает
+  `403 InvalidProviderToken`.
+- Проверить ключ до загрузки в Firebase можно прямым запросом к APNs
+  (`api.push.apple.com` и `api.sandbox.push.apple.com`) с заведомо неверным
+  device token:
+  - `403 InvalidProviderToken` — ключ не APNs (например, App Store Connect API)
+    или отозван;
+  - `400 BadDeviceToken` — ключ валиден, можно загружать в Firebase.
 - Bundle ID должен иметь capability **Push Notifications**; App Store профиль
   содержит `aps-environment=production` (проверяется по IPA).
 - Info.plist: `UIBackgroundModes = remote-notification`.
