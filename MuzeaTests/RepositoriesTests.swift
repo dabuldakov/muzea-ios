@@ -486,6 +486,48 @@ final class ChatRepositoryTests: XCTestCase {
         XCTAssertEqual(gifBody["mp4Url"] as? String, "https://cdn/hd.mp4")
     }
 
+    func testMarkMessagesAsDeliveredSendsQuery() async {
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request, status: 204), Data())
+        }
+
+        await kit().messages.markMessagesAsDelivered(chatUuid: "c-1", upToMessageUuid: "m-9")
+
+        let url = MockURLProtocol.requests.first?.url
+        XCTAssertEqual(url?.path, "/api/messages/c-1/delivered")
+        XCTAssertEqual(url?.query, "upToMessageUuid=m-9")
+    }
+
+    func testUserProfileLoadUpdateAndDelete() async throws {
+        let userJSON = #"{"id":7,"userName":"me","fullName":"Me","avatarUrl":null,"role":"USER","createdAt":null,"enabled":true}"#
+        let repository = UserRepositoryImpl(client: TestSupport.makeupClient(tokenStore: store))
+
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request), TestSupport.data(userJSON))
+        }
+        let user = try await repository.currentUser()
+        XCTAssertEqual(user.userName, "me")
+        XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/users/me")
+
+        MockURLProtocol.reset()
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request), TestSupport.data(userJSON))
+        }
+        _ = try await repository.updateUser(id: 7, fullName: "New", email: "n@e.x")
+        let put = try XCTUnwrap(MockURLProtocol.requests.first)
+        XCTAssertEqual(put.httpMethod, "PUT")
+        XCTAssertEqual(put.url?.path, "/api/users/7")
+        XCTAssertEqual(stringBody(put, "fullName"), "New")
+        XCTAssertEqual(stringBody(put, "email"), "n@e.x")
+        XCTAssertEqual(bodyJSON(put)?["enabled"] as? Bool, true)
+
+        MockURLProtocol.reset()
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request, status: 404), Data())
+        }
+        try await repository.deleteAccount(id: 7)
+    }
+
     func testMarkMessagesAsReadSendsQuery() async {
         MockURLProtocol.handler = { request in
             (MockURLProtocol.response(for: request, status: 204), Data())
@@ -631,5 +673,51 @@ final class ChatRepositoryTests: XCTestCase {
 
         XCTAssertEqual(found?.chatUuid, "c-1")
         XCTAssertTrue(MockURLProtocol.requests.isEmpty)
+    }
+}
+
+private final class MinimalMessageRepository: MessageRepository {
+    var texts: [String] = []
+
+    func loadMessages(chatUuid: String) async throws -> [ChatMessage] { [] }
+    func cachedMessages(chatUuid: String) -> [ChatMessage] { [] }
+    func sendMessage(chatUuid: String, text: String) async throws -> ChatMessage {
+        texts.append(text)
+        return TestData.message("s-\(texts.count)", text: text)
+    }
+    func loadMessagesBefore(
+        chatUuid: String,
+        beforeMessageUuid: String,
+        limit: Int
+    ) async throws -> [ChatMessage] { [] }
+    func loadMessagesAfter(chatUuid: String, timestamp: String) async throws -> [ChatMessage] { [] }
+    func loadMessagesUpdated(chatUuid: String, timestamp: String) async throws -> [ChatMessage] { [] }
+    func markMessagesAsRead(chatUuid: String, upToMessageUuid: String) async {}
+    func markMessagesAsDelivered(chatUuid: String, upToMessageUuid: String) async {}
+}
+
+final class MessageRepositoryDefaultsTests: XCTestCase {
+
+    func testDefaultSendOverloadsForwardToSimpleSend() async throws {
+        let repository = MinimalMessageRepository()
+
+        _ = try await repository.sendMessage(
+            chatUuid: "c",
+            text: "a",
+            replyToMessageUuid: nil,
+            clientMessageId: "x",
+            power: 5
+        )
+        _ = try await repository.sendMessage(
+            chatUuid: "c",
+            text: "b",
+            messageType: "IMAGE",
+            replyToMessageUuid: nil,
+            clientMessageId: nil,
+            attachments: [],
+            power: 0
+        )
+
+        XCTAssertEqual(repository.texts, ["a", "b"])
     }
 }

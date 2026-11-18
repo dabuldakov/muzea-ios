@@ -18,6 +18,12 @@ final class ViewSmokeTests: XCTestCase {
             .environmentObject(Router())
             .environmentObject(container.networkMonitor)
             .environment(\.locale, Locale(identifier: "ru"))
+        // ImageRenderer реально вычисляет body (UIHostingController без окна
+        // этого не делает), поэтому покрытие View растёт без UI-тестов.
+        let renderer = ImageRenderer(content: root.frame(width: 390, height: 844))
+        renderer.scale = 1
+        _ = renderer.uiImage
+
         let controller = UIHostingController(rootView: root)
         controller.view.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
         controller.view.setNeedsLayout()

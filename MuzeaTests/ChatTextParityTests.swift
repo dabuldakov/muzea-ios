@@ -533,6 +533,83 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.state.error)
     }
 
+    func testStartLoadsParticipantsAndStopsOnCancel() async {
+        let (viewModel, _) = makeViewModel()
+
+        let task = Task { await viewModel.start() }
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        task.cancel()
+
+        XCTAssertEqual(viewModel.mentionCandidates, [])
+        XCTAssertFalse(viewModel.recentReactions.isEmpty)
+    }
+
+    func testRetryFailedMessageClearsFailure() async throws {
+        let (viewModel, repository) = makeViewModel()
+        repository.sendError = APIError.server(500, "boom")
+        _ = await viewModel.send("hello")
+        let failed = try XCTUnwrap(viewModel.state.messages.first)
+        XCTAssertTrue(viewModel.state.failedMessages.contains(failed.messageUuid))
+
+        repository.sendError = nil
+        await viewModel.retry(failed)
+
+        XCTAssertFalse(viewModel.state.failedMessages.contains(failed.messageUuid))
+    }
+
+    func testVideoAttachmentCanBeRemovedBeforeSend() async throws {
+        let (viewModel, _) = makeViewModel()
+
+        await viewModel.addVideo(data: Data([1, 2]), fileName: "clip.mp4", duration: 5)
+        let pending = try XCTUnwrap(viewModel.state.pendingAttachments.first)
+        XCTAssertEqual(pending.kind, .video)
+
+        viewModel.removePendingAttachment(pending.id)
+        XCTAssertTrue(viewModel.state.pendingAttachments.isEmpty)
+        XCTAssertFalse(viewModel.state.isUploadingAttachments)
+    }
+
+    func testComposerDraftAndNotices() async {
+        let drafts = FakeChatDraftStore()
+        let (viewModel, _) = makeViewModel(drafts: drafts)
+
+        viewModel.saveDraft("черновик")
+        XCTAssertEqual(drafts.storage["c-1"], "черновик")
+
+        viewModel.reportValidationError("bad")
+        XCTAssertEqual(viewModel.state.error, "bad")
+        viewModel.consumeError()
+        XCTAssertNil(viewModel.state.error)
+
+        viewModel.consumeNotice()
+        XCTAssertNil(viewModel.state.notice)
+
+        viewModel.beginReply(to: TestData.message("m1"))
+        XCTAssertNotNil(viewModel.state.replyTo)
+        viewModel.cancelComposer()
+        XCTAssertNil(viewModel.state.replyTo)
+    }
+
+    func testSingleForwardAndForwardChatsLoad() async throws {
+        let original = TestData.message("m1", text: "send me").replacing(messageId: 5)
+        let actions = FakeMessageActionsRepository()
+        let chats = FakeChatRepository()
+        chats.chats = [TestData.chat("c-2")]
+        let (viewModel, repository) = makeViewModel(
+            messages: [original],
+            actions: actions,
+            chats: chats
+        )
+
+        await viewModel.loadForwardChats()
+        XCTAssertEqual(viewModel.state.forwardChats.map(\.chatUuid), ["c-2"])
+
+        await viewModel.forward(original, toChatUuid: "c-2", comment: "look")
+        XCTAssertEqual(actions.forwarded.first?.0, "m1")
+        XCTAssertEqual(repository.sentRequests.last?.text, "look")
+        XCTAssertEqual(viewModel.state.notice, L10n.forwarded)
+    }
+
     private func makeViewModel(
         messages: [ChatMessage] = [],
         actions: FakeMessageActionsRepository = FakeMessageActionsRepository(),
@@ -541,7 +618,8 @@ final class ChatConversationTextViewModelTests: XCTestCase {
         moderation: FakeModerationRepository = FakeModerationRepository(),
         drafts: FakeChatDraftStore = FakeChatDraftStore(),
         reactionHistory: FakeReactionHistoryStore = FakeReactionHistoryStore(),
-        outbox: FakeChatOutboxStore = FakeChatOutboxStore()
+        outbox: FakeChatOutboxStore = FakeChatOutboxStore(),
+        chats: FakeChatRepository = FakeChatRepository()
     ) -> (ChatConversationViewModel, FakeMessageRepository) {
         let repository = FakeMessageRepository()
         repository.cached = messages
@@ -554,7 +632,8 @@ final class ChatConversationTextViewModelTests: XCTestCase {
             moderation: moderation,
             drafts: drafts,
             reactionHistory: reactionHistory,
-            outbox: outbox
+            outbox: outbox,
+            chats: chats
         )
         return (
             ChatConversationViewModel(

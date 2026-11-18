@@ -2,6 +2,40 @@ import XCTest
 import UIKit
 @testable import Muzea
 
+private func wavData(seconds: Double = 0.5, sampleRate: Int = 8000) -> Data {
+    let sampleCount = Int(Double(sampleRate) * seconds)
+    var samples = Data(capacity: sampleCount * 2)
+    for index in 0..<sampleCount {
+        let value = sin(2 * Double.pi * 440 * Double(index) / Double(sampleRate))
+        let sample = Int16(max(-1, min(1, value)) * 20000)
+        withUnsafeBytes(of: sample.littleEndian) { samples.append(contentsOf: $0) }
+    }
+
+    func le32(_ value: UInt32) -> Data {
+        withUnsafeBytes(of: value.littleEndian) { Data($0) }
+    }
+    func le16(_ value: UInt16) -> Data {
+        withUnsafeBytes(of: value.littleEndian) { Data($0) }
+    }
+
+    var data = Data()
+    data.append(Data("RIFF".utf8))
+    data.append(le32(UInt32(36 + samples.count)))
+    data.append(Data("WAVE".utf8))
+    data.append(Data("fmt ".utf8))
+    data.append(le32(16))
+    data.append(le16(1))
+    data.append(le16(1))
+    data.append(le32(UInt32(sampleRate)))
+    data.append(le32(UInt32(sampleRate * 2)))
+    data.append(le16(2))
+    data.append(le16(16))
+    data.append(Data("data".utf8))
+    data.append(le32(UInt32(samples.count)))
+    data.append(samples)
+    return data
+}
+
 final class AttachmentPolicyTests: XCTestCase {
 
     func testKnownTypesAndLimits() {
@@ -388,41 +422,6 @@ final class AttachmentFilesTests: XCTestCase {
 
 final class WaveformProviderAudioTests: XCTestCase {
 
-    /// Простой PCM WAV: 8 кГц, моно, 16 бит, синус 440 Гц.
-    private func wavData(seconds: Double = 0.5, sampleRate: Int = 8000) -> Data {
-        let sampleCount = Int(Double(sampleRate) * seconds)
-        var samples = Data(capacity: sampleCount * 2)
-        for index in 0..<sampleCount {
-            let value = sin(2 * Double.pi * 440 * Double(index) / Double(sampleRate))
-            let sample = Int16(max(-1, min(1, value)) * 20000)
-            withUnsafeBytes(of: sample.littleEndian) { samples.append(contentsOf: $0) }
-        }
-
-        func le32(_ value: UInt32) -> Data {
-            withUnsafeBytes(of: value.littleEndian) { Data($0) }
-        }
-        func le16(_ value: UInt16) -> Data {
-            withUnsafeBytes(of: value.littleEndian) { Data($0) }
-        }
-
-        var data = Data()
-        data.append(Data("RIFF".utf8))
-        data.append(le32(UInt32(36 + samples.count)))
-        data.append(Data("WAVE".utf8))
-        data.append(Data("fmt ".utf8))
-        data.append(le32(16))
-        data.append(le16(1))
-        data.append(le16(1))
-        data.append(le32(UInt32(sampleRate)))
-        data.append(le32(UInt32(sampleRate * 2)))
-        data.append(le16(2))
-        data.append(le16(16))
-        data.append(Data("data".utf8))
-        data.append(le32(UInt32(samples.count)))
-        data.append(samples)
-        return data
-    }
-
     func testWaveformIsBuiltFromRealAudio() async throws {
         let repository = FakeAttachmentRepository()
         repository.downloadData = wavData()
@@ -450,6 +449,41 @@ final class WaveformProviderAudioTests: XCTestCase {
         XCTAssertEqual(bars.count, Waveform.defaultBarCount)
         XCTAssertTrue(bars.allSatisfy { $0 >= Waveform.minimumLevel && $0 <= 1 })
         XCTAssertGreaterThan(bars.max() ?? 0, Waveform.minimumLevel)
+    }
+}
+
+final class AudioPlaybackCenterTests: XCTestCase {
+
+    @MainActor
+    func testPlaysValidWavAndStops() async {
+        let repository = FakeAttachmentRepository()
+        repository.downloadData = wavData()
+        let attachment = ChatAttachment(
+            attachmentUuid: "play-\(UUID().uuidString)",
+            fileName: "voice.wav",
+            fileUrl: nil,
+            thumbnailUrl: nil,
+            mp4Url: nil,
+            fileSize: 100,
+            mimeType: "audio/wav",
+            type: "AUDIO",
+            width: nil,
+            height: nil,
+            duration: 1,
+            gifKey: nil
+        )
+        let center = AudioPlaybackCenter()
+
+        await center.toggle(id: "a", attachment: attachment, repository: repository)
+
+        XCTAssertEqual(center.playingId, "a")
+        XCTAssertTrue(center.isPlaying("a"))
+        XCTAssertGreaterThan(center.duration, 0)
+        XCTAssertGreaterThanOrEqual(center.progress, 0)
+
+        center.stop()
+        XCTAssertNil(center.playingId)
+        XCTAssertEqual(center.progress, 0)
     }
 }
 
