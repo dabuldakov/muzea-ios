@@ -66,6 +66,10 @@ jobs:
     name: Unit tests (iOS Simulator)
     runs-on: macos-15
     timeout-minutes: 45
+    env:
+      # Android: 82.4% строк. Логика iOS (Core/Domain/ViewModel) держим не ниже.
+      COVERAGE_MIN_LOGIC: "83"
+      COVERAGE_MIN: "60"
     steps:
       - uses: actions/checkout@v5
 

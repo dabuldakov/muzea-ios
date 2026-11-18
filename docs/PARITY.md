@@ -118,11 +118,11 @@ the iOS backlog: update the status as work lands. Status values:
 
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
-| QA.01 | Unit tests | partial | 446 тестов в 36 файлах (1151 на Android); contract fixtures chat/makeup, smoke-тесты вью; device tests pending |
+| QA.01 | Unit tests | partial | ~450 тестов в 36 файлах; покрытие логики 85.2% (Android 82.4%), общее 65.7% с рендером вью; device tests pending |
 | QA.02 | Robolectric | n/a | |
 | QA.03 | Integration (mock network) | partial | `MockURLProtocol`: репозитории, загрузки, история, GIF, OG-превью; очередь вложений |
 | QA.04 | Device tests | missing | XCUITest на 4 пути; в Android `androidTest` тоже planned |
-| QA.05 | Coverage gate | missing | гейт включён в CI (`COVERAGE_MIN`), порог поднимаем до Android-уровня |
+| QA.05 | Coverage gate | done | гейт логики 83% и общего 60% в `ios.yml`; отчёт `scripts/coverage_report.py` |
 | QA.06 | Mutation testing | n/a | |
 | DIST.01 | Signing | done | distribution cert, App Store profiles, signed TestFlight build 1.1 (2) |
 | DIST.02 | Self-update | n/a | App Store/TestFlight |

@@ -95,6 +95,23 @@ final class ViewSmokeTests: XCTestCase {
         )
     }
 
+    private var documentAttachment: ChatAttachment {
+        ChatAttachment(
+            attachmentUuid: "d-1",
+            fileName: "report.pdf",
+            fileUrl: "key",
+            thumbnailUrl: nil,
+            mp4Url: nil,
+            fileSize: 4096,
+            mimeType: "application/pdf",
+            type: "FILE",
+            width: nil,
+            height: nil,
+            duration: nil,
+            gifKey: nil
+        )
+    }
+
     private var audioAttachment: ChatAttachment {
         ChatAttachment(
             attachmentUuid: "a-2",
@@ -153,7 +170,7 @@ final class ViewSmokeTests: XCTestCase {
                 "m-2",
                 text: "",
                 type: "IMAGE",
-                attachments: [imageAttachment, videoAttachment, audioAttachment]
+                attachments: [imageAttachment, videoAttachment, audioAttachment, documentAttachment]
             ),
             isMine: true,
             showSenderName: false,
@@ -209,7 +226,7 @@ final class ViewSmokeTests: XCTestCase {
         ))
 
         host(MessageAttachmentsView(
-            attachments: [imageAttachment, videoAttachment, audioAttachment],
+            attachments: [imageAttachment, videoAttachment, audioAttachment, documentAttachment],
             isMine: true,
             messageType: "FILE",
             onOpenImage: { _ in }
@@ -223,10 +240,32 @@ final class ViewSmokeTests: XCTestCase {
         host(ReportReasonSheet { _ in })
         host(MessageStatusSheet(
             message: message(),
-            receipts: [],
-            statuses: [],
+            receipts: [
+                ChatReceipt(
+                    userUuid: "u-1",
+                    username: "anna",
+                    fullName: "Аня",
+                    avatarUrl: nil,
+                    joinedAt: nil,
+                    lastDeliveredMessageId: 1,
+                    lastDeliveredAt: "2026-01-01T00:00:00",
+                    lastReadMessageId: 1,
+                    lastReadAt: "2026-01-01T00:00:01"
+                )
+            ],
+            statuses: [
+                MessageStatus(
+                    userId: 1,
+                    userUuid: "u-1",
+                    status: "READ",
+                    deliveredAt: "2026-01-01T00:00:00",
+                    readAt: "2026-01-01T00:00:01"
+                )
+            ],
             myUserUuid: "me"
         ))
+        host(LinkPreviewView(url: URL(string: "https://muzea.su")!))
+        host(VideoNoteRecorderSheet { _ in })
         host(ImageGalleryViewer(
             attachments: [imageAttachment],
             startIndex: 0,

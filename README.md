@@ -110,7 +110,7 @@ xcodebuild test \
   CODE_SIGNING_ALLOWED=NO
 
 xcrun xccov view --report --json build/TestResults.xcresult > build/coverage.json
-python3 scripts/coverage_report.py build/coverage.json --min-logic 80
+python3 scripts/coverage_report.py build/coverage.json --min-logic 83
 ```
 
 ## CI (GitHub Actions)
