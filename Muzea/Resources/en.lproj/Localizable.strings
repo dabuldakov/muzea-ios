@@ -286,3 +286,6 @@
 "auth.error.notRegistered" = "No account with this email. Tap “Sign up” to create one.";
 "auth.error.accountDeleted" = "This account is deactivated. Contact support to restore access.";
 "auth.verificationSent" = "Email is not confirmed yet. We sent a new code to %@ — enter it below.";
+"profile.language" = "Language";
+"profile.language.title" = "Choose language";
+"profile.language.system" = "System";

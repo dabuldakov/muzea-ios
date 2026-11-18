@@ -254,6 +254,9 @@ enum L10n {
     // MARK: - Profile
 
     static var profileTitle: String { t("profile.title") }
+    static var languageLabel: String { t("profile.language") }
+    static var languageTitle: String { t("profile.language.title") }
+    static var languageSystem: String { t("profile.language.system") }
     static var changeAvatar: String { t("profile.changeAvatar") }
     static var deleteAvatar: String { t("profile.deleteAvatar") }
     static var loginLabel: String { t("profile.login") }
@@ -402,7 +405,13 @@ enum L10n {
     // MARK: - Private
 
     private static func t(_ key: String) -> String {
-        NSLocalizedString(key, tableName: "Localizable", bundle: .main, value: key, comment: "")
+        NSLocalizedString(
+            key,
+            tableName: "Localizable",
+            bundle: LocalizationStore.shared.bundle,
+            value: key,
+            comment: ""
+        )
     }
 
     private static func format(_ key: String, _ args: CVarArg...) -> String {

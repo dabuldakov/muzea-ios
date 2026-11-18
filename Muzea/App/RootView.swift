@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     @EnvironmentObject private var container: AppContainer
     @EnvironmentObject private var appRouter: AppRouter
+    @ObservedObject private var localization = LocalizationStore.shared
 
     var body: some View {
         Group {
@@ -17,6 +18,8 @@ struct RootView: View {
                 LoginView(container: container)
             }
         }
+        .id(localization.language)
+        .environment(\.locale, localization.locale)
         .onOpenURL { url in
             _ = appRouter.handleURL(url)
         }

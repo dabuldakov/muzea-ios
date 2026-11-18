@@ -10,6 +10,8 @@ struct ProfileView: View {
     @State private var deleteDialog: DeleteDialog?
     @State private var cacheSize: Int64 = 0
     @State private var cacheCleared = false
+    @State private var showLanguagePicker = false
+    @ObservedObject private var localization = LocalizationStore.shared
 
     private enum DeleteDialog {
         case confirm
@@ -88,6 +90,14 @@ struct ProfileView: View {
                     }
                 }
 
+                Section {
+                    Button {
+                        showLanguagePicker = true
+                    } label: {
+                        LabeledContent(L10n.languageLabel, value: localization.currentLabel)
+                    }
+                }
+
                 if let error = viewModel.state.error {
                     Section { Text(error).foregroundColor(.red) }
                 }
@@ -109,6 +119,18 @@ struct ProfileView: View {
                         Task { await container.logout() }
                     }
                 }
+            }
+            .confirmationDialog(
+                L10n.languageTitle,
+                isPresented: $showLanguagePicker,
+                titleVisibility: .visible
+            ) {
+                ForEach(LocalizationStore.AppLanguage.allCases) { language in
+                    Button(localization.label(for: language)) {
+                        localization.set(language)
+                    }
+                }
+                Button(L10n.cancel, role: .cancel) {}
             }
             .navigationTitle(L10n.profileTitle)
             .navigationDestination(for: Route.self) { RouteDestinationView(route: $0) }
