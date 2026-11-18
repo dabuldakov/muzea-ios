@@ -430,6 +430,62 @@ final class ChatRepositoryTests: XCTestCase {
         XCTAssertEqual(stringBody(MockURLProtocol.requests.first, "messageType"), "TEXT")
     }
 
+    func testSendMediaBody() async throws {
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request), TestSupport.data(#"{"messageUuid":"m-1"}"#))
+        }
+
+        _ = try await kit().messages.sendMessage(
+            chatUuid: "c-1",
+            text: "look",
+            messageType: "IMAGE",
+            replyToMessageUuid: "m-0",
+            clientMessageId: "client-1",
+            attachments: ["a-1", "a-2"],
+            power: 0
+        )
+
+        let request = try XCTUnwrap(MockURLProtocol.requests.first)
+        XCTAssertEqual(stringBody(request, "messageType"), "IMAGE")
+        XCTAssertEqual(stringBody(request, "replyToMessageUuid"), "m-0")
+        XCTAssertEqual(stringBody(request, "clientMessageId"), "client-1")
+        XCTAssertEqual(stringArrayBody(request, "attachments"), ["a-1", "a-2"])
+        XCTAssertEqual(stringBody(request, "text"), "look")
+    }
+
+    func testSendGifCarriesProviderMetadata() async throws {
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request), TestSupport.data(#"{"messageUuid":"g-1","messageType":"GIF"}"#))
+        }
+        let gif = Gif(
+            provider: "klipy",
+            providerGifId: "42",
+            title: "Party cat",
+            url: "https://cdn/hd.webp",
+            previewUrl: "https://cdn/sm.jpg",
+            mp4Url: "https://cdn/hd.mp4",
+            width: 480,
+            height: 270,
+            gifKey: nil
+        )
+
+        _ = try await kit().messages.sendGif(
+            chatUuid: "c-1",
+            gif: gif,
+            replyToMessageUuid: "m-2"
+        )
+
+        let request = try XCTUnwrap(MockURLProtocol.requests.first)
+        XCTAssertEqual(stringBody(request, "messageType"), "GIF")
+        XCTAssertEqual(stringBody(request, "replyToMessageUuid"), "m-2")
+        XCTAssertNil(stringBody(request, "clientMessageId"))
+        let body = try XCTUnwrap(bodyJSON(request))
+        let gifBody = try XCTUnwrap(body["gif"] as? [String: Any])
+        XCTAssertEqual(gifBody["provider"] as? String, "klipy")
+        XCTAssertEqual(gifBody["providerGifId"] as? String, "42")
+        XCTAssertEqual(gifBody["mp4Url"] as? String, "https://cdn/hd.mp4")
+    }
+
     func testMarkMessagesAsReadSendsQuery() async {
         MockURLProtocol.handler = { request in
             (MockURLProtocol.response(for: request, status: 204), Data())

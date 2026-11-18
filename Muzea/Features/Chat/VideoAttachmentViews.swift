@@ -1,4 +1,5 @@
 import AVKit
+import Photos
 import SwiftUI
 import UIKit
 

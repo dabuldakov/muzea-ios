@@ -44,7 +44,7 @@ struct VideoDTO: Decodable, Identifiable, Hashable {
     // Бэкенд отдаёт длительность числом секунд (durationSeconds), а не строкой
     // duration; строка не приходила никогда. likedByMe — лайк текущего
     // пользователя, тоже присутствует в ответе.
-    let durationSeconds: Int?
+    let durationSeconds: Double?
     let views: Int
     let likes: Int?
     let likedByMe: Bool?

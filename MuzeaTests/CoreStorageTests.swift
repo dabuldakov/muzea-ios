@@ -367,3 +367,113 @@ final class AuthErrorMapperTests: XCTestCase {
         )
     }
 }
+
+final class RouterTests: XCTestCase {
+
+    @MainActor
+    func testPushBackAndPopToRoot() {
+        let router = Router()
+
+        router.push(.newsDetail(1))
+        router.push(.videoDetail(Video(
+            id: 2,
+            title: "V",
+            description: nil,
+            url: "/v.mp4",
+            thumbnailUrl: nil,
+            fileSize: nil,
+            durationSeconds: nil,
+            views: 0,
+            likes: nil,
+            likedByMe: nil,
+            uploadedBy: "me",
+            uploadedAt: "2026-01-01T00:00:00"
+        )))
+        XCTAssertEqual(router.path.count, 2)
+
+        router.back()
+        XCTAssertEqual(router.path.count, 1)
+
+        router.popToRoot()
+        XCTAssertEqual(router.path.count, 0)
+
+        // На пустом стеке ничего не падает.
+        router.back()
+        router.popToRoot()
+        XCTAssertEqual(router.path.count, 0)
+    }
+}
+
+final class AudioAndWaveformTests: XCTestCase {
+
+    @MainActor
+    func testAudioPlaybackIgnoresAttachmentWithoutUUID() async {
+        let center = AudioPlaybackCenter()
+        let attachment = ChatAttachment(
+            attachmentUuid: nil,
+            fileName: "voice.m4a",
+            fileUrl: nil,
+            thumbnailUrl: nil,
+            mp4Url: nil,
+            fileSize: nil,
+            mimeType: "audio/mp4",
+            type: "AUDIO",
+            width: nil,
+            height: nil,
+            duration: 3,
+            gifKey: nil
+        )
+
+        await center.toggle(id: "a", attachment: attachment, repository: FakeAttachmentRepository())
+
+        XCTAssertFalse(center.isPlaying("a"))
+        XCTAssertNil(center.playingId)
+        center.stop()
+    }
+
+    @MainActor
+    func testVideoNoteLimits() {
+        XCTAssertFalse(VideoNoteLimits.isValid(duration: 0.5))
+        XCTAssertTrue(VideoNoteLimits.isValid(duration: 1))
+        XCTAssertTrue(VideoNoteLimits.isValid(duration: 60))
+        XCTAssertTrue(VideoNoteLimits.isValid(duration: 61))
+        XCTAssertFalse(VideoNoteLimits.isValid(duration: 62))
+        XCTAssertEqual(VideoNoteLimits.clampedDuration(-5), 0)
+        XCTAssertEqual(VideoNoteLimits.clampedDuration(100), 60)
+    }
+
+    func testWaveformProviderReturnsNilForBrokenAudio() async {
+        let attachment = ChatAttachment(
+            attachmentUuid: "broken",
+            fileName: "voice.m4a",
+            fileUrl: nil,
+            thumbnailUrl: nil,
+            mp4Url: nil,
+            fileSize: 3,
+            mimeType: "audio/mp4",
+            type: "AUDIO",
+            width: nil,
+            height: nil,
+            duration: 1,
+            gifKey: nil
+        )
+        let repository = FakeAttachmentRepository()
+        repository.downloadData = Data([0, 1, 2, 3])
+
+        let waveform = await WaveformProvider.shared.waveform(
+            for: attachment,
+            repository: repository
+        )
+
+        XCTAssertNil(waveform)
+    }
+
+    func testWaveformPeakSamplesForMissingFile() async {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("missing-\(UUID().uuidString).m4a")
+
+        let samples = await WaveformProvider.peakSamples(url: url)
+
+        XCTAssertTrue(samples.isEmpty)
+    }
+}

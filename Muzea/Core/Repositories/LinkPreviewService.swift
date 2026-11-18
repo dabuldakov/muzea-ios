@@ -11,17 +11,24 @@ actor LinkPreviewService {
     }
 
     private var cache: [String: Entry] = [:]
-    private let ttl: TimeInterval = 24 * 60 * 60
+    private let ttl: TimeInterval
     private let maxBytes = 512 * 1024
 
     private let session: URLSession
 
-    init() {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 8
-        configuration.timeoutIntervalForResource = 10
-        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-        session = URLSession(configuration: configuration)
+    /// `session` и `ttl` параметризованы для тестов: без подмены сессии
+    /// сервис ходил бы в реальную сеть.
+    init(session: URLSession? = nil, ttl: TimeInterval = 24 * 60 * 60) {
+        self.ttl = ttl
+        if let session {
+            self.session = session
+        } else {
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.timeoutIntervalForRequest = 8
+            configuration.timeoutIntervalForResource = 10
+            configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+            self.session = URLSession(configuration: configuration)
+        }
     }
 
     func load(_ url: URL) async -> LinkPreview? {
