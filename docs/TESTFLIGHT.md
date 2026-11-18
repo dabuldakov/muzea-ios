@@ -34,6 +34,17 @@ Workflow использует **manual signing**:
 и сертификаты, но `xcodebuild -exportArchive` с cloud signing требует прав Admin.
 Manual signing обходит это.
 
+## SDK и предупреждения App Store Connect
+
+Сборка 1.1 (3) прошла доставку с предупреждением **ITMS-90725**: она собрана
+с iOS 26.2 SDK. С апреля 2027 Apple требует собирать приложения с iOS 27 SDK
+(Xcode 27+). Это не блокирует текущие сборки, но перед дедлайном нужно:
+
+1. убедиться, что в CI стоит Xcode 27 (`setup-xcode` с `latest-stable` подхватит
+   его автоматически, когда он станет стабильным);
+2. для Xcode Cloud выбрать Xcode 27 в настройках workflow;
+3. выпустить сборку с тем же номером версии, но новым build.
+
 ## Проверка
 
 - Build в App Store Connect: `processingState = VALID`;
