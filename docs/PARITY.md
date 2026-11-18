@@ -118,9 +118,9 @@ the iOS backlog: update the status as work lands. Status values:
 
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
-| QA.01 | Unit tests | partial | 300 vs 1151 on Android (1 Keychain test skipped); contract fixtures chat/makeup; UI/device tests pending |
+| QA.01 | Unit tests | partial | 446 тестов в 36 файлах (1151 на Android); contract fixtures chat/makeup, smoke-тесты вью; device tests pending |
 | QA.02 | Robolectric | n/a | |
-| QA.03 | Integration (mock network) | partial | `MockURLProtocol`; add shared fixtures |
+| QA.03 | Integration (mock network) | partial | `MockURLProtocol`: репозитории, загрузки, история, GIF, OG-превью; очередь вложений |
 | QA.04 | Device tests | missing | XCUITest на 4 пути; в Android `androidTest` тоже planned |
 | QA.05 | Coverage gate | missing | гейт включён в CI (`COVERAGE_MIN`), порог поднимаем до Android-уровня |
 | QA.06 | Mutation testing | n/a | |
