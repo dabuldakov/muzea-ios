@@ -128,7 +128,7 @@ struct ParticipantRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(participant.displayName).font(.headline)
                 if isMe {
-                    Text("You").font(.caption).foregroundColor(.secondary)
+                    Text(L10n.you).font(.caption).foregroundColor(.secondary)
                 } else if let username = participant.username, !username.isEmpty {
                     Text("@\(username)").font(.caption).foregroundColor(.secondary)
                 }
@@ -137,7 +137,7 @@ struct ParticipantRow: View {
             Spacer()
 
             if participant.role == "OWNER" {
-                Text("Owner")
+                Text(L10n.groupRoleOwner)
                     .font(.caption2).bold()
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)

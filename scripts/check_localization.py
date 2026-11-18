@@ -32,6 +32,10 @@ CHECKED_DIRS = [
 KEY_CALL = re.compile(r'(?:t|format)\("([^"]+)"')
 TABLE_LINE = re.compile(r'^"([^"]+)"\s*=\s*"(.*)";\s*$')
 CYRILLIC = re.compile(r'"[^"\n]*[А-Яа-яЁё][^"\n]*"')
+UI_LITERAL = re.compile(
+    r'\b(?:Text|Button|Label|navigationTitle|Section|TextField|Toggle|Picker)\("([A-Za-z][^"]*)"'
+)
+UI_LITERAL_ALLOWLIST = {"Muzea", "GIF", "Email", "OK"}
 PLACEHOLDER = re.compile(r'%(?:\d+\$)?[@dfsu]')
 
 
@@ -113,6 +117,13 @@ def main() -> int:
                 )
                 if not skipped and CYRILLIC.search(line):
                     leaked.append(f"{path.relative_to(ROOT)}:{number}: {stripped}")
+                if not skipped:
+                    for match in UI_LITERAL.finditer(line):
+                        if match.group(1) not in UI_LITERAL_ALLOWLIST:
+                            leaked.append(
+                                f"{path.relative_to(ROOT)}:{number}: UI-литерал "
+                                f"\"{match.group(1)}\" — нужен L10n"
+                            )
                 previous = stripped
 
     if leaked:

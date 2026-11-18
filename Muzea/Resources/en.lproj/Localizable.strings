@@ -293,3 +293,4 @@
 "auth.error.codeTooShort" = "Enter the full code from the email.";
 "error.withDetails" = "Error: %@";
 "contact.fallbackName" = "Contact";
+"chat.group.role.owner" = "Owner";

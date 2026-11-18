@@ -614,6 +614,27 @@ final class ChatMediaViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.state.pendingAttachments[0].normalizedProgress, 1)
     }
 
+    func testVoiceUploadFailureDoesNotSendPreviousAttachment() async {
+        let attachments = FakeAttachmentRepository()
+        let (viewModel, messages) = makeViewModel(attachmentRepository: attachments)
+        await viewModel.addImage(data: Data([1, 2, 3]), width: 10, height: 20)
+        XCTAssertTrue(viewModel.state.pendingAttachments.first?.isUploaded == true)
+
+        attachments.uploadError = APIError.server(500, "boom")
+        let voice = RecordedVoice(
+            url: FileManager.default.temporaryDirectory.appendingPathComponent("voice-test.m4a"),
+            data: Data([4, 5, 6]),
+            duration: 2
+        )
+
+        let sent = await viewModel.sendVoice(voice)
+
+        XCTAssertFalse(sent)
+        XCTAssertTrue(messages.sentTexts.isEmpty)
+        XCTAssertEqual(viewModel.state.pendingAttachments.count, 2)
+        XCTAssertNotNil(viewModel.state.pendingAttachments.last?.error)
+    }
+
     func testAttachmentLimitRejectsEleventhFile() async {
         let attachments = FakeAttachmentRepository()
         let (viewModel, _) = makeViewModel(attachmentRepository: attachments)

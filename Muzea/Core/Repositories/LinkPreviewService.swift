@@ -38,7 +38,9 @@ actor LinkPreviewService {
         }
 
         let preview = await fetch(url)
-        cache[key] = Entry(preview: preview, at: Date())
+        if let preview {
+            cache[key] = Entry(preview: preview, at: Date())
+        }
         return preview
     }
 

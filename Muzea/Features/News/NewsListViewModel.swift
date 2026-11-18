@@ -39,6 +39,8 @@ final class NewsListViewModel: ObservableObject {
             raw = []
             page = 0
             endReached = false
+            // Список контактов мог измениться с прошлого обновления.
+            contactsLoaded = false
             state.isRefreshing = !state.news.isEmpty
             state.news = []
         }

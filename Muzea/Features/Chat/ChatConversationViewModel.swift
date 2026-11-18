@@ -406,6 +406,7 @@ final class ChatConversationViewModel: ObservableObject {
 
     @discardableResult
     func sendVoice(_ recorded: RecordedVoice) async -> Bool {
+        let before = state.pendingAttachments.count
         await addAudio(
             data: recorded.data,
             fileName: recorded.url.lastPathComponent,
@@ -413,12 +414,15 @@ final class ChatConversationViewModel: ObservableObject {
         )
         // Временный файл записи больше не нужен: данные уже в очереди/на сервере.
         try? FileManager.default.removeItem(at: recorded.url)
-        guard state.pendingAttachments.contains(where: \.isUploaded) else { return false }
+        // Именно новое вложение должно быть загружено, а не любое из старых.
+        guard state.pendingAttachments.count == before + 1,
+              state.pendingAttachments.last?.isUploaded == true else { return false }
         return await send("")
     }
 
     @discardableResult
     func sendVideoNote(_ recorded: RecordedVideoNote) async -> Bool {
+        let before = state.pendingAttachments.count
         await upload(
             data: recorded.data,
             fileName: recorded.fileName,
@@ -430,7 +434,8 @@ final class ChatConversationViewModel: ObservableObject {
             duration: recorded.duration
         )
         try? FileManager.default.removeItem(at: recorded.url)
-        guard state.pendingAttachments.contains(where: \.isUploaded) else { return false }
+        guard state.pendingAttachments.count == before + 1,
+              state.pendingAttachments.last?.isUploaded == true else { return false }
         return await send("", power: 0, forcedMessageType: "VIDEO_NOTE")
     }
 

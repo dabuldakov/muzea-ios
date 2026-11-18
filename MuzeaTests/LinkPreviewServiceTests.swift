@@ -116,6 +116,32 @@ final class LinkPreviewServiceTests: XCTestCase {
         XCTAssertNil(preview)
     }
 
+    func testFailureIsNotCachedAndCanRetry() async throws {
+        var attempt = 0
+        MockURLProtocol.handler = { request in
+            attempt += 1
+            if attempt == 1 {
+                throw URLError(.timedOut)
+            }
+            return (
+                MockURLProtocol.response(
+                    for: request,
+                    headers: ["Content-Type": "text/html"]
+                ),
+                self.html("<html><head><meta property=\"og:title\" content=\"OK\"></head></html>")
+            )
+        }
+        let service = LinkPreviewService(session: TestSupport.session())
+        let url = URL(string: "https://example.com/retry")!
+
+        let first = await service.load(url)
+        let second = await service.load(url)
+
+        XCTAssertNil(first)
+        XCTAssertEqual(second?.title, "OK")
+        XCTAssertEqual(MockURLProtocol.requests.count, 2)
+    }
+
     func testExpiredCacheRefetches() async throws {
         MockURLProtocol.handler = { request in
             (

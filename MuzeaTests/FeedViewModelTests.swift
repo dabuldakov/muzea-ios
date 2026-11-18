@@ -46,6 +46,32 @@ final class NewsListViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.state.isLoading)
     }
 
+    func testRefreshReloadsContacts() async {
+        let repository = FakeNewsRepository()
+        repository.pages = [
+            Page(
+                content: [news(1, author: "friend"), news(2, author: "bob")],
+                totalElements: 2,
+                totalPages: 1,
+                number: 0
+            )
+        ]
+        let contacts = FakeContactRepository()
+        contacts.contacts = [TestData.contact("friend")]
+        let viewModel = NewsListViewModel(
+            newsRepository: repository,
+            contactRepository: contacts,
+            ownUsername: "me"
+        )
+        await viewModel.load()
+        XCTAssertEqual(viewModel.state.news.map(\.id), [1])
+
+        contacts.contacts = [TestData.contact("friend"), TestData.contact("bob")]
+        await viewModel.load(reset: true)
+
+        XCTAssertEqual(viewModel.state.news.map(\.id), [1, 2])
+    }
+
     func testShortPageMarksEndReached() async {
         let repository = FakeNewsRepository()
         repository.pages = [Page(content: [], totalElements: 0, totalPages: 0, number: 0)]

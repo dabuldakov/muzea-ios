@@ -124,6 +124,7 @@ enum L10n {
     static var chatGroupAddMembers: String { t("chat.group.addMembers") }
     static var chatGroupChangeAvatar: String { t("chat.group.changeAvatar") }
     static var chatGroupAvatarTooLarge: String { t("chat.group.avatarTooLarge") }
+    static var groupRoleOwner: String { t("chat.group.role.owner") }
     static var videoNoteHint: String { t("chat.videoNote.hint") }
 
     // MARK: - Ошибки и уведомления чата

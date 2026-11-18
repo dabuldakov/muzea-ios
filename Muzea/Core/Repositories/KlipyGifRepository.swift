@@ -40,6 +40,13 @@ actor GifCache {
         guard !items.isEmpty else { return }
         var all = load()
         all[key] = Entry(items: items, at: Date())
+        // Не даём кэшу расти бесконечно: старые запросы и лишние ключи уходят.
+        let cutoff = Date().addingTimeInterval(-7 * 24 * 60 * 60)
+        all = all.filter { $0.value.at > cutoff }
+        if all.count > 200 {
+            let keep = all.sorted { $0.value.at > $1.value.at }.prefix(200)
+            all = Dictionary(uniqueKeysWithValues: keep.map { ($0.key, $0.value) })
+        }
         entries = all
         try? FileManager.default.createDirectory(
             at: fileURL.deletingLastPathComponent(),

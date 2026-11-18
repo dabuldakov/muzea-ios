@@ -293,3 +293,4 @@
 "auth.error.codeTooShort" = "Введите код из письма полностью.";
 "error.withDetails" = "Ошибка: %@";
 "contact.fallbackName" = "Контакт";
+"chat.group.role.owner" = "Владелец";
