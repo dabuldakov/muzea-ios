@@ -62,6 +62,10 @@ final class VoiceRecorder {
         self.recorder = nil
         fileURL = nil
         startedAt = nil
+        try? AVAudioSession.sharedInstance().setActive(
+            false,
+            options: .notifyOthersOnDeactivation
+        )
 
         guard duration >= 1,
               let data = try? Data(contentsOf: url),
@@ -80,6 +84,9 @@ final class VoiceRecorder {
         }
         fileURL = nil
         startedAt = nil
-        try? AVAudioSession.sharedInstance().setActive(false)
+        try? AVAudioSession.sharedInstance().setActive(
+            false,
+            options: .notifyOthersOnDeactivation
+        )
     }
 }

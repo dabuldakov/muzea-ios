@@ -411,6 +411,8 @@ final class ChatConversationViewModel: ObservableObject {
             fileName: recorded.url.lastPathComponent,
             duration: recorded.duration
         )
+        // Временный файл записи больше не нужен: данные уже в очереди/на сервере.
+        try? FileManager.default.removeItem(at: recorded.url)
         guard state.pendingAttachments.contains(where: \.isUploaded) else { return false }
         return await send("")
     }
@@ -427,6 +429,7 @@ final class ChatConversationViewModel: ObservableObject {
             height: recorded.height,
             duration: recorded.duration
         )
+        try? FileManager.default.removeItem(at: recorded.url)
         guard state.pendingAttachments.contains(where: \.isUploaded) else { return false }
         return await send("", power: 0, forcedMessageType: "VIDEO_NOTE")
     }

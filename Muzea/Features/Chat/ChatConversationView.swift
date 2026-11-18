@@ -541,11 +541,21 @@ struct ChatConversationView: View {
         let access = url.startAccessingSecurityScopedResource()
         defer { if access { url.stopAccessingSecurityScopedResource() } }
 
+        let fileName = url.lastPathComponent
+        let fileSize = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize
+        if let rule = AttachmentPolicy.rule(for: fileName),
+           let fileSize,
+           Int64(fileSize) > rule.maxBytes {
+            viewModel.reportValidationError(
+                L10n.fileTooLarge(rule.maxBytes / (1024 * 1024))
+            )
+            return
+        }
+
         guard let data = try? Data(contentsOf: url) else {
             viewModel.reportValidationError(L10n.errorFileRead)
             return
         }
-        let fileName = url.lastPathComponent
         let mime = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType
             ?? "application/octet-stream"
 
