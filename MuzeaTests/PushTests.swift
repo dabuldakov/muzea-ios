@@ -147,3 +147,37 @@ final class ActiveChatTrackerTests: XCTestCase {
         XCTAssertNil(tracker.chatUuid)
     }
 }
+
+final class ActiveChatTrackerTests: XCTestCase {
+
+    func testEnterAndLeave() {
+        let tracker = ActiveChatTracker()
+
+        tracker.enter("c-1")
+        XCTAssertEqual(tracker.chatUuid, "c-1")
+
+        // Выход из другого чата не сбрасывает активный.
+        tracker.leave("c-2")
+        XCTAssertEqual(tracker.chatUuid, "c-1")
+
+        tracker.leave("c-1")
+        XCTAssertNil(tracker.chatUuid)
+    }
+}
+
+final class PushManagerTokenTests: XCTestCase {
+
+    func testTokenIsForwardedAndFlushed() {
+        let manager = PushManager()
+        var tokens: [String] = []
+        manager.onToken = { tokens.append($0) }
+
+        manager.handleToken("token-1")
+        manager.flushIfNeeded()
+
+        XCTAssertEqual(tokens, ["token-1", "token-1"])
+
+        manager.flushIfNeeded()
+        XCTAssertEqual(tokens, ["token-1", "token-1", "token-1"])
+    }
+}

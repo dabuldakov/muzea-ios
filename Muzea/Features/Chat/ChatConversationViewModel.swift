@@ -203,7 +203,7 @@ final class ChatConversationViewModel: ObservableObject {
         let replyToUuid = state.replyTo.map { reducer.serverUuid($0.messageUuid) }
         let clientMessageId = UUID().uuidString
         let optimistic = ChatMessage(
-            messageUuid: "local-\(Int(Date().timeIntervalSince1970 * 1000))",
+            messageUuid: "local-\(UUID().uuidString)",
             messageId: nil,
             chatUuid: chatUuid,
             senderId: nil,
@@ -448,7 +448,7 @@ final class ChatConversationViewModel: ObservableObject {
             gifKey: gif.gifKey
         )
         let optimistic = ChatMessage(
-            messageUuid: "local-\(Int(Date().timeIntervalSince1970 * 1000))",
+            messageUuid: "local-\(UUID().uuidString)",
             chatUuid: chatUuid,
             senderId: nil,
             senderUuid: myUserUuid,
