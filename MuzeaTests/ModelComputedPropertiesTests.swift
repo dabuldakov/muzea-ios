@@ -67,15 +67,15 @@ final class ModelComputedPropertiesTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            makeParticipant(uuid: "u-1", fullName: "Борис", username: "bob").displayName,
+            makeParticipant(uuid: "u-1", username: "bob", fullName: "Борис").displayName,
             "Борис"
         )
         XCTAssertEqual(
-            makeParticipant(uuid: "u-1", fullName: nil, username: "bob").displayName,
+            makeParticipant(uuid: "u-1", username: "bob", fullName: nil).displayName,
             "bob"
         )
         XCTAssertEqual(
-            makeParticipant(uuid: "u-1", fullName: nil, username: nil).displayName,
+            makeParticipant(uuid: "u-1", username: nil, fullName: nil).displayName,
             L10n.participant
         )
     }
