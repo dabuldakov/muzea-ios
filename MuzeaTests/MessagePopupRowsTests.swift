@@ -38,7 +38,7 @@ final class MessagePopupRowsTests: XCTestCase {
             receipts: [
                 receipt(uuid: "anna", name: "Аня", readAt: "2026-01-01T10:00:00"),
                 receipt(uuid: "boris", name: "Борис", deliveredAt: "2026-01-01T09:00:00"),
-                receipt(uuid: "sveta", name: "Света", readAt: nil, deliveredAt: nil)
+                receipt(uuid: "sveta", name: "Света")
             ],
             statuses: [
                 MessageStatus(
@@ -157,7 +157,7 @@ final class MessagePopupRowsTests: XCTestCase {
         uuid: String,
         name: String,
         deliveredAt: String? = nil,
-        readAt: String?
+        readAt: String? = nil
     ) -> ChatReceipt {
         ChatReceipt(
             userUuid: uuid,
