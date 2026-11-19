@@ -21,7 +21,8 @@ on:
         default: ""
 
 concurrency:
-  group: testflight-${{ github.ref }}
+  # Общий group с ios.yml: одновременно нужен только один macOS-раннер.
+  group: ios-macos-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

@@ -6,8 +6,10 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ios-${{ github.ref }}
-  cancel-in-progress: true
+  # Общий group с testflight.yml: на аккаунте бывает доступен только один
+  # macOS-раннер, поэтому CI и релиз не должны идти одновременно.
+  group: ios-macos-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -64,6 +66,7 @@ jobs:
 
   test:
     name: Unit tests (iOS Simulator)
+    needs: build
     runs-on: macos-15
     timeout-minutes: 45
     env:

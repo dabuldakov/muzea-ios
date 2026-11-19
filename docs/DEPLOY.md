@@ -174,8 +174,9 @@ gh run rerun <run-id> --repo dabuldakov/muzea-ios
 Workflow ручной (`workflow_dispatch`), чтобы не тратить macOS-минуты:
 
 1. **Build (iOS Simulator)** — сборка Debug для `iphonesimulator` без подписи.
-2. **Unit tests (iOS Simulator)** — `xcodebuild test`, покрытие через
-   `scripts/coverage_report.py`, гейты: логика ≥ 83 %, общее ≥ 60 %.
+2. **Unit tests (iOS Simulator)** — `xcodebuild test` после успешной сборки
+   (`needs: build`): так одновременно нужен только один macOS-раннер. Покрытие
+   через `scripts/coverage_report.py`, гейты: логика ≥ 83 %, общее ≥ 60 %.
 3. **Release .ipa** — запускается только после успешных build и test
    (`needs: [build, test]`), собирает неподписанный архив. На теге `v*`
    публикует `.ipa` в GitHub Release.
@@ -252,6 +253,7 @@ xcodebuild archive \
 | Симптом | Причина | Что делать |
 |---|---|---|
 | «The job was not acquired by Runner of type hosted» | нет свободных macOS-раннеров | перезапустить run, подождать |
+| Job отменён примерно через 15 минут в очереди | GitHub не выдал macOS-раннер за 15 минут | перезапустить; не запускать `ios.yml` и `testflight.yml` одновременно — workflows сериализованы общим `concurrency`-group, а тесты в CI идут после сборки |
 | ITMS-90725 | сборка на старом iOS SDK | перейти на Xcode 27 до апреля 2027 |
 | «Missing Compliance» после загрузки | не указан export compliance | `ITSAppUsesNonExemptEncryption = false` в `Info.plist` |
 | `THIRD_PARTY_AUTH_ERROR`, `InvalidProviderToken` | в Firebase не APNs-ключ (например, App Store Connect API) | создать APNs Auth Key в developer.apple.com → Keys |
