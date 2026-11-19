@@ -758,6 +758,12 @@ final class ChatConversationViewModel: ObservableObject {
         }
     }
 
+    /// Принудительно обновить квитанции: нужно при раскрытии «Деталей»,
+    /// чтобы список читателей не отставал на интервал опроса.
+    func refreshReceiptsNow() async {
+        await refreshReceipts(force: true)
+    }
+
     /// Пересылка одного сообщения с необязательным комментарием.
     func forward(
         _ message: ChatMessage,

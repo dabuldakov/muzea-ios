@@ -85,3 +85,45 @@ enum MessageActionsBuilder {
         return Result(actions: actions, showStatus: showStatus)
     }
 }
+
+extension MessageAction {
+    var title: String {
+        switch self {
+        case .react: return L10n.reaction
+        case .retry: return L10n.retry
+        case .copy: return L10n.copy
+        case .reply: return L10n.reply
+        case .select: return L10n.select
+        case .edit: return L10n.edit
+        case .delete: return L10n.delete
+        case .forward: return L10n.forward
+        case .pin: return L10n.pin
+        case .unpin: return L10n.unpin
+        case .report: return L10n.report
+        case .block: return L10n.block
+        case .status: return L10n.details
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .react: return "face.smiling"
+        case .retry: return "arrow.clockwise"
+        case .copy: return "doc.on.doc"
+        case .reply: return "arrowshape.turn.up.left"
+        case .select: return "checkmark.circle"
+        case .edit: return "pencil"
+        case .delete: return "trash"
+        case .forward: return "arrowshape.turn.up.right"
+        case .pin: return "pin"
+        case .unpin: return "pin.slash"
+        case .report: return "exclamationmark.bubble"
+        case .block: return "hand.raised"
+        case .status: return "info.circle"
+        }
+    }
+
+    var isDestructive: Bool {
+        self == .delete || self == .block
+    }
+}

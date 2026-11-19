@@ -51,7 +51,7 @@ the iOS backlog: update the status as work lands. Status values:
 | MSG.13 | Group rename | missing | planned и в Android (API есть) |
 | MSG.14 | Remove participant | missing | planned и в Android (API есть) |
 | MSG.15 | Remove contact | missing | planned и в Android (API есть) |
-| MSG.16 | Reactions | partial | 24 emoji, recent history, picker sheet, authors in details; full refresh every 15 s; tests in `ChatTextParityTests` |
+| MSG.16 | Reactions | partial | 24 emoji, recent history; карточка по тапу на сообщение: реакции + действия + «кто прочитал/реагировал» (как `MessageActionsPopup` на Android); full refresh every 15 s; тесты `ChatTextParityTests`, `MessagePopupRowsTests` |
 | MSG.17 | Unread in chat list | partial | reload on return from conversation; tests/device check pending |
 | — | Link previews (Open Graph) | partial | first URL, og/twitter/title parse, 24h cache, SSRF guard; tests in `ChatTextParityTests` |
 

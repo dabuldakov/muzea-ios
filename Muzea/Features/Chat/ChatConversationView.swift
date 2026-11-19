@@ -27,6 +27,7 @@ struct ChatConversationView: View {
     @State private var showVideoNoteRecorder = false
     @State private var gallery: GalleryRequest?
     @State private var pendingGalleryAction: GalleryAction?
+    @State private var messagePopup: MessagePopupState?
 
     init(chat: Chat, myUserUuid: String?, services: ChatConversationServices) {
         self.chat = chat
@@ -122,6 +123,7 @@ struct ChatConversationView: View {
         }
         .animation(.easeInOut(duration: 0.18), value: viewModel.state.isSelecting)
         .animation(.easeInOut(duration: 0.18), value: viewModel.state.pinned.count)
+        .coordinateSpace(name: "chatSurface")
         .navigationTitle(chat.title ?? L10n.chat)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
@@ -291,6 +293,9 @@ struct ChatConversationView: View {
                 )
             }
         }
+        .overlay {
+            messagePopupOverlay
+        }
         .fullScreenCover(isPresented: $showVideoNoteRecorder) {
             VideoNoteRecorderSheet { note in
                 Task { _ = await viewModel.sendVideoNote(note) }
@@ -327,9 +332,11 @@ struct ChatConversationView: View {
                     .padding(4)
             }
         }
-        .onTapGesture {
+        .onTapGesture(coordinateSpace: .named("chatSurface")) { point in
             if viewModel.state.isSelecting {
                 viewModel.toggleSelection(message)
+            } else {
+                openMessagePopup(message, at: point)
             }
         }
         .onAppear {
@@ -373,89 +380,115 @@ struct ChatConversationView: View {
         )
 
         ForEach(result.actions, id: \.self) { action in
-            switch action {
-            case .react:
-                Button {
-                    activeSheet = .reaction(message)
-                } label: {
-                    Label(L10n.reaction, systemImage: "face.smiling")
-                }
-            case .retry:
-                Button {
-                    Task { await viewModel.retry(message) }
-                } label: {
-                    Label(L10n.retry, systemImage: "arrow.clockwise")
-                }
-            case .copy:
-                Button {
-                    UIPasteboard.general.string = message.text
-                } label: {
-                    Label(L10n.copy, systemImage: "doc.on.doc")
-                }
-            case .reply:
-                Button {
-                    viewModel.beginReply(to: message)
-                } label: {
-                    Label(L10n.reply, systemImage: "arrowshape.turn.up.left")
-                }
-            case .select:
-                Button {
-                    viewModel.enterSelection(with: message)
-                } label: {
-                    Label(L10n.select, systemImage: "checkmark.circle")
-                }
-            case .edit:
-                Button {
-                    draftBeforeEdit = input
-                    input = message.text ?? ""
-                    viewModel.beginEdit(message)
-                } label: {
-                    Label(L10n.edit, systemImage: "pencil")
-                }
-            case .delete:
-                Button(role: .destructive) {
-                    activeAlert = .delete(message)
-                } label: {
-                    Label(L10n.delete, systemImage: "trash")
-                }
-            case .forward:
-                Button {
-                    openForward([message])
-                } label: {
-                    Label(L10n.forward, systemImage: "arrowshape.turn.up.right")
-                }
-            case .pin:
-                Button {
-                    Task { await viewModel.togglePin(message) }
-                } label: {
-                    Label(L10n.pin, systemImage: "pin")
-                }
-            case .unpin:
-                Button {
-                    Task { await viewModel.togglePin(message) }
-                } label: {
-                    Label(L10n.unpin, systemImage: "pin.slash")
-                }
-            case .status:
-                Button {
-                    activeSheet = .details(message)
-                    Task { await viewModel.loadMessageStatuses(for: message) }
-                } label: {
-                    Label(L10n.details, systemImage: "info.circle")
-                }
-            case .report:
-                Button {
-                    activeSheet = .report(message)
-                } label: {
-                    Label(L10n.report, systemImage: "exclamationmark.bubble")
-                }
-            case .block:
-                Button(role: .destructive) {
-                    activeAlert = .block(message)
-                } label: {
-                    Label(L10n.block, systemImage: "hand.raised")
-                }
+            Button(role: action.isDestructive ? ButtonRole.destructive : nil) {
+                perform(action, message: message)
+            } label: {
+                Label(action.title, systemImage: action.systemImage)
             }
+        }
+    }
+
+    // MARK: - Message actions popup
+
+    /// Плавающая карточка по тапу на сообщение: реакции, действия и «Детали».
+    /// Аналог Android `MessageActionsPopup`; контекстное меню по долгому
+    /// нажатию остаётся как альтернативный путь.
+    @ViewBuilder
+    private var messagePopupOverlay: some View {
+        if let popup = messagePopup {
+            // Берём свежую копию: пока карточка открыта, опрос мог обновить
+            // реакции или текст сообщения.
+            let message = viewModel.state.messages.first {
+                $0.messageUuid == popup.message.messageUuid
+            } ?? popup.message
+            let built = MessageActionsBuilder.build(
+                message: message,
+                myUserUuid: viewModel.myUserUuid,
+                isGroupChat: viewModel.isGroupChat,
+                failedMessages: viewModel.state.failedMessages
+            )
+
+            MessageActionsPopupView(
+                message: message,
+                actions: built.actions.filter { $0 != .react && $0 != .status },
+                showDetails: built.showStatus || !(message.reactions ?? []).isEmpty,
+                receipts: viewModel.state.receipts,
+                statuses: viewModel.state.messageStatuses[message.messageUuid] ?? [],
+                myUserUuid: viewModel.myUserUuid,
+                recentReactions: viewModel.recentReactions,
+                anchor: popup.point,
+                onAction: { action in
+                    perform(action, message: message)
+                },
+                onReaction: { emoji in
+                    closeMessagePopup()
+                    Task { await viewModel.toggleReaction(message, emoji: emoji) }
+                },
+                onLoadDetails: {
+                    Task {
+                        await viewModel.loadMessageStatuses(for: message)
+                        await viewModel.refreshReceiptsNow()
+                    }
+                },
+                onDismiss: { closeMessagePopup() }
+            )
+            .zIndex(10)
+        }
+    }
+
+    private func openMessagePopup(_ message: ChatMessage, at point: CGPoint) {
+        let result = MessageActionsBuilder.build(
+            message: message,
+            myUserUuid: viewModel.myUserUuid,
+            isGroupChat: viewModel.isGroupChat,
+            failedMessages: viewModel.state.failedMessages
+        )
+        // У удалённого сообщения действий нет — карточку не показываем.
+        guard !result.actions.isEmpty else { return }
+        Haptics.impact(.light)
+        withAnimation(.easeOut(duration: 0.15)) {
+            messagePopup = MessagePopupState(message: message, point: point)
+        }
+    }
+
+    private func closeMessagePopup() {
+        guard messagePopup != nil else { return }
+        withAnimation(.easeIn(duration: 0.12)) {
+            messagePopup = nil
+        }
+    }
+
+    /// Единая обработка действий из карточки и контекстного меню.
+    private func perform(_ action: MessageAction, message: ChatMessage) {
+        messagePopup = nil
+        switch action {
+        case .react:
+            activeSheet = .reaction(message)
+        case .retry:
+            Task { await viewModel.retry(message) }
+        case .copy:
+            UIPasteboard.general.string = message.text
+        case .reply:
+            viewModel.beginReply(to: message)
+        case .select:
+            viewModel.enterSelection(with: message)
+        case .edit:
+            draftBeforeEdit = input
+            input = message.text ?? ""
+            viewModel.beginEdit(message)
+        case .delete:
+            activeAlert = .delete(message)
+        case .forward:
+            openForward([message])
+        case .pin, .unpin:
+            Task { await viewModel.togglePin(message) }
+        case .status:
+            activeSheet = .details(message)
+            Task { await viewModel.loadMessageStatuses(for: message) }
+        case .report:
+            activeSheet = .report(message)
+        case .block:
+            activeAlert = .block(message)
         }
     }
 
@@ -661,6 +694,12 @@ struct ChatConversationView: View {
             proxy.scrollTo(last.messageUuid, anchor: .bottom)
         }
     }
+}
+
+private struct MessagePopupState: Identifiable {
+    let message: ChatMessage
+    let point: CGPoint
+    var id: String { message.messageUuid }
 }
 
 private enum ActiveSheet: Identifiable {
