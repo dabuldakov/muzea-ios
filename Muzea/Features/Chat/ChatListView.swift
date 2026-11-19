@@ -96,7 +96,7 @@ struct ChatListView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(8)
+                .padding(12)
             }
             .background(Color(.systemGroupedBackground))
 

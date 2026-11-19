@@ -128,6 +128,17 @@ struct ChatConversationView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 8) {
+                    AvatarView(
+                        url: chat.peerDeleted == true ? nil : ImageURL.chat(chat.avatarUrl),
+                        size: 28
+                    )
+                    Text(chat.title ?? L10n.chat)
+                        .font(.system(size: 17, weight: .semibold))
+                        .lineLimit(1)
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     viewModel.exitSelection()
