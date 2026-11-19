@@ -87,12 +87,18 @@ struct ChatListView: View {
     private var content: some View {
         switch viewModel.state.viewState {
         case .list:
-            List(viewModel.state.chats) { chat in
-                NavigationLink(value: Route.conversation(chat)) {
-                    ChatRow(chat: chat)
+            ScrollView {
+                LazyVStack(spacing: 8) {
+                    ForEach(viewModel.state.chats) { chat in
+                        NavigationLink(value: Route.conversation(chat)) {
+                            ChatRow(chat: chat)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
+                .padding(8)
             }
-            .listStyle(.plain)
+            .background(Color(.systemGroupedBackground))
 
         case .loading:
             ProgressView()
@@ -117,46 +123,54 @@ struct ChatRow: View {
     let chat: Chat
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .center, spacing: 10) {
             AvatarView(url: chat.peerDeleted == true ? nil : ImageURL.chat(chat.avatarUrl), size: 48)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(titleText).font(.headline).lineLimit(1)
-
-                if let text = chat.lastMessage?.text, !text.isEmpty {
-                    let prefix = chat.lastMessage?.senderName.map { "\($0): " } ?? ""
-                    Text(prefix + text)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(titleText)
+                        .font(.system(size: 16, weight: .bold))
                         .lineLimit(1)
-                } else {
-                    Text(L10n.messagesEmpty)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 6) {
-                if let createdAt = chat.lastMessage?.createdAt, !createdAt.isEmpty {
-                    Text(DateTimeFormat.full(createdAt))
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                    Spacer(minLength: 0)
+                    if let createdAt = chat.lastMessage?.createdAt, !createdAt.isEmpty {
+                        Text(DateTimeFormat.full(createdAt))
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
                 }
 
-                if let unread = chat.unreadCount, unread > 0 {
-                    Text("\(unread)")
-                        .font(.caption2).bold()
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(Color.red)
-                        .clipShape(Capsule())
+                HStack(alignment: .center, spacing: 8) {
+                    Text(previewText)
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                    if let unread = chat.unreadCount, unread > 0 {
+                        Text("\(unread)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .frame(minWidth: 20)
+                            .background(Theme.Palette.outgoingStart)
+                            .clipShape(Capsule())
+                    }
                 }
             }
         }
+        .padding(10)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
+        .contentShape(Rectangle())
+    }
+
+    private var previewText: String {
+        if let text = chat.lastMessage?.text, !text.isEmpty {
+            let prefix = chat.lastMessage?.senderName.map { "\($0): " } ?? ""
+            return prefix + text
+        }
+        return L10n.messagesEmpty
     }
 
     private var titleText: String {

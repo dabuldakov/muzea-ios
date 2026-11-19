@@ -23,7 +23,7 @@ enum Theme {
     }
 
     enum Size {
-        static let avatar: CGFloat = 28
+        static let avatar: CGFloat = 32
         static let bubbleMaxWidth: CGFloat = 250
         static let mediaMaxWidth: CGFloat = 250
         static let composerMinHeight: CGFloat = 44
@@ -36,7 +36,16 @@ enum Theme {
     enum Palette {
         static let outgoingStart = Color(hex: 0x6200EE)
         static let outgoingEnd = Color(hex: 0x7F39FB)
-        static let incomingBubble = Color(.secondarySystemBackground)
+        /// Точные цвета Android: `#EFEFEF` днём и `#2A2A30` ночью.
+        static let incomingBubble = Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(red: 0x2A / 255, green: 0x2A / 255, blue: 0x30 / 255, alpha: 1)
+                : UIColor(red: 0xEF / 255, green: 0xEF / 255, blue: 0xEF / 255, alpha: 1)
+        })
+        /// `purple_200` из Android: фон своей реакции.
+        static let mineReaction = Color(hex: 0xBB86FC)
+        /// `purple_700` из Android: имя автора в цитате ответа.
+        static let replyAccent = Color(hex: 0x3700B3)
         static let selection = Color.accentColor.opacity(0.12)
         static let composerField = Color(.secondarySystemBackground)
 

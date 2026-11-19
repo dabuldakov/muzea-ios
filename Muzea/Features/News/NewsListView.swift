@@ -55,13 +55,20 @@ struct NewsListView: View {
                 }
             }
         } else {
-            List(viewModel.state.news) { item in
-                NavigationLink(value: Route.newsDetail(item.id)) {
-                    NewsRow(item: item)
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(viewModel.state.news) { item in
+                        NavigationLink(value: Route.newsDetail(item.id)) {
+                            NewsRow(item: item)
+                        }
+                        .buttonStyle(.plain)
+                        .task { await viewModel.loadMoreIfNeeded(currentItem: item) }
+                    }
                 }
-                .task { await viewModel.loadMoreIfNeeded(currentItem: item) }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
             }
-            .listStyle(.plain)
+            .background(Color(.systemGroupedBackground))
         }
     }
 }
@@ -70,26 +77,55 @@ struct NewsRow: View {
     let item: News
 
     var body: some View {
-        HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
             AsyncImage(url: ImageURL.makeup(item.imageUrl)) { phase in
                 if case .success(let image) = phase {
                     image.resizable().scaledToFill()
                 } else {
-                    Color.gray.opacity(0.15)
+                    ZStack {
+                        Color(.tertiarySystemBackground)
+                        Image(systemName: "newspaper")
+                            .font(.largeTitle)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
-            .frame(width: 72, height: 72)
+            .frame(height: 180)
+            .frame(maxWidth: .infinity)
             .clipped()
-            .cornerRadius(8)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.title).font(.headline).lineLimit(2)
-                HStack {
-                    Text(item.author).font(.caption).foregroundColor(.secondary)
-                    Spacer()
-                    Text(DateTimeFormat.date(item.publishedAt)).font(.caption).foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(item.title)
+                    .font(.system(size: 17, weight: .semibold))
+                    .lineSpacing(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if !item.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(item.content)
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                        .lineSpacing(2)
+                        .lineLimit(2)
+                        .padding(.top, 6)
                 }
+
+                HStack {
+                    Text(item.author)
+                    Spacer(minLength: 8)
+                    Text(DateTimeFormat.date(item.publishedAt))
+                }
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+                .padding(.top, 12)
             }
+            .padding(16)
         }
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+        )
+        .contentShape(Rectangle())
     }
 }

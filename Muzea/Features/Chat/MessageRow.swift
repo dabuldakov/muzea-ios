@@ -15,19 +15,21 @@ struct MessageRow: View {
     let onOpenImage: ((Int) -> Void)?
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
+        HStack(alignment: .top, spacing: 8) {
             if isMine { Spacer(minLength: 40) }
 
             if !isMine {
                 AvatarView(
                     url: message.senderDeleted == true ? nil : ImageURL.chat(message.senderAvatar),
-                    size: 28
+                    size: 32
                 )
             }
 
             VStack(alignment: isMine ? .trailing : .leading, spacing: 3) {
                 if !isMine, showSenderName {
-                    Text(senderName).font(.caption2).foregroundColor(.secondary)
+                    Text(senderName)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
                 }
 
                 if message.forwardedFromMessageUuid != nil {
@@ -42,7 +44,7 @@ struct MessageRow: View {
                             replyQuote
                         }
                         if let text = message.text, !text.isEmpty {
-                            Text(text)
+                            Text(text).font(.system(size: 15))
                         }
                     }
                     .padding(.horizontal, Theme.Spacing.m)
@@ -77,7 +79,7 @@ struct MessageRow: View {
                     if let power = message.power, power > 0 {
                         Label("\(power)%", systemImage: "bolt.fill")
                             .font(.caption2)
-                            .foregroundColor(.orange)
+                            .foregroundColor(Theme.Palette.outgoingStart)
                     }
                     if message.isEdited == true {
                         Text(L10n.editedShort)
@@ -103,20 +105,24 @@ struct MessageRow: View {
     }
 
     private var replyQuote: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             Rectangle()
-                .fill(Color.accentColor)
+                .fill(isMine ? Color.white : Theme.Palette.replyAccent)
                 .frame(width: 3)
             VStack(alignment: .leading, spacing: 1) {
                 Text(MessagePreviewText.senderName(replyTarget, myUserUuid: myUserUuid))
-                    .font(.caption2).bold()
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(isMine ? .white : Theme.Palette.replyAccent)
                 Text(MessagePreviewText.preview(replyTarget))
-                    .font(.caption2)
-                    .lineLimit(1)
+                    .font(.system(size: 12))
+                    .foregroundColor(isMine ? Color.white.opacity(0.85) : .secondary)
+                    .lineLimit(2)
             }
-            .foregroundColor(isMine ? .white.opacity(0.9) : .secondary)
             Spacer(minLength: 0)
         }
+        .padding(6)
+        .background(isMine ? Color.white.opacity(0.2) : Color.black.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
         .frame(maxWidth: Theme.Size.bubbleMaxWidth, alignment: .leading)
     }
 
@@ -133,10 +139,10 @@ struct MessageRow: View {
                             Text("\(reaction.count)").font(.caption2)
                         }
                     }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(reaction.mine ? Color.accentColor.opacity(0.2) : Color(.tertiarySystemBackground))
-                    .clipShape(Capsule())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(reaction.mine ? Theme.Palette.mineReaction : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .accessibilityLabel(L10n.reactionAccessibility(reaction.emoji, reaction.count))
                 .buttonStyle(.plain)
