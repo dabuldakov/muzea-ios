@@ -47,6 +47,13 @@ final class MessagePopupRowsTests: XCTestCase {
                     status: "READ",
                     deliveredAt: "2026-01-01T09:59:00",
                     readAt: "2026-01-01T10:00:00"
+                ),
+                MessageStatus(
+                    userId: nil,
+                    userUuid: "boris",
+                    status: "DELIVERED",
+                    deliveredAt: "2026-01-01T09:00:00",
+                    readAt: nil
                 )
             ],
             myUserUuid: myUuid,

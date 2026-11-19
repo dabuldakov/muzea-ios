@@ -81,7 +81,10 @@ enum MessageStatusCalculator {
         receipts: [ChatReceipt],
         myUserUuid: String?
     ) -> [ParticipantDeliveryStatus] {
-        guard let messageId = message.messageId else { return [] }
+        // «Кто прочитал» имеет смысл только для своих сообщений: у чужих
+        // получателей нет, а список участников вводил бы в заблуждение.
+        guard let myUserUuid, message.senderUuid == myUserUuid,
+              let messageId = message.messageId else { return [] }
         return receipts
             .filter { isRecipient($0, message: message, myUserUuid: myUserUuid) }
             .map { receipt in

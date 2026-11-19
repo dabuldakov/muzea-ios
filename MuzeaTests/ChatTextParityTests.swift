@@ -48,6 +48,18 @@ extension ChatTextParityTests {
         XCTAssertNil(status)
     }
 
+    func testParticipantStatusesEmptyForForeignMessage() {
+        let rows = MessageStatusCalculator.participantStatuses(
+            message: message("m1", id: 10, sender: "other"),
+            receipts: [
+                receipt("u1", read: 10, delivered: 10),
+                receipt("u2", read: nil, delivered: nil)
+            ],
+            myUserUuid: "me"
+        )
+        XCTAssertTrue(rows.isEmpty)
+    }
+
     func testLocalMessageIsSendingOrFailed() {
         let local = TestData.message("local-1", createdAt: nil, sender: "me")
         XCTAssertEqual(
