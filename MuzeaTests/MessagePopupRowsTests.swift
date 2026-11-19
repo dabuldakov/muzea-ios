@@ -132,6 +132,58 @@ final class MessagePopupRowsTests: XCTestCase {
         let overflow = MessagePopupRows.visibleEmojis(["👍", "❤️", "🔥", "😂", "🎉"])
         XCTAssertEqual(overflow.shown, ["👍", "❤️", "🔥"])
         XCTAssertEqual(overflow.hidden, 2)
+
+        let empty = MessagePopupRows.visibleEmojis([])
+        XCTAssertTrue(empty.shown.isEmpty)
+        XCTAssertEqual(empty.hidden, 0)
+    }
+
+    func testMessageWithoutReceiptsAndReactionsHasNoRows() {
+        let rows = MessagePopupRows.build(
+            message: makeMessage(sender: myUuid),
+            receipts: [],
+            statuses: [],
+            myUserUuid: myUuid,
+            youLabel: "Вы",
+            unknownLabel: "Неизвестный",
+            formatTime: { $0 ?? "" }
+        )
+
+        XCTAssertTrue(rows.isEmpty)
+    }
+
+    func testAuthorWithSeveralReactionsAppearsOnce() {
+        let message = makeMessage(
+            sender: "other",
+            reactions: [
+                MessageReaction(
+                    emoji: "👍",
+                    count: 1,
+                    mine: false,
+                    users: [ReactionUser(userUuid: "anna", at: "2026-01-01T10:00:00")]
+                ),
+                MessageReaction(
+                    emoji: "❤️",
+                    count: 1,
+                    mine: false,
+                    users: [ReactionUser(userUuid: "anna", at: "2026-01-01T10:05:00")]
+                )
+            ]
+        )
+
+        let rows = MessagePopupRows.build(
+            message: message,
+            receipts: [],
+            statuses: [],
+            myUserUuid: myUuid,
+            youLabel: "Вы",
+            unknownLabel: "Неизвестный",
+            formatTime: { $0 ?? "" }
+        )
+
+        XCTAssertEqual(rows.map(\.id), ["anna"])
+        XCTAssertEqual(rows[0].emojis, ["👍", "❤️"])
+        XCTAssertNil(rows[0].status)
     }
 
     // MARK: - Helpers

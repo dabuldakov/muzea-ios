@@ -13,6 +13,10 @@ final class FakeChatRepository: ChatRepository {
     var createdGroups: [(String, [String])] = []
     var addedParticipants: [(String, [String])] = []
     var loadChatsError: Error?
+    var createGroupError: Error?
+    var createPrivateChatError: Error?
+    var addParticipantsError: Error?
+    var loadParticipantsError: Error?
 
     func loadChats() async throws -> [Chat] {
         if let loadChatsError { throw loadChatsError }
@@ -22,10 +26,12 @@ final class FakeChatRepository: ChatRepository {
     func cachedChats() -> [Chat] { cached }
 
     func loadChatParticipants(chatUuid: String) async throws -> [ChatParticipant] {
-        participants[chatUuid] ?? []
+        if let loadParticipantsError { throw loadParticipantsError }
+        return participants[chatUuid] ?? []
     }
 
     func createPrivateChat(userUuid: String) async throws -> Chat {
+        if let createPrivateChatError { throw createPrivateChatError }
         createdPrivateChats.append(userUuid)
         return Chat(
             chatUuid: "created-\(userUuid)",
@@ -45,6 +51,7 @@ final class FakeChatRepository: ChatRepository {
     }
 
     func createGroupChat(title: String, memberUuids: [String]) async throws -> Chat {
+        if let createGroupError { throw createGroupError }
         createdGroups.append((title, memberUuids))
         return Chat(
             chatUuid: "group-1",
@@ -60,6 +67,7 @@ final class FakeChatRepository: ChatRepository {
     }
 
     func addGroupParticipants(chatUuid: String, memberUuids: [String]) async throws {
+        if let addParticipantsError { throw addParticipantsError }
         addedParticipants.append((chatUuid, memberUuids))
     }
 }
@@ -511,6 +519,7 @@ final class FakeContactRepository: ContactRepository {
     var added: [String] = []
     var presence: [String: Presence] = [:]
     var loadError: Error?
+    var addError: Error?
 
     func loadContacts() async throws -> [Contact] {
         if let loadError { throw loadError }
@@ -518,6 +527,7 @@ final class FakeContactRepository: ContactRepository {
     }
 
     func addContact(username: String) async throws -> Contact {
+        if let addError { throw addError }
         added.append(username)
         return Contact(
             contactUuid: "k-\(username)",
@@ -542,6 +552,7 @@ final class FakeAvatarRepository: AvatarRepository {
     var avatar: String?
     var uploadedAvatar: String?
     var chatAvatar: String?
+    var chatAvatarError: Error?
     var deleted = false
     var loadError: Error?
     var uploadError: Error?
@@ -560,7 +571,8 @@ final class FakeAvatarRepository: AvatarRepository {
         deleted = true
     }
     func uploadChatAvatar(chatUuid: String, data: Data, fileName: String, mimeType: String) async throws -> String? {
-        chatAvatar
+        if let chatAvatarError { throw chatAvatarError }
+        return chatAvatar
     }
 }
 
