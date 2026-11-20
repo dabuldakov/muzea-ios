@@ -33,6 +33,10 @@ targets:
           - "Resources/Info.plist"
     entitlements:
       path: Muzea/Resources/Muzea.entitlements
+      properties:
+        aps-environment: $(APS_ENVIRONMENT)
+        com.apple.developer.associated-domains:
+          - applinks:muzea.su
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.cyber.muzea
