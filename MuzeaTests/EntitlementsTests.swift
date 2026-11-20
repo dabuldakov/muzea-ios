@@ -42,6 +42,7 @@ final class ComposerSizingTests: XCTestCase {
         let view = AutoGrowingTextView(frame: CGRect(x: 0, y: 0, width: 220, height: 36))
         view.font = .preferredFont(forTextStyle: .body)
         view.textContainerInset = UIEdgeInsets(top: 5, left: 4, bottom: 5, right: 4)
+        view.isScrollEnabled = false
         view.text = "привет"
         view.layoutIfNeeded()
 
@@ -52,6 +53,7 @@ final class ComposerSizingTests: XCTestCase {
         let view = AutoGrowingTextView(frame: CGRect(x: 0, y: 0, width: 220, height: 36))
         view.font = .preferredFont(forTextStyle: .body)
         view.textContainerInset = UIEdgeInsets(top: 5, left: 4, bottom: 5, right: 4)
+        view.isScrollEnabled = false
         view.text = Array(repeating: "строка", count: 20).joined(separator: "\n")
         view.layoutIfNeeded()
 
