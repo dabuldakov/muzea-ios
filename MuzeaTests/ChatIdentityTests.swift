@@ -36,6 +36,40 @@ final class ChatIdentityTests: XCTestCase {
         )
         XCTAssertFalse(foreign.actions.contains(.edit))
     }
+
+    func testDeliveryStatusUsesChatUuidForOwnership() {
+        let message = TestData.message("m1", sender: "chat-uuid")
+            .replacing(messageId: 10)
+        let receipts = [
+            ChatReceipt(
+                userUuid: "other",
+                username: "other",
+                fullName: nil,
+                avatarUrl: nil,
+                joinedAt: "2025-12-01T00:00:00",
+                lastDeliveredMessageId: 10,
+                lastDeliveredAt: "2026-01-01T00:00:01",
+                lastReadMessageId: 10,
+                lastReadAt: "2026-01-01T00:00:02"
+            )
+        ]
+
+        XCTAssertEqual(
+            MessageStatusCalculator.statusOf(
+                message: message,
+                receipts: receipts,
+                myUserUuid: "chat-uuid"
+            ),
+            .read
+        )
+        XCTAssertNil(
+            MessageStatusCalculator.statusOf(
+                message: message,
+                receipts: receipts,
+                myUserUuid: "auth-sub"
+            )
+        )
+    }
 }
 
 @MainActor

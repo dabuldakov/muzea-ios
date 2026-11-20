@@ -32,6 +32,39 @@ final class RemoteImageCacheTests: XCTestCase {
         XCTAssertNil(RemoteImageCache.downsample(Data(), maxPixelSize: 64))
     }
 
+    func testImageIsCachedOnDiskAndUsesToken() async throws {
+        MockURLProtocol.reset()
+        defer { MockURLProtocol.reset() }
+        let png = try makePNG(width: 320, height: 180)
+        MockURLProtocol.handler = { request in
+            (
+                MockURLProtocol.response(
+                    for: request,
+                    headers: ["Content-Type": "image/png"]
+                ),
+                png
+            )
+        }
+
+        let url = URL(string: "https://chat-muzea.su/api/avatars/test-\(UUID().uuidString).png")!
+        let first = RemoteImageCache(session: TestSupport.session())
+        first.authTokenProvider = { "token-1" }
+
+        let firstImage = await first.image(for: url, maxPixelSize: 64)
+        XCTAssertNotNil(firstImage)
+        XCTAssertEqual(MockURLProtocol.requests.count, 1)
+        XCTAssertEqual(
+            MockURLProtocol.requests.first?.value(forHTTPHeaderField: "Authorization"),
+            "Bearer token-1"
+        )
+
+        // Новый экземпляр без memory-кэша должен взять файл с диска.
+        let second = RemoteImageCache(session: TestSupport.session())
+        let secondImage = await second.image(for: url, maxPixelSize: 64)
+        XCTAssertNotNil(secondImage)
+        XCTAssertEqual(MockURLProtocol.requests.count, 1)
+    }
+
     private func makePNG(width: CGFloat, height: CGFloat) throws -> Data {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: width, height: height))
         let image = renderer.image { context in

@@ -68,16 +68,11 @@ struct VideoCell: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            AsyncImage(url: video.fullThumbnailURL) { phase in
-                if case .success(let image) = phase {
-                    image.resizable().scaledToFill()
-                } else {
-                    Color.gray.opacity(0.15)
-                }
-            }
-            .frame(height: 120)
-            .frame(maxWidth: .infinity)
-            .clipped()
+            FullWidthImage(
+                url: video.fullThumbnailURL,
+                height: 120,
+                placeholderIcon: "play.rectangle"
+            )
             .cornerRadius(8)
 
             Text(video.title).font(.subheadline).lineLimit(2)
