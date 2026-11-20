@@ -43,6 +43,7 @@ final class ChatConversationViewModel: ObservableObject {
     let isGroupChat: Bool
 
     private let services: ChatConversationServices
+    private let identityProvider: () -> String?
     private let reducer = ChatMessageReducer()
     private var lastMarkedReadMessageId: Int64 = 0
     private var lastMarkedDeliveredUuid: String?
@@ -65,12 +66,14 @@ final class ChatConversationViewModel: ObservableObject {
         chatUuid: String,
         myUserUuid: String?,
         isGroupChat: Bool,
-        services: ChatConversationServices
+        services: ChatConversationServices,
+        identityProvider: @escaping () -> String? = { nil }
     ) {
         self.chatUuid = chatUuid
         self.myUserUuid = myUserUuid
         self.isGroupChat = isGroupChat
         self.services = services
+        self.identityProvider = identityProvider
         // Стартуем с кэша: при повторном входе переписка видна сразу, а опрос
         // догружает свежие сообщения фоном.
         let cached = reducer.seed(services.messages.cachedMessages(chatUuid: chatUuid))
@@ -122,7 +125,11 @@ final class ChatConversationViewModel: ObservableObject {
     /// Опрос: первый запрос уходит сразу, поэтому отдельный refresh() при входе
     /// был бы вторым обращением к серверу подряд.
     func start() async {
+        updateIdentity(identityProvider())
         await refresh()
+        // Профиль chat-пользователя мог провижиниться только при первом
+        // запросе — сразу подхватываем настоящий UUID.
+        updateIdentity(identityProvider())
         await retryPending(force: true)
         await retryPendingAttachments()
         await loadParticipantsIfNeeded()
@@ -130,6 +137,7 @@ final class ChatConversationViewModel: ObservableObject {
         await refreshReceipts(force: true)
 
         while !Task.isCancelled {
+            updateIdentity(identityProvider())
             try? await Task.sleep(nanoseconds: Config.chatPollInterval)
             guard !Task.isCancelled else { return }
             pollTick += 1

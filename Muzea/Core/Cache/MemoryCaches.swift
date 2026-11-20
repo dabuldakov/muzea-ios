@@ -34,16 +34,17 @@ final class LRUStore<Key: Hashable, Value> {
     }
 
     /// Полная замена содержимого с сохранением порядка переданных значений.
+    /// Повторный ключ обновляет значение, но не двигает запись — как
+    /// `LinkedHashMap` на Android.
     func replace(_ entries: [(Key, Value)]) {
         lock.lock(); defer { lock.unlock() }
         order.removeAll()
         storage.removeAll()
         for (key, value) in entries {
-            if storage[key] != nil, let index = order.firstIndex(of: key) {
-                order.remove(at: index)
+            if storage[key] == nil {
+                order.append(key)
             }
             storage[key] = value
-            order.append(key)
         }
         evictIfNeeded()
     }
@@ -104,6 +105,24 @@ final class ChatMessagesCache {
         let fresh = older.filter { !known.contains($0.messageUuid) }
         guard !fresh.isEmpty else { return }
         store.set((fresh + current).sorted { ($0.createdAt ?? "") < ($1.createdAt ?? "") }, for: chatUuid)
+    }
+
+    /// Новые сообщения из инкрементального опроса: заменяем известные по uuid
+    /// и сохраняем порядок по времени (аналог `appendNewer` на Android).
+    func appendNewer(chatUuid: String, newer: [ChatMessage]) {
+        guard !newer.isEmpty else { return }
+        let current = store.value(for: chatUuid) ?? []
+        var byUuid: [String: ChatMessage] = [:]
+        for message in current {
+            byUuid[message.messageUuid] = message
+        }
+        for message in newer {
+            byUuid[message.messageUuid] = message
+        }
+        store.set(
+            byUuid.values.sorted { ($0.createdAt ?? "") < ($1.createdAt ?? "") },
+            for: chatUuid
+        )
     }
     func clear() { store.clear() }
 }

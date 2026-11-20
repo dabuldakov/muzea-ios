@@ -23,7 +23,7 @@ final class RemoteImageCache {
     private let lock = NSLock()
     private var inFlight: [String: Task<UIImage?, Never>] = [:]
     private var didTrimDisk = false
-    private let maxDiskFiles = 400
+    private let maxDiskFiles = 250
 
     init(session: URLSession = .shared) {
         self.session = session

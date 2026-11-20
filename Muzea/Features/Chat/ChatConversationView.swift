@@ -35,7 +35,8 @@ struct ChatConversationView: View {
             chatUuid: chat.chatUuid,
             myUserUuid: myUserUuid,
             isGroupChat: chat.chatType?.uppercased() == "GROUP",
-            services: services
+            services: services,
+            identityProvider: { container.myUserUuid }
         ))
         _input = State(initialValue: services.drafts.draft(chatUuid: chat.chatUuid) ?? "")
     }
@@ -149,13 +150,7 @@ struct ChatConversationView: View {
                 .accessibilityLabel(L10n.aboutChat)
             }
         }
-        .task {
-            viewModel.updateIdentity(container.myUserUuid)
-            await viewModel.start()
-            // Профиль chat-пользователя мог провижиниться во время первого
-            // запроса — подхватываем идентификатор и пересчитываем «мои».
-            viewModel.updateIdentity(container.myUserUuid)
-        }
+        .task { await viewModel.start() }
         .onAppear {
             ActiveChatTracker.shared.enter(chat.chatUuid)
             UNUserNotificationCenter.current().removeDeliveredNotifications(

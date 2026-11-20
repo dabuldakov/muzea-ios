@@ -140,7 +140,9 @@ final class MessageRepositoryImpl: MessageRepository {
                 "/api/messages/\(chatUuid)/after/\(Self.pathTimestamp(timestamp))"
             )
         }
-        return dtos.map { $0.toDomain() }
+        let messages = dtos.map { $0.toDomain() }
+        cache.appendNewer(chatUuid: chatUuid, newer: messages)
+        return messages
     }
 
     func loadMessagesUpdated(chatUuid: String, timestamp: String) async throws -> [ChatMessage] {
@@ -150,7 +152,9 @@ final class MessageRepositoryImpl: MessageRepository {
                 "/api/messages/\(chatUuid)/updated/\(Self.pathTimestamp(timestamp))"
             )
         }
-        return dtos.map { $0.toDomain() }
+        let messages = dtos.map { $0.toDomain() }
+        cache.appendNewer(chatUuid: chatUuid, newer: messages)
+        return messages
     }
 
     func markMessagesAsRead(chatUuid: String, upToMessageUuid: String) async {

@@ -106,6 +106,7 @@ final class MemoryCachesTests: XCTestCase {
 
         XCTAssertTrue(cache.has())
         XCTAssertEqual(cache.get().count, 2)
+        XCTAssertEqual(cache.get().map(\.chatUuid), ["a", "b"])
 
         cache.clear()
         XCTAssertFalse(cache.has())
@@ -124,6 +125,23 @@ final class MemoryCachesTests: XCTestCase {
         ])
 
         XCTAssertEqual(cache.get(chatUuid: "c-1").map(\.messageUuid), ["m1", "m2"])
+    }
+
+    func testChatMessagesCacheAppendNewerReplacesAndSorts() {
+        let cache = ChatMessagesCache()
+        cache.put(chatUuid: "c-1", list: [
+            TestData.message("m1", text: "one", createdAt: "2026-01-01T00:00:01"),
+            TestData.message("m2", text: "two", createdAt: "2026-01-01T00:00:02")
+        ])
+
+        cache.appendNewer(chatUuid: "c-1", newer: [
+            TestData.message("m2", text: "edited", createdAt: "2026-01-01T00:00:02"),
+            TestData.message("m3", text: "three", createdAt: "2026-01-01T00:00:03")
+        ])
+
+        let messages = cache.get(chatUuid: "c-1")
+        XCTAssertEqual(messages.map(\.messageUuid), ["m1", "m2", "m3"])
+        XCTAssertEqual(messages[1].text, "edited")
     }
 
     func testChatMessagesCacheEvictsOldestChat() {
