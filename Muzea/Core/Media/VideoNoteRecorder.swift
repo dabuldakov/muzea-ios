@@ -109,10 +109,15 @@ final class VideoNoteRecorder: NSObject, ObservableObject {
     }
 
     func stop() {
-        guard movieOutput.isRecording else { return }
-        movieOutput.stopRecording()
         timerTask?.cancel()
         timerTask = nil
+        if movieOutput.isRecording {
+            movieOutput.stopRecording()
+        } else if case .recording = state {
+            // Запись не стартовала (камера/файл) — не оставляем вечный таймер.
+            state = .failed(L10n.recorderCameraFailed)
+            stopSession()
+        }
     }
 
     func cancel() {

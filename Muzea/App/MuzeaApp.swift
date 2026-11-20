@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         print("[Push] APNs registration failed: \(error)")
+        ErrorReporter.logCaught("APNs", error)
     }
 
     func application(
