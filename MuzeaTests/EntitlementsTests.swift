@@ -7,19 +7,26 @@ import UIKit
 final class EntitlementsTests: XCTestCase {
 
     private var root: URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        var url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        let fileManager = FileManager.default
+        while url.path != "/",
+              !fileManager.fileExists(atPath: url.appendingPathComponent("project.yml").path) {
+            url.deleteLastPathComponent()
+        }
+        return url
     }
 
     func testPushEntitlementUsesBuildSetting() throws {
         let url = root.appendingPathComponent("Muzea/Resources/Muzea.entitlements")
         let data = try Data(contentsOf: url)
-        let plist = try XCTUnwrap(
-            try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
-        )
+        let object = try PropertyListSerialization.propertyList(from: data, format: nil)
+        let plist = try XCTUnwrap(object as? [String: Any], "Не разобрал \(url.path)")
 
-        XCTAssertEqual(plist["aps-environment"] as? String, "$(APS_ENVIRONMENT)")
+        XCTAssertEqual(
+            plist["aps-environment"] as? String,
+            "$(APS_ENVIRONMENT)",
+            "Нет aps-environment в \(url.path)"
+        )
         let domains = plist["com.apple.developer.associated-domains"] as? [String]
         XCTAssertEqual(domains, ["applinks:muzea.su"])
     }
