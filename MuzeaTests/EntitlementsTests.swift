@@ -19,6 +19,11 @@ final class EntitlementsTests: XCTestCase {
     func testPushEntitlementUsesBuildSetting() throws {
         let url = root.appendingPathComponent("Muzea/Resources/Muzea.entitlements")
         let data = try Data(contentsOf: url)
+        let text = String(data: data, encoding: .utf8) ?? ""
+        XCTAssertTrue(
+            text.contains("aps-environment"),
+            "В \(url.path) нет aps-environment. Содержимое: \(text.prefix(300))"
+        )
         let object = try PropertyListSerialization.propertyList(from: data, format: nil)
         let plist = try XCTUnwrap(object as? [String: Any], "Не разобрал \(url.path)")
 
