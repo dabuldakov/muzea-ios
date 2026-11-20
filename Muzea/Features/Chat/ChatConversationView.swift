@@ -149,7 +149,13 @@ struct ChatConversationView: View {
                 .accessibilityLabel(L10n.aboutChat)
             }
         }
-        .task { await viewModel.start() }
+        .task {
+            viewModel.updateIdentity(container.myUserUuid)
+            await viewModel.start()
+            // Профиль chat-пользователя мог провижиниться во время первого
+            // запроса — подхватываем идентификатор и пересчитываем «мои».
+            viewModel.updateIdentity(container.myUserUuid)
+        }
         .onAppear {
             ActiveChatTracker.shared.enter(chat.chatUuid)
             UNUserNotificationCenter.current().removeDeliveredNotifications(
@@ -318,7 +324,7 @@ struct ChatConversationView: View {
 
     @ViewBuilder
     private func row(for message: ChatMessage) -> some View {
-        let isMine = message.senderUuid != nil && message.senderUuid == viewModel.myUserUuid
+        let isMine = message.isSent(by: viewModel.myUserUuid)
         let selected = viewModel.state.selection.contains(message.messageUuid)
 
         MessageRow(

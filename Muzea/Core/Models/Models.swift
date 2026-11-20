@@ -236,8 +236,7 @@ struct ChatMessage: Identifiable, Hashable {
     }
 
     /// Полная копия с точечными изменениями (аналог Kotlin `copy`): UI-слой
-    /// обновляет флаги/реакции, не теряя серверные поля.
-    func replacing(
+    /// обновляет флаги/реакции, не теряя серверные поля.    func replacing(
         messageUuid: String? = nil,
         messageId: Int64? = nil,
         text: String? = nil,
@@ -274,6 +273,16 @@ struct ChatMessage: Identifiable, Hashable {
             attachments: attachments ?? self.attachments,
             senderDeleted: senderDeleted ?? self.senderDeleted
         )
+    }
+}
+
+extension ChatMessage {
+    /// Сообщение отправлено текущим пользователем: сравниваем с UUID
+    /// chat-пользователя, а не с `sub` токена IdP.
+    func isSent(by userUuid: String?) -> Bool {
+        guard let userUuid, !userUuid.isEmpty,
+              let senderUuid, !senderUuid.isEmpty else { return false }
+        return senderUuid == userUuid
     }
 }
 

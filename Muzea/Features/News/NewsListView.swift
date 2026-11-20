@@ -78,21 +78,7 @@ struct NewsRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            AsyncImage(url: ImageURL.makeup(item.imageUrl)) { phase in
-                if case .success(let image) = phase {
-                    image.resizable().scaledToFill()
-                } else {
-                    ZStack {
-                        Color(.tertiarySystemBackground)
-                        Image(systemName: "newspaper")
-                            .font(.largeTitle)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            .frame(height: 180)
-            .frame(maxWidth: .infinity)
-            .clipped()
+            FullWidthImage(url: ImageURL.makeup(item.imageUrl), height: 180)
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(item.title)

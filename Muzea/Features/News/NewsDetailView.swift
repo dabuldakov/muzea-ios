@@ -21,16 +21,7 @@ struct NewsDetailView: View {
             if let news = viewModel.news {
                 VStack(alignment: .leading, spacing: 12) {
                     if let url = ImageURL.makeup(news.imageUrl) {
-                        AsyncImage(url: url) { phase in
-                            if case .success(let image) = phase {
-                                image.resizable().scaledToFill()
-                            } else {
-                                Color.gray.opacity(0.15)
-                            }
-                        }
-                        .frame(height: 240)
-                        .frame(maxWidth: .infinity)
-                        .clipped()
+                        FullWidthImage(url: url, height: 240)
                     }
 
                     Text(news.title).font(.title2).bold()
@@ -71,6 +62,7 @@ struct NewsDetailView: View {
                     }
                 }
                 .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
             } else if let error = viewModel.error {
                 Text(error).foregroundColor(.red).padding()
             } else {

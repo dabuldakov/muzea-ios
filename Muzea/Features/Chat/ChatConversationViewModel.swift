@@ -39,7 +39,7 @@ final class ChatConversationViewModel: ObservableObject {
     @Published private(set) var state = ChatConversationUiState()
 
     let chatUuid: String
-    let myUserUuid: String?
+    @Published private(set) var myUserUuid: String?
     let isGroupChat: Bool
 
     private let services: ChatConversationServices
@@ -108,6 +108,15 @@ final class ChatConversationViewModel: ObservableObject {
 
     var recentReactions: [String] {
         services.reactionHistory.recent()
+    }
+
+    /// Догружает chat-идентификатор, если он появился уже после создания
+    /// экрана (первый вход, прямой переход по ссылке). Без него свои сообщения
+    /// рисовались бы как чужие — `senderUuid` не совпадал с `sub` токена IdP.
+    func updateIdentity(_ uuid: String?) {
+        guard let uuid, !uuid.isEmpty, uuid != myUserUuid else { return }
+        myUserUuid = uuid
+        recomputeStatuses()
     }
 
     /// Опрос: первый запрос уходит сразу, поэтому отдельный refresh() при входе
@@ -835,7 +844,7 @@ final class ChatConversationViewModel: ObservableObject {
 
     func deleteSelected() async {
         let targets = selectedMessages.filter {
-            $0.messageId != nil && $0.senderUuid != nil && $0.senderUuid == myUserUuid
+            $0.messageId != nil && $0.isSent(by: myUserUuid)
         }
         guard !targets.isEmpty else {
             state.error = L10n.errorOnlyOwnDelete

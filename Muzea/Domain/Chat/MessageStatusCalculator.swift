@@ -19,7 +19,7 @@ enum MessageStatusCalculator {
         failedMessages: Set<String> = [],
         receiptsLoaded: Bool = true
     ) -> MessageDeliveryStatus? {
-        guard let myUserUuid, message.senderUuid == myUserUuid else { return nil }
+        guard message.isSent(by: myUserUuid) else { return nil }
 
         guard let messageId = message.messageId else {
             return failedMessages.contains(message.messageUuid) ? .failed : .sending
@@ -83,7 +83,7 @@ enum MessageStatusCalculator {
     ) -> [ParticipantDeliveryStatus] {
         // «Кто прочитал» имеет смысл только для своих сообщений: у чужих
         // получателей нет, а список участников вводил бы в заблуждение.
-        guard let myUserUuid, message.senderUuid == myUserUuid,
+        guard message.isSent(by: myUserUuid),
               let messageId = message.messageId else { return [] }
         return receipts
             .filter { isRecipient($0, message: message, myUserUuid: myUserUuid) }

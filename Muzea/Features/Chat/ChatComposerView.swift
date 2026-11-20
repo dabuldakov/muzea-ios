@@ -104,7 +104,7 @@ struct ChatComposerView: View {
                         Text(editing == nil ? L10n.messagePlaceholder : L10n.newTextPlaceholder)
                             .foregroundColor(Color(.placeholderText))
                             .padding(.horizontal, 9)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, 6)
                             .allowsHitTesting(false)
                     }
                 }

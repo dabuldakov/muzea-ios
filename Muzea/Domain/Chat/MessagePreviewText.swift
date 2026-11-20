@@ -5,7 +5,7 @@ enum MessagePreviewText {
 
     static func senderName(_ message: ChatMessage?, myUserUuid: String?) -> String {
         guard let message else { return L10n.unknownSender }
-        if let uuid = message.senderUuid, uuid == myUserUuid { return L10n.you }
+        if message.isSent(by: myUserUuid) { return L10n.you }
         if message.senderDeleted == true { return L10n.deletedUser }
         if let name = message.senderName, !name.isEmpty { return name }
         return L10n.unknownSender

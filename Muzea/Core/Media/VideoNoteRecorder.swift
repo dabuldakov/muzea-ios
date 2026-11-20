@@ -77,18 +77,25 @@ final class VideoNoteRecorder: NSObject, ObservableObject {
             return
         }
 
-        sessionQueue.async { [session] in
-            if !session.isRunning { session.startRunning() }
-        }
-
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("video-note-\(UUID().uuidString).mp4")
         outputURL = url
-        startedAt = Date()
-        state = .recording(seconds: 0)
-        startTimer()
 
-        movieOutput.startRecording(to: url, recordingDelegate: self)
+        // startRecording нельзя вызывать до того, как сессия реально запущена:
+        // иначе запись молча не стартует или падает с ошибкой файла. Поэтому
+        // ждём startRunning на очереди сессии и только потом начинаем писать.
+        let session = self.session
+        let movieOutput = self.movieOutput
+        sessionQueue.async { [weak self] in
+            if !session.isRunning { session.startRunning() }
+            DispatchQueue.main.async {
+                guard let self, !self.cancelled, self.outputURL == url else { return }
+                self.startedAt = Date()
+                self.state = .recording(seconds: 0)
+                self.startTimer()
+                movieOutput.startRecording(to: url, recordingDelegate: self)
+            }
+        }
     }
 
     func stop() {

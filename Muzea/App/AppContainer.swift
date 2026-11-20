@@ -50,6 +50,7 @@ final class AppContainer: ObservableObject {
     init() {
         let store = TokenStore()
         tokenStore = store
+        RemoteImageCache.shared.authTokenProvider = { [store] in store.token }
         let consent = ConsentManager()
         consentManager = consent
 
@@ -188,9 +189,15 @@ final class AppContainer: ObservableObject {
         }
     }
 
-    /// UUID текущего пользователя на chat-сервере: `sub` access-токена IdP.
+    /// UUID текущего пользователя на chat-сервере.
+    ///
+    /// Это не `sub` access-токена: токен принадлежит IdP, а chat-пользователь
+    /// провижинится отдельно, и его UUID сохраняется в `TokenStore.chatUserUuid`.
+    /// Именно с ним сравнивается `senderUuid` сообщений (аналог Android
+    /// `TokenChatUserIdentity`).
     var myUserUuid: String? {
-        JWT.subject(from: tokenStore.token)
+        guard let uuid = tokenStore.chatUserUuid, !uuid.isEmpty else { return nil }
+        return uuid
     }
 
     func didLogin() {
@@ -234,6 +241,8 @@ final class AppContainer: ObservableObject {
         chatMessagesCache.clear()
         privateChatCache.clear()
         videoListCache.clear()
+        // Аватары и картинки ленты могли принадлежать прошлому аккаунту.
+        RemoteImageCache.shared.clear()
         // Черновики содержат текст прошлого пользователя — после выхода их быть
         // не должно.
         chatDraftStore.clearAll()

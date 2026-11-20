@@ -35,7 +35,7 @@ enum MessageActionsBuilder {
             return Result(actions: [], showStatus: false)
         }
 
-        let isMine = message.senderUuid != nil && message.senderUuid == myUserUuid
+        let isMine = message.isSent(by: myUserUuid)
         // После серверного эха uuid остаётся локальным, поэтому признак
         // серверного сообщения — messageId.
         let isServerMessage = message.messageId != nil

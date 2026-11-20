@@ -18,7 +18,7 @@ struct MentionTextEditor: UIViewRepresentable {
         view.font = UIFont.preferredFont(forTextStyle: .body)
         view.backgroundColor = .clear
         view.isScrollEnabled = false
-        view.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 4)
+        view.textContainerInset = UIEdgeInsets(top: 5, left: 4, bottom: 5, right: 4)
         view.textContainer.lineFragmentPadding = 0
         view.autocapitalizationType = .sentences
         view.autocorrectionType = .default
@@ -58,7 +58,7 @@ struct MentionTextEditor: UIViewRepresentable {
         let fitting = uiView.sizeThatFits(
             CGSize(width: width, height: .greatestFiniteMagnitude)
         )
-        return CGSize(width: width, height: min(140, max(44, fitting.height)))
+        return CGSize(width: width, height: min(140, max(36, fitting.height)))
     }
 
     final class Coordinator: NSObject, UITextViewDelegate {
