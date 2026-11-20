@@ -77,6 +77,16 @@ final class VideoNoteRecorder: NSObject, ObservableObject {
             return
         }
 
+        // Без активной .playAndRecord сессии AVCaptureMovieFileOutput может
+        // записать видео без звука или не стартовать вовсе.
+        let audioSession = AVAudioSession.sharedInstance()
+        try? audioSession.setCategory(
+            .playAndRecord,
+            mode: .videoRecording,
+            options: [.defaultToSpeaker, .allowBluetooth]
+        )
+        try? audioSession.setActive(true)
+
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("video-note-\(UUID().uuidString).mp4")
         outputURL = url
@@ -180,6 +190,10 @@ final class VideoNoteRecorder: NSObject, ObservableObject {
         sessionQueue.async { [session] in
             if session.isRunning { session.stopRunning() }
         }
+        try? AVAudioSession.sharedInstance().setActive(
+            false,
+            options: .notifyOthersOnDeactivation
+        )
     }
 }
 

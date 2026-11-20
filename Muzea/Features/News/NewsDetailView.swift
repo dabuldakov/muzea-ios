@@ -24,7 +24,9 @@ struct NewsDetailView: View {
                         FullWidthImage(url: url, height: 240)
                     }
 
-                    Text(news.title).font(.title2).bold()
+                    Text(news.title)
+                        .font(.title2).bold()
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                     HStack {
                         Text(L10n.newsAuthor(news.author))
@@ -35,6 +37,7 @@ struct NewsDetailView: View {
                     .foregroundColor(.secondary)
 
                     Text(news.content)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                     if let video = news.relatedVideo {
                         NavigationLink(value: Route.videoDetail(video)) {

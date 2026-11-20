@@ -236,7 +236,8 @@ struct ChatMessage: Identifiable, Hashable {
     }
 
     /// Полная копия с точечными изменениями (аналог Kotlin `copy`): UI-слой
-    /// обновляет флаги/реакции, не теряя серверные поля.    func replacing(
+    /// обновляет флаги/реакции, не теряя серверные поля.
+    func replacing(
         messageUuid: String? = nil,
         messageId: Int64? = nil,
         text: String? = nil,

@@ -68,7 +68,10 @@ final class AppContainer: ObservableObject {
         ].compactMap { $0 }
         cacheManager = CacheManager(
             directories: cacheDirectories,
-            clearActions: [{ await GifCache.shared.clearAll() }]
+            clearActions: [
+                { await GifCache.shared.clearAll() },
+                { RemoteImageCache.shared.clear() }
+            ]
         )
         networkMonitor = NetworkMonitor()
 

@@ -111,6 +111,21 @@ final class MemoryCachesTests: XCTestCase {
         XCTAssertFalse(cache.has())
     }
 
+    func testChatMessagesCachePrependDedupesAndSorts() {
+        let cache = ChatMessagesCache()
+        cache.put(
+            chatUuid: "c-1",
+            list: [TestData.message("m2", createdAt: "2026-01-01T00:00:02")]
+        )
+
+        cache.prepend(chatUuid: "c-1", older: [
+            TestData.message("m1", createdAt: "2026-01-01T00:00:01"),
+            TestData.message("m2", createdAt: "2026-01-01T00:00:02")
+        ])
+
+        XCTAssertEqual(cache.get(chatUuid: "c-1").map(\.messageUuid), ["m1", "m2"])
+    }
+
     func testChatMessagesCacheEvictsOldestChat() {
         let cache = ChatMessagesCache()
         for index in 0..<51 {
