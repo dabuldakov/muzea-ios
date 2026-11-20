@@ -43,6 +43,12 @@
   - `400 BadDeviceToken` — ключ валиден, можно загружать в Firebase.
 - Bundle ID должен иметь capability **Push Notifications**; App Store профиль
   содержит `aps-environment=production` (проверяется по IPA).
+- `Muzea/Resources/Muzea.entitlements` обязан содержать
+  `aps-environment = $(APS_ENVIRONMENT)` (`development` в Debug,
+  `production` в Release). Одного профиля недостаточно: codesign берёт
+  entitlements из файла проекта, и без ключа APNs-регистрация молча падает,
+  а FCM-токен не появляется. CI проверяет файл (`scripts/check_entitlements.py`)
+  и подписанный IPA перед загрузкой в TestFlight.
 - Info.plist: `UIBackgroundModes = remote-notification`.
 
 ## Клиент
@@ -73,7 +79,9 @@ from device_tokens order by updated_at desc limit 20;
 Признаки:
 
 - **нет свежего токена** — приложение не получило/не отправило FCM-токен
-  (неверный plist, APNs-регистрация, нет входа);
+  (неверный plist, APNs-регистрация, нет входа). Если в access-логах nginx нет
+  `PUT /api/users/me/fcm-token` с `CFNetwork`, смотреть entitlements
+  (`aps-environment`) и `didFailToRegisterForRemoteNotifications`;
 - `UNREGISTERED` — токен старый/от другого Firebase-приложения;
 - `THIRD_PARTY_AUTH_ERROR` — в Firebase не загружен APNs key;
 - токен есть, ошибок нет, но тишина — смотреть APNs alert/разрешения и
