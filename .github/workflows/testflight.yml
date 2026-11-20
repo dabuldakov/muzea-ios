@@ -157,8 +157,13 @@ jobs:
       - name: Verify push entitlement in signed app
         run: |
           set -euo pipefail
-          APP=$(find build/export -maxdepth 3 -name 'Muzea.app' -type d | head -1)
-          test -n "$APP" || { echo "::error::Muzea.app not found in export"; exit 1; }
+          IPA=$(find build/export -maxdepth 1 -name '*.ipa' | head -1)
+          test -n "$IPA" || { echo "::error::no .ipa produced"; exit 1; }
+          rm -rf build/entitlements-check
+          mkdir -p build/entitlements-check
+          unzip -q "$IPA" -d build/entitlements-check
+          APP="build/entitlements-check/Payload/Muzea.app"
+          test -d "$APP" || { echo "::error::Muzea.app not found in ipa"; exit 1; }
           codesign -d --entitlements :- "$APP" 2>/dev/null > build/entitlements.plist
           python3 - <<'PY'
           import plistlib
