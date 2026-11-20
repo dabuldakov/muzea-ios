@@ -47,8 +47,11 @@
   `aps-environment = $(APS_ENVIRONMENT)` (`development` в Debug,
   `production` в Release). Одного профиля недостаточно: codesign берёт
   entitlements из файла проекта, и без ключа APNs-регистрация молча падает,
-  а FCM-токен не появляется. CI проверяет файл (`scripts/check_entitlements.py`)
-  и подписанный IPA перед загрузкой в TestFlight.
+  а FCM-токен не появляется. Файл генерирует XcodeGen из
+  `project.yml → targets.Muzea.entitlements.properties`; правки вносить туда,
+  иначе `xcodegen generate` перезапишет файл. CI проверяет файл
+  (`scripts/check_entitlements.py`) и подписанный IPA перед загрузкой
+  в TestFlight.
 - Info.plist: `UIBackgroundModes = remote-notification`.
 
 ## Клиент
