@@ -29,14 +29,19 @@ struct ChatConversationView: View {
     @State private var pendingGalleryAction: GalleryAction?
     @State private var messagePopup: MessagePopupState?
 
-    init(chat: Chat, myUserUuid: String?, services: ChatConversationServices) {
+    init(
+        chat: Chat,
+        myUserUuid: String?,
+        services: ChatConversationServices,
+        identityProvider: @escaping () -> String? = { nil }
+    ) {
         self.chat = chat
         _viewModel = StateObject(wrappedValue: ChatConversationViewModel(
             chatUuid: chat.chatUuid,
             myUserUuid: myUserUuid,
             isGroupChat: chat.chatType?.uppercased() == "GROUP",
             services: services,
-            identityProvider: { container.myUserUuid }
+            identityProvider: identityProvider
         ))
         _input = State(initialValue: services.drafts.draft(chatUuid: chat.chatUuid) ?? "")
     }
