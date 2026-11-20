@@ -3,6 +3,40 @@ import Photos
 import SwiftUI
 import UIKit
 
+// MARK: - Full screen player
+
+/// Полноэкранный плеер с явной кнопкой «назад»: нативный VideoPlayer в
+/// fullScreenCover не всегда показывает кнопку закрытия.
+struct FullScreenVideoPlayer: View {
+    let player: AVPlayer
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color.black.ignoresSafeArea()
+            VideoPlayer(player: player)
+                .ignoresSafeArea()
+
+            Button {
+                player.pause()
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(Color.black.opacity(0.5)))
+            }
+            .padding(.leading, 12)
+            .padding(.top, 8)
+            .accessibilityLabel(L10n.close)
+        }
+        .onDisappear { player.pause() }
+        .statusBarHidden(false)
+    }
+}
+
 // MARK: - Video note
 
 struct VideoNoteAttachmentView: View {
@@ -40,9 +74,7 @@ struct VideoNoteAttachmentView: View {
         .onTapGesture { Task { await play() } }
         .fullScreenCover(isPresented: $showPlayer) {
             if let player {
-                VideoPlayer(player: player)
-                    .ignoresSafeArea()
-                    .onDisappear { player.pause() }
+                FullScreenVideoPlayer(player: player)
             }
         }
     }
@@ -150,9 +182,7 @@ struct VideoAttachmentView: View {
         }
         .fullScreenCover(isPresented: $showPlayer) {
             if let player {
-                VideoPlayer(player: player)
-                    .ignoresSafeArea()
-                    .onDisappear { player.pause() }
+                FullScreenVideoPlayer(player: player)
             }
         }
     }

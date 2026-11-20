@@ -24,6 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Check entitlements (push)
+        run: python3 scripts/check_entitlements.py
+
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -80,6 +83,9 @@ jobs:
       COVERAGE_MIN: "60"
     steps:
       - uses: actions/checkout@v5
+
+      - name: Check entitlements (push)
+        run: python3 scripts/check_entitlements.py
 
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -159,6 +165,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v5
+
+      - name: Check entitlements (push)
+        run: python3 scripts/check_entitlements.py
 
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1

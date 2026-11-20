@@ -33,6 +33,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Check entitlements (push)
+        run: python3 scripts/check_entitlements.py
+
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -150,6 +153,21 @@ jobs:
             -archivePath build/Muzea.xcarchive \
             -exportPath build/export \
             -exportOptionsPlist build/ExportOptions.plist
+
+      - name: Verify push entitlement in signed app
+        run: |
+          set -euo pipefail
+          APP=$(find build/export -maxdepth 3 -name 'Muzea.app' -type d | head -1)
+          test -n "$APP" || { echo "::error::Muzea.app not found in export"; exit 1; }
+          codesign -d --entitlements :- "$APP" 2>/dev/null > build/entitlements.plist
+          python3 - <<'PY'
+          import plistlib
+          data = plistlib.load(open('build/entitlements.plist', 'rb'))
+          aps = data.get('aps-environment')
+          print('aps-environment:', aps)
+          if aps != 'production':
+              raise SystemExit('::error::aps-environment должен быть production')
+          PY
 
       - name: Upload to TestFlight
         env:

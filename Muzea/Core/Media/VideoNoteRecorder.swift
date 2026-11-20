@@ -174,7 +174,7 @@ final class VideoNoteRecorder: NSObject, ObservableObject {
     private func startTimer() {
         timerTask?.cancel()
         timerTask = Task { @MainActor in
-            while !Task.isCancelled, movieOutput.isRecording {
+            while !Task.isCancelled {
                 let elapsed = Date().timeIntervalSince(startedAt ?? Date())
                 state = .recording(seconds: Int(elapsed))
                 if elapsed >= VideoNoteLimits.maxDuration {
