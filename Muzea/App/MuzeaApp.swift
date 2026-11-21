@@ -42,6 +42,7 @@ struct MuzeaApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var container = AppContainer()
     @StateObject private var appRouter = AppRouter()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -49,6 +50,10 @@ struct MuzeaApp: App {
                 .environmentObject(container)
                 .environmentObject(appRouter)
                 .environmentObject(container.networkMonitor)
+                .onAppear { container.updateBadge() }
+                .onChange(of: scenePhase) { phase in
+                    if phase == .active { container.updateBadge() }
+                }
         }
     }
 }

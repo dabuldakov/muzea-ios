@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UserNotifications
 
 /// Ручной DI-контейнер (аналог Hilt-модулей на Android): собирает сетевые
 /// клиенты, SRP-репозитории, кэши и use-cases и раздаёт их экранам.
@@ -206,6 +207,21 @@ final class AppContainer: ObservableObject {
     func didLogin() {
         isLoggedIn = true
         ErrorReporter.shared.uploadPending()
+        updateBadge()
+    }
+
+    /// Красный бейдж на иконке = серверное число непрочитанных, а не «1» от
+    /// последнего push. Вызывается при возврате в приложение и после чата.
+    func updateBadge() {
+        Task {
+            let count = (try? await chatSessionRepository.totalUnreadCount()) ?? 0
+            try? await UNUserNotificationCenter.current().setBadgeCount(Int(max(0, count)))
+        }
+    }
+
+    /// Локально снять бейдж, когда пользователь уже открыл чат и читает.
+    func clearBadge() {
+        Task { try? await UNUserNotificationCenter.current().setBadgeCount(0) }
     }
 
     func didAcceptConsent() {

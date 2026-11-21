@@ -68,6 +68,7 @@ struct ChatListView: View {
             // подтягиваем счётчики непрочитанных и последние сообщения.
             if count == 0 {
                 Task { await viewModel.load() }
+                container.updateBadge()
             }
         }
     }

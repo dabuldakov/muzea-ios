@@ -84,7 +84,7 @@ struct ChatConversationView: View {
                 }
                 .onChange(of: viewModel.state.messages.last?.messageUuid) { _ in
                     guard !viewModel.state.isLoadingMore else { return }
-                    scroll(proxy)
+                    scroll(proxy, animated: true)
                 }
                 .onChange(of: jumpTarget) { target in
                     guard let target else { return }
@@ -158,6 +158,7 @@ struct ChatConversationView: View {
         .task { await viewModel.start() }
         .onAppear {
             ActiveChatTracker.shared.enter(chat.chatUuid)
+            container.clearBadge()
             UNUserNotificationCenter.current().removeDeliveredNotifications(
                 withIdentifiers: ["chat_\(chat.chatUuid)"]
             )
@@ -166,6 +167,10 @@ struct ChatConversationView: View {
             ActiveChatTracker.shared.leave(chat.chatUuid)
             viewModel.saveDraft(input)
             viewModel.exitSelection()
+            Task {
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                container.updateBadge()
+            }
         }
         .onChange(of: input) { value in
             viewModel.saveDraft(value)
@@ -697,18 +702,21 @@ struct ChatConversationView: View {
         return viewModel.state.messages.first { $0.messageUuid == uuid }
     }
 
-    private func scroll(_ proxy: ScrollViewProxy) {
-        guard !viewModel.state.messages.isEmpty else { return }
-
-        if !didScrollToUnread {
-            didScrollToUnread = true
-            let unread = Int(chat.unreadCount ?? 0)
-            let index = unread > 0
-                ? max(0, viewModel.state.messages.count - unread)
-                : viewModel.state.messages.count - 1
-            proxy.scrollTo(viewModel.state.messages[index].messageUuid, anchor: .top)
-        } else if let last = viewModel.state.messages.last {
-            proxy.scrollTo(last.messageUuid, anchor: .bottom)
+    private func scroll(_ proxy: ScrollViewProxy, animated: Bool = false) {
+        guard let last = viewModel.state.messages.last else { return }
+        didScrollToUnread = true
+        let target = last.messageUuid
+        // Даём LazyVStack разложить строки: scrollTo сразу после загрузки
+        // данных иногда уходит в пустоту, и чат открывается сверху.
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 120_000_000)
+            if animated {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    proxy.scrollTo(target, anchor: .bottom)
+                }
+            } else {
+                proxy.scrollTo(target, anchor: .bottom)
+            }
         }
     }
 }
