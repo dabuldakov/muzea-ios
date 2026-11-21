@@ -47,6 +47,20 @@ actor GifCache {
             let keep = all.sorted { $0.value.at > $1.value.at }.prefix(200)
             all = Dictionary(uniqueKeysWithValues: keep.map { ($0.key, $0.value) })
         }
+        persist(all)
+    }
+
+    /// Только что отправленная гифка должна сразу быть в «Мои» и «Этот чат»,
+    /// не дожидаясь истечения TTL первой страницы (как `cacheSentGif` на Android).
+    func prepend(key: String, item: Gif, limit: Int = 60) {
+        var all = load()
+        let existing = all[key]?.items ?? []
+        let merged = [item] + existing.filter { $0.providerGifId != item.providerGifId }
+        all[key] = Entry(items: Array(merged.prefix(limit)), at: Date())
+        persist(all)
+    }
+
+    private func persist(_ all: [String: Entry]) {
         entries = all
         try? FileManager.default.createDirectory(
             at: fileURL.deletingLastPathComponent(),
@@ -135,6 +149,13 @@ final class KlipyGifRepository: GifRepository {
             page: page,
             size: size
         )
+    }
+
+    func cacheSentGif(chatUuid: String, gif: Gif, mine: Bool) async {
+        await cache.prepend(key: "chat-\(chatUuid)#0", item: gif)
+        if mine {
+            await cache.prepend(key: "recent#0", item: gif)
+        }
     }
 
     private func serverList(

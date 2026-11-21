@@ -347,7 +347,16 @@ struct ChatConversationView: View {
                     repository: container.gifRepository,
                     chatUuid: chat.chatUuid,
                     onEmoji: { emoji in input += emoji },
-                    onGif: { gif in Task { await viewModel.sendGif(gif) } }
+                    onGif: { gif in
+                        Task {
+                            await container.gifRepository.cacheSentGif(
+                                chatUuid: chat.chatUuid,
+                                gif: gif,
+                                mine: true
+                            )
+                            await viewModel.sendGif(gif)
+                        }
+                    }
                 )
             }
         }

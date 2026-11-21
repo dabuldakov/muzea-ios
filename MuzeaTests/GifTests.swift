@@ -86,6 +86,22 @@ final class GifParsingTests: XCTestCase {
         let cleared = await cache.stale(key: "k")
         XCTAssertNil(cleared)
     }
+
+    func testGifCachePrependPutsSentGifFirstAndDeduplicates() async {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("gif-cache-\(UUID().uuidString).json")
+        let cache = GifCache(fileURL: url)
+        let first = Gif(provider: "klipy", providerGifId: "1", title: nil, url: "u1", previewUrl: nil, mp4Url: nil, width: nil, height: nil, gifKey: nil)
+        let sent = Gif(provider: "klipy", providerGifId: "2", title: nil, url: "u2", previewUrl: nil, mp4Url: nil, width: nil, height: nil, gifKey: nil)
+
+        await cache.put(key: "recent#0", items: [first])
+        await cache.prepend(key: "recent#0", item: sent)
+        await cache.prepend(key: "recent#0", item: sent)
+
+        let items = await cache.fresh(key: "recent#0", ttl: 60)
+        XCTAssertEqual(items?.map(\.providerGifId), ["2", "1"])
+        await cache.clearAll()
+    }
 }
 
 final class KlipyGifRepositoryTests: XCTestCase {

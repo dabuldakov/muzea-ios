@@ -23,4 +23,11 @@ protocol GifRepository {
     func recent(page: Int, size: Int) async -> [Gif]
     /// Гифки конкретного чата.
     func chat(chatUuid: String, page: Int, size: Int) async -> [Gif]
+    /// Локально добавляет только что отправленную гифку в «Мои» и «Этот чат»,
+    /// не дожидаясь обновления серверной выдачи и TTL кэша.
+    func cacheSentGif(chatUuid: String, gif: Gif, mine: Bool) async
+}
+
+extension GifRepository {
+    func cacheSentGif(chatUuid: String, gif: Gif, mine: Bool) async {}
 }
