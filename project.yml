@@ -16,9 +16,9 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     IPHONEOS_DEPLOYMENT_TARGET: "16.0"
-    CODE_SIGNING_ALLOWED: "NO"
-    CODE_SIGNING_REQUIRED: "NO"
-    CODE_SIGN_IDENTITY: ""
+    # Подпись настраивает конкретная сборка: симулятор/unsigned IPA передают
+    # CODE_SIGNING_ALLOWED=NO, TestFlight — YES. Глобальный NO ломал подпись
+    # архива и оставлял его без entitlements (включая push).
     # Klipy GIF: значение подставляет окружение/CI, чтобы ключ не жил в git.
     KLIPY_APP_KEY: ""
 
