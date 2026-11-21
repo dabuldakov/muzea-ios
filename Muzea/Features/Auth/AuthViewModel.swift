@@ -161,7 +161,8 @@ final class AuthViewModel: ObservableObject {
         resendTask?.cancel()
         resendSeconds = Self.resendInterval
         resendTask = Task { @MainActor [weak self] in
-            while !Task.isCancelled, let self, self.resendSeconds > 0 {
+            while !Task.isCancelled {
+                guard let self, self.resendSeconds > 0 else { return }
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 guard !Task.isCancelled else { return }
                 self.resendSeconds -= 1
