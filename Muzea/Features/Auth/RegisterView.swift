@@ -102,10 +102,12 @@ struct RegisterView: View {
             }
             .disabled(code.isEmpty || viewModel.state.isLoading)
 
-            Button(L10n.resendCode) {
+            Button(viewModel.resendSeconds > 0
+                ? L10n.resendIn(viewModel.resendSeconds)
+                : L10n.resendCode) {
                 Task { _ = await viewModel.resend() }
             }
-            .disabled(viewModel.state.isLoading)
+            .disabled(viewModel.state.isLoading || viewModel.resendSeconds > 0)
 
             Button(L10n.changeData) {
                 code = ""

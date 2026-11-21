@@ -189,6 +189,7 @@ enum L10n {
     static var codeTitle: String { t("auth.code.title") }
     static var confirmAction: String { t("auth.confirm.action") }
     static var resendCode: String { t("auth.resend") }
+    static func resendIn(_ seconds: Int) -> String { format("auth.resendIn", seconds) }
     static var changeData: String { t("auth.changeData") }
     static var emailInvalid: String { t("auth.error.email") }
     static var codeRequired: String { t("auth.error.code") }

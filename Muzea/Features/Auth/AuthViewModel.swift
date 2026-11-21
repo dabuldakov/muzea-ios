@@ -23,8 +23,11 @@ struct AuthUiState: Equatable {
 @MainActor
 final class AuthViewModel: ObservableObject {
     @Published private(set) var state = AuthUiState()
+    @Published private(set) var resendSeconds = 0
 
     private let repository: AuthRepositoryProtocol
+    private var resendTask: Task<Void, Never>?
+    private static let resendInterval = 60
 
     init(repository: AuthRepositoryProtocol) {
         self.repository = repository
@@ -56,6 +59,7 @@ final class AuthViewModel: ObservableObject {
             case .sent, .unknown:
                 state.phase = .code
                 state.info = L10n.codeSent(email)
+                startResendCooldown()
                 return true
             case .notFound:
                 state.phase = .email
@@ -72,6 +76,7 @@ final class AuthViewModel: ObservableObject {
                 state.flow = .register
                 state.phase = .code
                 state.info = L10n.verificationSent(email)
+                startResendCooldown()
                 return true
             }
         } catch {
@@ -105,6 +110,7 @@ final class AuthViewModel: ObservableObject {
         } onSuccess: {
             state.phase = .code
             state.info = L10n.codeSent(normalizedEmail)
+            startResendCooldown()
         }
     }
 
@@ -135,6 +141,7 @@ final class AuthViewModel: ObservableObject {
     }
 
     func resend() async -> Bool {
+        guard resendSeconds == 0 else { return false }
         let flow = state.flow
         let email = state.email
         if flow == .login {
@@ -144,13 +151,36 @@ final class AuthViewModel: ObservableObject {
             try await repository.resendVerification(email: email)
         } onSuccess: {
             state.info = L10n.codeSentAgain(email)
+            startResendCooldown()
+        }
+    }
+
+    /// Сервер не отдаёт новый код чаще раза в минуту: держим кнопку
+    /// «Отправить ещё раз» заблокированной и показываем остаток.
+    func startResendCooldown() {
+        resendTask?.cancel()
+        resendSeconds = Self.resendInterval
+        resendTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled, let self, self.resendSeconds > 0 {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard !Task.isCancelled else { return }
+                self.resendSeconds -= 1
+            }
         }
     }
 
     func backToEmail() {
+        clearResendCooldown()
         state.phase = .email
         state.error = nil
         state.info = nil
+    }
+
+    /// Сброс только для тестов/повторного входа: серверный лимит проверяется
+    /// отдельно, а UI обычно дожидается конца отсчёта.
+    func clearResendCooldown() {
+        resendTask?.cancel()
+        resendSeconds = 0
     }
 
     func consumeError() {

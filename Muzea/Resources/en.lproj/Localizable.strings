@@ -154,6 +154,7 @@
 "auth.code" = "Code from the email";
 "auth.confirm.action" = "Confirm";
 "auth.resend" = "Resend";
+"auth.resendIn" = "Resend in %ds";
 "auth.changeData" = "Change details";
 "auth.error.email" = "Enter a valid email.";
 "auth.error.code" = "Enter the code from the email.";
@@ -283,7 +284,7 @@
 "error.serverCode" = "Server error (%d).";
 "legal.consent.body" = "To use the muzea app, you need to accept the terms of use and give consent to personal data processing.\n\nData: login, full name, email, one-time confirmation codes (email sign-in), device identifier and model, device token for push notifications, chat message text, group composition and members, online status and last seen time, contacts list, images, posts and videos, technical account data.\n\nPurposes: registration and sign-in, messaging, push notifications, showing your profile to other users, posting content and videos, handling requests.\n\nThe device token for push notifications is transferred to Google services (Google Ireland Limited, Ireland) — a cross-border transfer. Other personal data is not transferred outside Russia.\n\nYou can withdraw consent in the profile (“Delete account”) or by email to %@ — then processing stops and the data is destroyed within 10 business days.";
 "auth.reauth.title" = "Sign-in update";
-"auth.reauth.body" = "Sign-in and registration now use an email code, no password.\n\nIf you already had an account, tap “Register” and enter your previous email and username — your access, chats and contacts will be kept (the account will be linked automatically).";
+"auth.reauth.body" = "Sign-in and registration now use an email code, no password.\n\nIf you already had an account, sign in with the same email. If access is not restored, contact support.";
 "auth.reauth.register" = "Register";
 "auth.reauth.ok" = "Got it";
 "auth.error.notRegistered" = "No account with this email. Tap “Sign up” to create one.";

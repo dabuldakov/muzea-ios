@@ -239,20 +239,38 @@ final class AttachmentRepositoryTests: XCTestCase {
 
     private func repository() -> AttachmentRepositoryImpl {
         let client = TestSupport.chatClient(tokenStore: store)
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
         return AttachmentRepositoryImpl(
             auth: ChatAuthorization(
                 client: client,
                 auth: ChatAuthManager(client: client, store: store)
-            )
+            ),
+            presignedUploader: PresignedUploader(configuration: configuration)
         )
     }
 
-    func testUploadSendsMultipartFieldsAndFile() async throws {
+    func testUploadUsesPresignedFlowWithThumbnail() async throws {
         MockURLProtocol.handler = { request in
-            (
-                MockURLProtocol.response(for: request),
-                TestSupport.data(#"{"attachmentUuid":"a-1","type":"IMAGE","fileUrl":"key"}"#)
-            )
+            let path = request.url?.path ?? ""
+            if path == "/api/attachments/presign-upload" {
+                let body = request.capturedBody.flatMap {
+                    try? JSONSerialization.jsonObject(with: $0) as? [String: Any]
+                }
+                let kind = body?["kind"] as? String ?? "ATTACHMENT"
+                let json = "{\"uploadUrl\":\"https://s3.test/upload?kind=\(kind)\",\"objectKey\":\"key-\(kind)\",\"expiresInSeconds\":600}"
+                return (MockURLProtocol.response(for: request), TestSupport.data(json))
+            }
+            if request.url?.host == "s3.test" {
+                return (MockURLProtocol.response(for: request, status: 200), Data())
+            }
+            if path == "/api/attachments" {
+                return (
+                    MockURLProtocol.response(for: request),
+                    TestSupport.data(#"{"attachmentUuid":"a-1","type":"IMAGE","fileUrl":"key-ATTACHMENT"}"#)
+                )
+            }
+            return (MockURLProtocol.response(for: request, status: 404), Data())
         }
 
         let uploaded = try await repository().upload(
@@ -270,18 +288,35 @@ final class AttachmentRepositoryTests: XCTestCase {
         )
 
         XCTAssertEqual(uploaded.attachmentUuid, "a-1")
-        let request = try XCTUnwrap(MockURLProtocol.requests.first)
-        let body = String(decoding: request.capturedBody ?? Data(), as: UTF8.self)
-        XCTAssertTrue(body.contains("name=\"chatUuid\""))
-        XCTAssertTrue(body.contains("c-1"))
-        XCTAssertTrue(body.contains("name=\"width\""))
-        XCTAssertTrue(body.contains("photo.jpg"))
-        XCTAssertTrue(body.contains("name=\"thumbnail\""))
+        XCTAssertEqual(MockURLProtocol.requests.count, 5)
+        XCTAssertEqual(MockURLProtocol.requests[1].httpMethod, "PUT")
+        XCTAssertNil(
+            MockURLProtocol.requests[1].value(forHTTPHeaderField: "Authorization"),
+            "Presigned PUT не должен нести Bearer"
+        )
+        XCTAssertEqual(MockURLProtocol.requests[4].url?.path, "/api/attachments")
+
+        let finalize = try XCTUnwrap(
+            MockURLProtocol.requests[4].capturedBody.flatMap {
+                try JSONSerialization.jsonObject(with: $0) as? [String: Any]
+            }
+        )
+        XCTAssertEqual(finalize["objectKey"] as? String, "key-ATTACHMENT")
+        XCTAssertEqual(finalize["thumbnailKey"] as? String, "key-THUMBNAIL")
+        XCTAssertEqual((finalize["width"] as? NSNumber)?.intValue, 10)
     }
 
-    func testDocumentUploadDoesNotSendThumbnail() async throws {
+    func testDocumentUploadSkipsThumbnail() async throws {
         MockURLProtocol.handler = { request in
-            (
+            let path = request.url?.path ?? ""
+            if path == "/api/attachments/presign-upload" {
+                let json = #"{"uploadUrl":"https://s3.test/upload","objectKey":"key-doc","expiresInSeconds":600}"#
+                return (MockURLProtocol.response(for: request), TestSupport.data(json))
+            }
+            if request.url?.host == "s3.test" {
+                return (MockURLProtocol.response(for: request, status: 200), Data())
+            }
+            return (
                 MockURLProtocol.response(for: request),
                 TestSupport.data(#"{"attachmentUuid":"a-2","type":"FILE"}"#)
             )
@@ -298,11 +333,42 @@ final class AttachmentRepositoryTests: XCTestCase {
             )
         )
 
-        let body = String(
-            decoding: MockURLProtocol.requests.first?.capturedBody ?? Data(),
-            as: UTF8.self
+        XCTAssertEqual(MockURLProtocol.requests.count, 3)
+        let finalize = try XCTUnwrap(
+            MockURLProtocol.requests[2].capturedBody.flatMap {
+                try JSONSerialization.jsonObject(with: $0) as? [String: Any]
+            }
         )
-        XCTAssertFalse(body.contains("name=\"thumbnail\""))
+        XCTAssertEqual(finalize["objectKey"] as? String, "key-doc")
+        XCTAssertTrue(finalize["thumbnailKey"] is NSNull || finalize["thumbnailKey"] == nil)
+    }
+
+    func testUploadFallsBackToMultipartOn503() async throws {
+        MockURLProtocol.handler = { request in
+            if request.url?.path == "/api/attachments/presign-upload" {
+                return (MockURLProtocol.response(for: request, status: 503), Data())
+            }
+            return (
+                MockURLProtocol.response(for: request),
+                TestSupport.data(#"{"attachmentUuid":"a-3","type":"FILE"}"#)
+            )
+        }
+
+        _ = try await repository().upload(
+            AttachmentUploadRequest(
+                chatUuid: "c-1",
+                data: Data([1, 2, 3]),
+                fileName: "report.pdf",
+                mimeType: "application/pdf",
+                kind: .document
+            )
+        )
+
+        XCTAssertEqual(MockURLProtocol.requests.count, 2)
+        let upload = MockURLProtocol.requests[1]
+        XCTAssertEqual(upload.url?.path, "/api/attachments/upload")
+        let body = String(decoding: try XCTUnwrap(upload.capturedBody), as: UTF8.self)
+        XCTAssertTrue(body.contains("name=\"chatUuid\""))
         XCTAssertTrue(body.contains("report.pdf"))
     }
 

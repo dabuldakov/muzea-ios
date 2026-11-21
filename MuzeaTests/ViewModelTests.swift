@@ -230,6 +230,20 @@ final class AuthViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.state.flow, .login)
         XCTAssertNil(viewModel.state.error)
         XCTAssertFalse(viewModel.state.isLoading)
+        XCTAssertEqual(viewModel.resendSeconds, 60)
+    }
+
+    func testResendDuringCooldownDoesNotCallRepository() async {
+        let repository = FakeAuthRepository()
+        let viewModel = AuthViewModel(repository: repository)
+        _ = await viewModel.requestLoginCode(email: "a@b.c")
+        let callsAfterFirst = repository.requestedCodes.count
+
+        let ok = await viewModel.resend()
+
+        XCTAssertFalse(ok)
+        XCTAssertEqual(repository.requestedCodes.count, callsAfterFirst)
+        XCTAssertEqual(viewModel.resendSeconds, 60)
     }
 
     func testRequestLoginCodeForUnknownEmailShowsError() async {
@@ -288,6 +302,7 @@ final class AuthViewModelTests: XCTestCase {
         _ = await viewModel.requestLoginCode(email: "a@b.c")
 
         repository.requestCodeStatus = .notFound
+        viewModel.clearResendCooldown()
         let ok = await viewModel.resend()
 
         XCTAssertFalse(ok)
@@ -300,6 +315,7 @@ final class AuthViewModelTests: XCTestCase {
         let viewModel = AuthViewModel(repository: repository)
         _ = await viewModel.requestLoginCode(email: "a@b.c")
 
+        viewModel.clearResendCooldown()
         let ok = await viewModel.resend()
 
         XCTAssertTrue(ok)
@@ -391,12 +407,14 @@ final class AuthViewModelTests: XCTestCase {
         let viewModel = AuthViewModel(repository: repository)
 
         _ = await viewModel.requestLoginCode(email: "alice@example.com")
+        viewModel.clearResendCooldown()
         _ = await viewModel.resend()
         XCTAssertEqual(repository.requestedCodes.count, 2)
         XCTAssertTrue(repository.resent.isEmpty)
 
         viewModel.backToEmail()
         _ = await viewModel.register(email: "a@b.c", username: "alice", displayName: "")
+        viewModel.clearResendCooldown()
         _ = await viewModel.resend()
         XCTAssertEqual(repository.resent, ["a@b.c"])
     }
