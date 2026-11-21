@@ -159,6 +159,12 @@ struct ChatConversationView: View {
         .onAppear {
             ActiveChatTracker.shared.enter(chat.chatUuid)
             container.clearBadge()
+            Task {
+                // Возврат в приложение параллельно обновляет бейдж по серверу;
+                // повторное снятие гарантирует, что открытый чат не оставит «1».
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                container.clearBadge()
+            }
             UNUserNotificationCenter.current().removeDeliveredNotifications(
                 withIdentifiers: ["chat_\(chat.chatUuid)"]
             )
