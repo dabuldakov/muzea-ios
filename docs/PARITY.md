@@ -67,6 +67,7 @@ the iOS backlog: update the status as work lands. Status values:
 | MEDIA.06 | Documents | partial | классификация по расширению (фото/видео/аудио/файл), QuickLook, share; device check pending |
 | MEDIA.07 | Save to Files/Photos | partial | Save to Photos for photo/video, Files через share; device check pending |
 | MEDIA.08 | Upload queue | partial | disk queue files+thumbs, restore/retry, прогресс и ошибка по каждому файлу, retry тапом |
+| MEDIA.15 | Presigned attachments | done | direct PUT в MinIO (presign → PUT без Bearer → finalize), отдельный presign для thumbnails, fallback на multipart при 503; tests `MediaTests` |
 | MEDIA.09 | Open/share after download | partial | QuickLook, video player, share sheet; device check pending |
 | MEDIA.10 | GIF cache | partial | first page on disk, TTL 30 min, stale fallback |
 | MEDIA.12 | Image viewer | partial | swipe gallery, author/date, reply/forward/share/save; device check pending |
@@ -94,7 +95,7 @@ the iOS backlog: update the status as work lands. Status values:
 
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
-| NET.01 | Auth | partial | passwordless OTP + refresh; `SENT/NOT_FOUND/UNVERIFIED/DELETED` показываются в UI; device smoke pending |
+| NET.01 | Auth | partial | passwordless OTP + refresh; `SENT/NOT_FOUND/UNVERIFIED/DELETED` показываются в UI, UNVERIFIED автоматически отправляет код регистрации; отсчёт 60 с на повторную отправку; device smoke pending |
 | NET.02 | Sync | partial | `/after` 3 s, full 15 s, `/before` догрузка истории вверх; background sync pending |
 | NET.03 | Push (FCM/APNs) | partial | APNs alert+data, локальный fallback, чат/новость; тап открывает конкретное сообщение; доставленные уведомления чата снимаются по chatUuid; бейдж синхронизируется с серверным числом непрочитанных; нужен device smoke build 17 |
 | NET.04 | Offline + retry | partial | disk outbox, вложения, офлайн-баннер, retry при возврате сети; background sync pending |
