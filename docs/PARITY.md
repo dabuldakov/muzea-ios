@@ -17,7 +17,7 @@ the iOS backlog: update the status as work lands. Status values:
 |---|---|---|---|
 | UI.01 | Theme components | partial | `Theme` tokens: spacing, radius, palette, outgoing gradient |
 | UI.02 | Fonts | partial | system fonts; custom sizes not unified |
-| UI.03 | Chat screen, bubbles | partial | text + replies, reactions, pins, link previews; attachments/media missing |
+| UI.03 | Chat screen, bubbles | partial | text + replies, reactions, pins, link previews, media; меню вложений тремя круглыми кнопками (фото/видео/файл), как в Android |
 | UI.04 | Animations | partial | заряд, появление/удаление сообщений, панели выбора и закрепов; переходы экранов pending |
 | UI.05 | Haptics | partial | `Haptics`: заряд, запись/отмена, реакции, отправка, сохранение фото |
 | UI.06 | Dark theme | partial | follows system; explicit palette needed |
@@ -60,7 +60,7 @@ the iOS backlog: update the status as work lands. Status values:
 | ID | Feature | iOS | Notes |
 |---|---|---|---|
 | MEDIA.01 | Photos | partial | multi-select до 10, JPEG 2048px, upload, grid, gallery; device smoke pending |
-| MEDIA.02 | Video | partial | upload с миниатюрой/размерами/длительностью, AVPlayer, cache; крупные файлы пока через память (нужен streaming/сжатие) |
+| MEDIA.02 | Video | partial | presigned PUT в MinIO (presign → PUT → finalize) с fallback на multipart при 503 и прогрессом; выбор из галереи или «Файлов», ожидание облачной копии, проверка атомов MP4 до загрузки; AVPlayer; крупные файлы пока через память (нужен streaming/сжатие) |
 | MEDIA.03 | Voice messages | partial | запись, waveform из реальных пиков, прогресс, длительность файлов, кэш; device smoke pending |
 | MEDIA.04 | Video notes (circles) | partial | AVCaptureSession, 60s, round preview/recorder, VIDEO_NOTE, thumbnail; device check pending |
 | MEDIA.05 | GIF (Klipy) | partial | поиск + «Мои»/«Этот чат» с сервера, диск cache, looping MP4; device smoke pending |
@@ -96,7 +96,7 @@ the iOS backlog: update the status as work lands. Status values:
 |---|---|---|---|
 | NET.01 | Auth | partial | passwordless OTP + refresh; `SENT/NOT_FOUND/UNVERIFIED/DELETED` показываются в UI; device smoke pending |
 | NET.02 | Sync | partial | `/after` 3 s, full 15 s, `/before` догрузка истории вверх; background sync pending |
-| NET.03 | Push (FCM/APNs) | partial | APNs alert+data, локальный fallback, чат/новость, подавление открытого чата; нужен device smoke после build 8 |
+| NET.03 | Push (FCM/APNs) | partial | APNs alert+data, локальный fallback, чат/новость; тап открывает конкретное сообщение; доставленные уведомления чата снимаются по chatUuid; бейдж синхронизируется с серверным числом непрочитанных; нужен device smoke build 17 |
 | NET.04 | Offline + retry | partial | disk outbox, вложения, офлайн-баннер, retry при возврате сети; background sync pending |
 | NET.05 | Invites | n/a | not in code |
 | NET.06 | Deep links | partial | muzea:// и https://muzea.su/...; AASA выложен, Apple CDN видит JSON; device smoke pending |
