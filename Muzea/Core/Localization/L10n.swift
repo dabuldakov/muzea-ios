@@ -15,6 +15,7 @@ enum L10n {
     static var add: String { t("common.add") }
     static var create: String { t("common.create") }
     static var error: String { t("common.error") }
+    static var uploadFailed: String { t("common.uploadFailed") }
     static var share: String { t("common.share") }
     static var retry: String { t("common.retry") }
     static var copy: String { t("common.copy") }
@@ -297,7 +298,9 @@ enum L10n {
     static var videoDescriptionField: String { t("video.description") }
     static var videoFileSection: String { t("video.file") }
     static var videoPick: String { t("video.pick") }
+    static var videoPickFile: String { t("video.pickFile") }
     static var videoChosen: String { t("video.chosen") }
+    static var videoCorrupted: String { t("video.corrupted") }
     static var videoUpload: String { t("video.upload") }
     static var videoUploadTitle: String { t("video.upload.title") }
     static var videoDelete: String { t("video.delete") }

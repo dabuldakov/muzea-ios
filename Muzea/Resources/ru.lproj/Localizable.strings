@@ -6,6 +6,7 @@
 "common.add" = "Добавить";
 "common.create" = "Создать";
 "common.error" = "Ошибка";
+"common.uploadFailed" = "Не удалось загрузить";
 "common.share" = "Поделиться";
 "common.retry" = "Повторить";
 "common.copy" = "Копировать";
@@ -223,6 +224,8 @@
 "video.description" = "Описание";
 "video.file" = "Файл";
 "video.pick" = "Выбрать видео";
+"video.pickFile" = "Выбрать файл";
+"video.corrupted" = "Видео повреждено или недокачано. Выберите файл из «Файлов».";
 "video.chosen" = "Видео выбрано";
 "video.upload" = "Загрузить";
 "video.upload.title" = "Загрузка видео";

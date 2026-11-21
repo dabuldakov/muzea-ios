@@ -21,6 +21,7 @@ struct ChatConversationView: View {
     @State private var activeSheet: ActiveSheet?
     @State private var forwardTargets: [ChatMessage] = []
     @State private var showAttachMenu = false
+    @State private var pendingAttachmentSource: AttachmentSource?
     @State private var showPhotoPicker = false
     @State private var showVideoPicker = false
     @State private var showFilePicker = false
@@ -261,12 +262,12 @@ struct ChatConversationView: View {
             guard let item else { return }
             Task { await addVideo(item) }
         }
-        .confirmationDialog(L10n.attachment, isPresented: $showAttachMenu) {
-            Button(L10n.photo) { showPhotoPicker = true }
-            Button(L10n.video) { showVideoPicker = true }
-            Button(L10n.videoNote) { showVideoNoteRecorder = true }
-            Button(L10n.file) { showFilePicker = true }
-            Button(L10n.cancel, role: .cancel) {}
+        .sheet(isPresented: $showAttachMenu, onDismiss: openPendingAttachmentSource) {
+            AttachmentMenuSheet(
+                onPhoto: { pendingAttachmentSource = .photo },
+                onVideo: { pendingAttachmentSource = .video },
+                onFile: { pendingAttachmentSource = .file }
+            )
         }
         .photosPicker(
             isPresented: $showPhotoPicker,
@@ -582,6 +583,16 @@ struct ChatConversationView: View {
 
     // MARK: - Actions
 
+    private func openPendingAttachmentSource() {
+        guard let source = pendingAttachmentSource else { return }
+        pendingAttachmentSource = nil
+        switch source {
+        case .photo: showPhotoPicker = true
+        case .video: showVideoPicker = true
+        case .file: showFilePicker = true
+        }
+    }
+
     private func addPhotos(_ items: [PhotosPickerItem]) async {
         defer { photoItems = [] }
         for (index, item) in items.prefix(AttachmentPolicy.maxAttachmentsPerMessage).enumerated() {
@@ -606,6 +617,10 @@ struct ChatConversationView: View {
         defer { videoItem = nil }
         guard let data = try? await item.loadTransferable(type: Data.self) else {
             viewModel.reportValidationError(L10n.errorVideoRead)
+            return
+        }
+        guard !VideoFileValidator.isTruncated(data) else {
+            viewModel.reportValidationError(L10n.videoCorrupted)
             return
         }
         let ext = item.supportedContentTypes.first?.preferredFilenameExtension ?? "mov"
@@ -646,6 +661,10 @@ struct ChatConversationView: View {
         let kind = AttachmentPolicy.rule(for: fileName)?.kind ?? .document
         switch kind {
         case .video:
+            guard !VideoFileValidator.isTruncated(data) else {
+                viewModel.reportValidationError(L10n.videoCorrupted)
+                return
+            }
             let prepared = await VideoPreparation.prepare(data: data, fileName: fileName)
             await viewModel.addVideo(
                 data: data,
@@ -770,6 +789,12 @@ struct ChatConversationView: View {
             }
         }
     }
+}
+
+private enum AttachmentSource {
+    case photo
+    case video
+    case file
 }
 
 private struct MessagePopupState: Identifiable {

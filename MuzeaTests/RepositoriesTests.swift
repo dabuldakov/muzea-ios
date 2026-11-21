@@ -139,9 +139,65 @@ final class VideoRepositoryTests: XCTestCase {
         XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/videos/1")
     }
 
-    func testUploadVideoIncludesThumbnail() async throws {
+    func testUploadUsesPresignedFlowAndProgress() async throws {
         MockURLProtocol.handler = { request in
-            (MockURLProtocol.response(for: request), TestSupport.data(self.videoJSON))
+            let path = request.url?.path ?? ""
+            if path == "/api/videos/presign-upload" {
+                let json = #"{"uploadUrl":"https://s3.test/upload","objectKey":"key-1","expiresInSeconds":600}"#
+                return (MockURLProtocol.response(for: request), TestSupport.data(json))
+            }
+            if request.url?.host == "s3.test" {
+                return (MockURLProtocol.response(for: request, status: 200), Data())
+            }
+            if path == "/api/videos" {
+                return (MockURLProtocol.response(for: request), TestSupport.data(self.videoJSON))
+            }
+            return (MockURLProtocol.response(for: request, status: 404), Data())
+        }
+
+        var progress: [Int] = []
+        _ = try await repository().uploadVideo(
+            title: "T",
+            description: "D",
+            data: Data([1, 2]),
+            fileName: "v.mp4",
+            mimeType: "video/mp4",
+            thumbnail: nil,
+            onProgress: { progress.append($0) }
+        )
+
+        XCTAssertEqual(MockURLProtocol.requests.count, 3)
+        XCTAssertEqual(MockURLProtocol.requests[0].url?.path, "/api/videos/presign-upload")
+        XCTAssertEqual(MockURLProtocol.requests[1].httpMethod, "PUT")
+        XCTAssertNil(
+            MockURLProtocol.requests[1].value(forHTTPHeaderField: "Authorization"),
+            "Presigned PUT не должен нести Bearer: подпись SigV4 ломается"
+        )
+        XCTAssertEqual(MockURLProtocol.requests[2].url?.path, "/api/videos")
+
+        let presignBody = String(
+            decoding: try XCTUnwrap(MockURLProtocol.requests[0].capturedBody),
+            as: UTF8.self
+        )
+        XCTAssertTrue(presignBody.contains("\"contentType\":\"video/mp4\""))
+        XCTAssertTrue(presignBody.contains("\"size\":2"))
+
+        let finalizeBody = String(
+            decoding: try XCTUnwrap(MockURLProtocol.requests[2].capturedBody),
+            as: UTF8.self
+        )
+        XCTAssertTrue(finalizeBody.contains("\"objectKey\":\"key-1\""))
+
+        XCTAssertTrue(progress.contains(100))
+        XCTAssertEqual(progress.last, 100)
+    }
+
+    func testUploadFallsBackToMultipartOn503() async throws {
+        MockURLProtocol.handler = { request in
+            if request.url?.path == "/api/videos/presign-upload" {
+                return (MockURLProtocol.response(for: request, status: 503), Data())
+            }
+            return (MockURLProtocol.response(for: request), TestSupport.data(self.videoJSON))
         }
 
         _ = try await repository().uploadVideo(
@@ -153,31 +209,12 @@ final class VideoRepositoryTests: XCTestCase {
             thumbnail: UploadFile(data: Data([3]), fileName: "thumbnail.jpeg", mimeType: "image/jpeg")
         )
 
-        let body = try XCTUnwrap(MockURLProtocol.requests.first?.capturedBody)
-        let text = String(decoding: body, as: UTF8.self)
-        XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/videos/upload")
-        XCTAssertTrue(text.contains("name=\"title\""))
-        XCTAssertTrue(text.contains("name=\"description\""))
-        XCTAssertTrue(text.contains("name=\"file\"; filename=\"v.mp4\""))
-        XCTAssertTrue(text.contains("name=\"thumbnail\"; filename=\"thumbnail.jpeg\""))
-    }
-
-    func testUploadVideoWithoutThumbnail() async throws {
-        MockURLProtocol.handler = { request in
-            (MockURLProtocol.response(for: request), TestSupport.data(self.videoJSON))
-        }
-
-        _ = try await repository().uploadVideo(
-            title: "T",
-            description: nil,
-            data: Data([1]),
-            fileName: "v.mp4",
-            mimeType: "video/mp4"
-        )
-
-        let body = try XCTUnwrap(MockURLProtocol.requests.first?.capturedBody)
-        let text = String(decoding: body, as: UTF8.self)
-        XCTAssertFalse(text.contains("name=\"thumbnail\""))
+        XCTAssertEqual(MockURLProtocol.requests.count, 2)
+        let upload = MockURLProtocol.requests[1]
+        XCTAssertEqual(upload.url?.path, "/api/videos/upload")
+        let body = String(decoding: try XCTUnwrap(upload.capturedBody), as: UTF8.self)
+        XCTAssertTrue(body.contains("name=\"title\""))
+        XCTAssertTrue(body.contains("name=\"thumbnail\"; filename=\"thumbnail.jpeg\""))
     }
 
     func testDeleteVideo() async throws {

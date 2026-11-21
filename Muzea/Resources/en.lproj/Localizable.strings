@@ -6,6 +6,7 @@
 "common.add" = "Add";
 "common.create" = "Create";
 "common.error" = "Error";
+"common.uploadFailed" = "Upload failed";
 "common.share" = "Share";
 "common.retry" = "Retry";
 "common.copy" = "Copy";
@@ -223,6 +224,8 @@
 "video.description" = "Description";
 "video.file" = "File";
 "video.pick" = "Choose video";
+"video.pickFile" = "Choose file";
+"video.corrupted" = "The video is damaged or incomplete. Choose a file from Files.";
 "video.chosen" = "Video chosen";
 "video.upload" = "Upload";
 "video.upload.title" = "Upload video";

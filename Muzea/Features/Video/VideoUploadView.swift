@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import AVFoundation
 import UIKit
+import UniformTypeIdentifiers
 
 struct VideoUploadView: View {
     let container: AppContainer
@@ -16,6 +17,8 @@ struct VideoUploadView: View {
     @State private var previewImage: UIImage?
     @State private var fileName = "video.mp4"
     @State private var mimeType = "video/mp4"
+    @State private var showFilePicker = false
+    @State private var selectionError: String?
 
     init(container: AppContainer) {
         self.container = container
@@ -32,11 +35,17 @@ struct VideoUploadView: View {
                 }
 
                 Section(L10n.videoFileSection) {
-                    PhotosPicker(selection: $selectedItem, matching: .videos) {
-                        Label(
-                            videoData == nil ? L10n.videoPick : L10n.videoChosen,
-                            systemImage: "film"
-                        )
+                    HStack(spacing: 12) {
+                        PhotosPicker(selection: $selectedItem, matching: .videos) {
+                            sourceButton("photo.on.rectangle", L10n.videoPick)
+                        }
+
+                        Button {
+                            showFilePicker = true
+                        } label: {
+                            sourceButton("folder", L10n.videoPickFile)
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     if let previewImage {
@@ -50,6 +59,10 @@ struct VideoUploadView: View {
                     }
                 }
 
+                if let selectionError {
+                    Section { Text(selectionError).foregroundColor(.red) }
+                }
+
                 if let error = viewModel.error {
                     Section { Text(error).foregroundColor(.red) }
                 }
@@ -57,7 +70,12 @@ struct VideoUploadView: View {
                 Section {
                     Button(action: upload) {
                         if viewModel.isUploading {
-                            ProgressView().frame(maxWidth: .infinity)
+                            VStack(spacing: 6) {
+                                ProgressView(value: Double(viewModel.progress) / 100)
+                                Text("\(viewModel.progress)%")
+                                    .font(.caption)
+                            }
+                            .frame(maxWidth: .infinity)
                         } else {
                             Text(L10n.videoUpload).frame(maxWidth: .infinity)
                         }
@@ -74,17 +92,115 @@ struct VideoUploadView: View {
             .onChange(of: selectedItem) { newValue in
                 Task { await loadVideo(newValue) }
             }
+            .fileImporter(
+                isPresented: $showFilePicker,
+                allowedContentTypes: [.movie, .mpeg4Movie, .quickTimeMovie],
+                allowsMultipleSelection: false
+            ) { result in
+                if case .success(let urls) = result, let url = urls.first {
+                    Task { await loadFile(url) }
+                }
+            }
         }
+    }
+
+    private func sourceButton(_ icon: String, _ title: String) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(.accentColor)
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     private func loadVideo(_ item: PhotosPickerItem?) async {
         guard let item else { return }
-        guard let data = try? await item.loadTransferable(type: Data.self) else { return }
-        videoData = data
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            selectionError = L10n.errorVideoRead
+            return
+        }
         let type = item.supportedContentTypes.first
         let ext = type?.preferredFilenameExtension ?? "mp4"
-        fileName = "video_\(Int(Date().timeIntervalSince1970)).\(ext)"
-        mimeType = type?.preferredMIMEType ?? "video/mp4"
+        let name = "video_\(Int(Date().timeIntervalSince1970)).\(ext)"
+        await applyVideo(
+            data: data,
+            fileName: name,
+            mimeType: type?.preferredMIMEType ?? "video/mp4"
+        )
+    }
+
+    /// Видео из системных «Файлов»: копируем через NSFileCoordinator, чтобы
+    /// дождаться скачивания из iCloud/облака, и проверяем целостность атомов.
+    private func loadFile(_ url: URL) async {
+        let access = url.startAccessingSecurityScopedResource()
+        defer { if access { url.stopAccessingSecurityScopedResource() } }
+
+        let destination = FileManager.default.temporaryDirectory
+            .appendingPathComponent("upload-\(UUID().uuidString)-\(url.lastPathComponent)")
+        defer { try? FileManager.default.removeItem(at: destination) }
+
+        do {
+            try await copyFromProvider(url, to: destination)
+            let data = try Data(contentsOf: destination)
+            let mime = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType
+                ?? "video/mp4"
+            await applyVideo(data: data, fileName: url.lastPathComponent, mimeType: mime)
+        } catch {
+            selectionError = L10n.errorVideoRead
+        }
+    }
+
+    private func copyFromProvider(_ source: URL, to destination: URL) async throws {
+        var lastSize = 0
+        for attempt in 0..<4 {
+            try? FileManager.default.removeItem(at: destination)
+            var coordinationError: NSError?
+            var copyError: Error?
+            NSFileCoordinator().coordinate(
+                readingItemAt: source,
+                options: [.withoutChanges],
+                error: &coordinationError
+            ) { readableURL in
+                do {
+                    try FileManager.default.copyItem(at: readableURL, to: destination)
+                } catch {
+                    copyError = error
+                }
+            }
+            if let coordinationError { throw coordinationError }
+            if let copyError { throw copyError }
+
+            let size = (try? destination.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+            if size > 0, size == lastSize { return }
+            lastSize = size
+            if attempt < 3 {
+                try? await Task.sleep(nanoseconds: UInt64(0.4 * Double(attempt + 1) * 1_000_000_000))
+            }
+        }
+        if (try? destination.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0 > 0 {
+            return
+        }
+        throw CocoaError(.fileReadUnknown)
+    }
+
+    private func applyVideo(data: Data, fileName: String, mimeType: String) async {
+        guard !VideoFileValidator.isTruncated(data) else {
+            selectionError = L10n.videoCorrupted
+            videoData = nil
+            previewImage = nil
+            return
+        }
+        selectionError = nil
+        videoData = data
+        self.fileName = fileName
+        self.mimeType = mimeType
         await makeThumbnail(from: data)
     }
 

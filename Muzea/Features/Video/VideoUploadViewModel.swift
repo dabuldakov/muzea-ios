@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 final class VideoUploadViewModel: ObservableObject {
     @Published private(set) var isUploading = false
+    @Published private(set) var progress = 0
     @Published private(set) var error: String?
 
     private let repository: VideoRepository
@@ -20,6 +21,7 @@ final class VideoUploadViewModel: ObservableObject {
         thumbnail: UploadFile?
     ) async -> Bool {
         isUploading = true
+        progress = 0
         defer { isUploading = false }
         do {
             error = nil
@@ -29,8 +31,14 @@ final class VideoUploadViewModel: ObservableObject {
                 data: data,
                 fileName: fileName,
                 mimeType: mimeType,
-                thumbnail: thumbnail
+                thumbnail: thumbnail,
+                onProgress: { [weak self] value in
+                    Task { @MainActor in
+                        self?.progress = min(100, max(0, value))
+                    }
+                }
             )
+            progress = 100
             return true
         } catch {
             self.error = error.localizedDescription
