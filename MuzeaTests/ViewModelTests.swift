@@ -79,8 +79,10 @@ final class ChatConversationViewModelTests: XCTestCase {
         )
         await viewModel.refresh()
 
-        XCTAssertTrue(await viewModel.markReadUpTo(second))
-        XCTAssertFalse(await viewModel.markReadUpTo(first))
+        let markedSecond = await viewModel.markReadUpTo(second)
+        let markedFirst = await viewModel.markReadUpTo(first)
+        XCTAssertTrue(markedSecond)
+        XCTAssertFalse(markedFirst)
 
         XCTAssertEqual(repository.markedRead.count, 1)
         XCTAssertEqual(repository.markedRead.first?.1, "s2")
