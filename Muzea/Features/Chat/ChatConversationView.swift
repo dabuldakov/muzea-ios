@@ -184,6 +184,20 @@ struct ChatConversationView: View {
             UNUserNotificationCenter.current().removeDeliveredNotifications(
                 withIdentifiers: ["chat_\(chat.chatUuid)"]
             )
+            // Системное FCM-уведомление создаётся ОС со своим идентификатором,
+            // поэтому снимаем все доставленные пуши этого чата по userInfo.
+            UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
+                let identifiers = notifications.compactMap { notification -> String? in
+                    let info = notification.request.content.userInfo
+                    let uuid = info["chatUuid"] as? String ?? info["chat_uuid"] as? String
+                    return uuid == chat.chatUuid ? notification.request.identifier : nil
+                }
+                if !identifiers.isEmpty {
+                    UNUserNotificationCenter.current().removeDeliveredNotifications(
+                        withIdentifiers: identifiers
+                    )
+                }
+            }
         }
         .onDisappear {
             ActiveChatTracker.shared.leave(chat.chatUuid)
