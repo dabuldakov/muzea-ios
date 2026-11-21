@@ -51,25 +51,25 @@ final class EntitlementsTests: XCTestCase {
 final class ComposerSizingTests: XCTestCase {
 
     func testSingleLineUsesMinimumHeight() {
-        let view = AutoGrowingTextView(frame: CGRect(x: 0, y: 0, width: 220, height: 36))
-        view.font = .preferredFont(forTextStyle: .body)
-        view.textContainerInset = UIEdgeInsets(top: 5, left: 4, bottom: 5, right: 4)
+        let view = AutoGrowingTextView(frame: CGRect(x: 0, y: 0, width: 220, height: 30))
+        view.font = .systemFont(ofSize: 16)
+        view.textContainerInset = UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6)
         view.isScrollEnabled = false
         view.text = "привет"
         view.layoutIfNeeded()
 
-        XCTAssertEqual(view.intrinsicContentSize.height, 36, accuracy: 1)
+        XCTAssertEqual(view.intrinsicContentSize.height, 30, accuracy: 1)
     }
 
     func testLongTextGrowsButDoesNotExceedLimit() {
-        let view = AutoGrowingTextView(frame: CGRect(x: 0, y: 0, width: 220, height: 36))
-        view.font = .preferredFont(forTextStyle: .body)
-        view.textContainerInset = UIEdgeInsets(top: 5, left: 4, bottom: 5, right: 4)
+        let view = AutoGrowingTextView(frame: CGRect(x: 0, y: 0, width: 220, height: 30))
+        view.font = .systemFont(ofSize: 16)
+        view.textContainerInset = UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6)
         view.isScrollEnabled = false
         view.text = Array(repeating: "строка", count: 20).joined(separator: "\n")
         view.layoutIfNeeded()
 
-        XCTAssertGreaterThan(view.intrinsicContentSize.height, 36)
-        XCTAssertLessThanOrEqual(view.intrinsicContentSize.height, 140)
+        XCTAssertGreaterThan(view.intrinsicContentSize.height, 30)
+        XCTAssertLessThanOrEqual(view.intrinsicContentSize.height, 123)
     }
 }

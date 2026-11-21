@@ -21,6 +21,7 @@ struct ChatComposerView: View {
     let onCancel: () -> Void
 
     @State private var selection = NSRange(location: 0, length: 0)
+    @State private var editorHeight: CGFloat = 30
 
     private var mentionQuery: MentionSuggestions.Query? {
         MentionSuggestions.resolve(
@@ -99,19 +100,16 @@ struct ChatComposerView: View {
                 .disabled(editing != nil)
 
                 ZStack(alignment: .topLeading) {
-                    MentionTextEditor(text: $text, selection: $selection)
+                    MentionTextEditor(text: $text, selection: $selection, height: $editorHeight)
                     if text.isEmpty {
                         Text(editing == nil ? L10n.messagePlaceholder : L10n.newTextPlaceholder)
                             .foregroundColor(Color(.placeholderText))
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 6)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
                             .allowsHitTesting(false)
                     }
                 }
-                .frame(
-                    minHeight: Theme.Size.composerMinHeight,
-                    maxHeight: Theme.Size.composerMaxHeight
-                )
+                .frame(height: editorHeight)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color(.separator), lineWidth: 1)

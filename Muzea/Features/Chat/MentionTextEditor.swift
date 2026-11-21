@@ -1,24 +1,19 @@
 import SwiftUI
 import UIKit
 
-/// UITextView, который сам сообщает SwiftUI высоту по содержимому.
-///
-/// Без этого `UIViewRepresentable` внутри flexible frame растягивался до
-/// `maxHeight` (поле выглядело высоким даже с одной строкой). Высота считается
-/// в `intrinsicContentSize` и пересчитывается при вводе и смене ширины.
+/// UITextView с точной высотой по содержимому: одна строка — компактная,
+/// дальше растёт до шести строк. SwiftUI получает высоту через колбэк, чтобы
+/// поле не растягивалось до `maxHeight` само по себе.
 final class AutoGrowingTextView: UITextView {
-    var minHeight: CGFloat = 36
-    var maxHeight: CGFloat = 140
+    var minHeight: CGFloat = 30
+    var maxHeight: CGFloat = 123
+    var onHeightChange: ((CGFloat) -> Void)?
 
     private var lastWidth: CGFloat = 0
+    private var lastReportedHeight: CGFloat = 0
 
     override var intrinsicContentSize: CGSize {
-        let width = bounds.width > 0 ? bounds.width : max(1, UIScreen.main.bounds.width - 120)
-        let fitting = sizeThatFits(
-            CGSize(width: width, height: .greatestFiniteMagnitude)
-        )
-        let height = min(maxHeight, max(minHeight, fitting.height))
-        return CGSize(width: UIView.noIntrinsicMetric, height: height)
+        CGSize(width: UIView.noIntrinsicMetric, height: preferredHeight(for: bounds.width))
     }
 
     override func layoutSubviews() {
@@ -26,7 +21,28 @@ final class AutoGrowingTextView: UITextView {
         if abs(bounds.width - lastWidth) > 0.5 {
             lastWidth = bounds.width
             invalidateIntrinsicContentSize()
+            notifyHeight()
         }
+    }
+
+    func recalculateHeight() {
+        invalidateIntrinsicContentSize()
+        notifyHeight()
+    }
+
+    private func preferredHeight(for width: CGFloat) -> CGFloat {
+        guard width > 0 else { return minHeight }
+        let fitting = sizeThatFits(
+            CGSize(width: width, height: .greatestFiniteMagnitude)
+        ).height
+        return min(maxHeight, max(minHeight, fitting))
+    }
+
+    private func notifyHeight() {
+        let height = preferredHeight(for: bounds.width)
+        guard abs(height - lastReportedHeight) > 0.5 else { return }
+        lastReportedHeight = height
+        onHeightChange?(height)
     }
 }
 
@@ -36,6 +52,7 @@ final class AutoGrowingTextView: UITextView {
 struct MentionTextEditor: UIViewRepresentable {
     @Binding var text: String
     @Binding var selection: NSRange
+    @Binding var height: CGFloat
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -44,10 +61,10 @@ struct MentionTextEditor: UIViewRepresentable {
     func makeUIView(context: Context) -> AutoGrowingTextView {
         let view = AutoGrowingTextView()
         view.delegate = context.coordinator
-        view.font = UIFont.preferredFont(forTextStyle: .body)
+        view.font = .systemFont(ofSize: 16)
         view.backgroundColor = .clear
         view.isScrollEnabled = false
-        view.textContainerInset = UIEdgeInsets(top: 5, left: 4, bottom: 5, right: 4)
+        view.textContainerInset = UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6)
         view.textContainer.lineFragmentPadding = 0
         view.autocapitalizationType = .sentences
         view.autocorrectionType = .default
@@ -55,17 +72,27 @@ struct MentionTextEditor: UIViewRepresentable {
         view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         view.setContentCompressionResistancePriority(.required, for: .vertical)
         view.setContentHuggingPriority(.required, for: .vertical)
+        view.onHeightChange = { newHeight in
+            DispatchQueue.main.async {
+                if abs(height - newHeight) > 0.5 { height = newHeight }
+            }
+        }
         return view
     }
 
     func updateUIView(_ uiView: AutoGrowingTextView, context: Context) {
         context.coordinator.parent = self
+        uiView.onHeightChange = { newHeight in
+            DispatchQueue.main.async {
+                if abs(height - newHeight) > 0.5 { height = newHeight }
+            }
+        }
 
         if uiView.text != text {
             uiView.text = text
             let end = NSRange(location: (text as NSString).length, length: 0)
             uiView.selectedRange = end
-            uiView.invalidateIntrinsicContentSize()
+            uiView.recalculateHeight()
             DispatchQueue.main.async {
                 if self.selection != end { self.selection = end }
             }
@@ -78,6 +105,7 @@ struct MentionTextEditor: UIViewRepresentable {
         if uiView.selectedRange != safe {
             uiView.selectedRange = safe
         }
+        uiView.recalculateHeight()
     }
 
     func sizeThatFits(
@@ -106,7 +134,7 @@ struct MentionTextEditor: UIViewRepresentable {
         func textViewDidChange(_ textView: UITextView) {
             parent.text = textView.text
             parent.selection = textView.selectedRange
-            textView.invalidateIntrinsicContentSize()
+            (textView as? AutoGrowingTextView)?.recalculateHeight()
         }
 
         func textViewDidChangeSelection(_ textView: UITextView) {

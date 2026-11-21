@@ -26,8 +26,8 @@ enum Theme {
         static let avatar: CGFloat = 32
         static let bubbleMaxWidth: CGFloat = 250
         static let mediaMaxWidth: CGFloat = 250
-        static let composerMinHeight: CGFloat = 36
-        static let composerMaxHeight: CGFloat = 140
+        static let composerMinHeight: CGFloat = 30
+        static let composerMaxHeight: CGFloat = 123
         static let iconButton: CGFloat = 44
     }
 
