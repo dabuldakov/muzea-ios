@@ -181,18 +181,18 @@ final class VideoRepositoryTests: XCTestCase {
         )
         XCTAssertEqual(MockURLProtocol.requests[2].url?.path, "/api/videos")
 
-        let presignBody = String(
-            decoding: try XCTUnwrap(MockURLProtocol.requests[0].capturedBody),
-            as: UTF8.self
+        let presignBody = try XCTUnwrap(MockURLProtocol.requests[0].capturedBody)
+        let presignJSON = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: presignBody) as? [String: Any]
         )
-        XCTAssertTrue(presignBody.contains("\"contentType\":\"video/mp4\""))
-        XCTAssertTrue(presignBody.contains("\"size\":2"))
+        XCTAssertEqual(presignJSON["contentType"] as? String, "video/mp4")
+        XCTAssertEqual((presignJSON["size"] as? NSNumber)?.int64Value, 2)
 
-        let finalizeBody = String(
-            decoding: try XCTUnwrap(MockURLProtocol.requests[2].capturedBody),
-            as: UTF8.self
+        let finalizeBody = try XCTUnwrap(MockURLProtocol.requests[2].capturedBody)
+        let finalizeJSON = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: finalizeBody) as? [String: Any]
         )
-        XCTAssertTrue(finalizeBody.contains("\"objectKey\":\"key-1\""))
+        XCTAssertEqual(finalizeJSON["objectKey"] as? String, "key-1")
 
         XCTAssertTrue(progress.contains(100))
         XCTAssertEqual(progress.last, 100)
