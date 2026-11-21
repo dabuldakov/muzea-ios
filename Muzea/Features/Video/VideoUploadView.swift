@@ -105,19 +105,22 @@ struct VideoUploadView: View {
     }
 
     private func sourceButton(_ icon: String, _ title: String) -> some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(.accentColor)
+                .font(.system(size: 24))
+                .foregroundColor(Theme.Palette.outgoingStart)
+                .frame(width: 64, height: 64)
+                .background(Theme.Palette.outgoingStart.opacity(0.08))
+                .clipShape(Circle())
+                .overlay(
+                    Circle().stroke(Theme.Palette.outgoingStart.opacity(0.2), lineWidth: 1)
+                )
             Text(title)
                 .font(.caption)
-                .foregroundColor(.primary)
+                .foregroundColor(.secondary)
                 .lineLimit(1)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .frame(width: 120)
     }
 
     private func loadVideo(_ item: PhotosPickerItem?) async {
