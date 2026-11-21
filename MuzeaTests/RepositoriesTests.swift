@@ -112,7 +112,13 @@ final class VideoRepositoryTests: XCTestCase {
     }
 
     private func repository() -> VideoRepositoryImpl {
-        VideoRepositoryImpl(client: TestSupport.makeupClient(tokenStore: store), cache: VideoListCache())
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        return VideoRepositoryImpl(
+            client: TestSupport.makeupClient(tokenStore: store),
+            cache: VideoListCache(),
+            presignedUploader: PresignedUploader(configuration: configuration)
+        )
     }
 
     private let videoJSON = #"{"id":1,"title":"V","description":null,"url":"/api/videos/stream/x.mp4","thumbnailUrl":null,"fileSize":null,"durationSeconds":null,"views":0,"likes":null,"likedByMe":null,"uploadedBy":"me","uploadedAt":"2026-01-01T00:00:00"}"#

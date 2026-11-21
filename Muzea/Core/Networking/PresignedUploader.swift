@@ -7,6 +7,12 @@ import Foundation
 /// Android здесь нет отдельного HTTP-клиента, но принцип тот же.
 final class PresignedUploader: NSObject {
     private var progressHandler: ((Int) -> Void)?
+    private let configuration: URLSessionConfiguration
+
+    init(configuration: URLSessionConfiguration = .ephemeral) {
+        self.configuration = configuration
+        super.init()
+    }
 
     func put(
         data: Data,
@@ -21,7 +27,7 @@ final class PresignedUploader: NSObject {
 
         progressHandler = onProgress
         let session = URLSession(
-            configuration: .ephemeral,
+            configuration: configuration,
             delegate: self,
             delegateQueue: nil
         )
