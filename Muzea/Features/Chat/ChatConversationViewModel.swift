@@ -1041,15 +1041,17 @@ final class ChatConversationViewModel: ObservableObject {
     /// Отмечает прочитанным всё до указанного сообщения. Вызывается, когда
     /// строка реально показана, — как `markReadUpTo` на Android. Watermark
     /// двигается только вперёд, повторные вызовы безопасны.
-    func markReadUpTo(_ message: ChatMessage) async {
+    @discardableResult
+    func markReadUpTo(_ message: ChatMessage) async -> Bool {
         guard let messageId = message.messageId,
               messageId > lastMarkedReadMessageId,
-              !message.messageUuid.hasPrefix("local-") else { return }
+              !message.messageUuid.hasPrefix("local-") else { return false }
         lastMarkedReadMessageId = messageId
         await services.messages.markMessagesAsRead(
             chatUuid: chatUuid,
             upToMessageUuid: reducer.serverUuid(message.messageUuid)
         )
+        return true
     }
 
     private func markDelivered() async {

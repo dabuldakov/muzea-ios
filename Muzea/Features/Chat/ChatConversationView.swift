@@ -15,6 +15,8 @@ struct ChatConversationView: View {
     @State private var didScrollToUnread = false
     @State private var draftBeforeEdit = ""
     @State private var jumpTarget: String?
+    @State private var pendingInitialMessage: String?
+    @State private var lockedToInitial = false
     @State private var activeAlert: ActiveAlert?
     @State private var activeSheet: ActiveSheet?
     @State private var forwardTargets: [ChatMessage] = []
@@ -33,7 +35,8 @@ struct ChatConversationView: View {
         chat: Chat,
         myUserUuid: String?,
         services: ChatConversationServices,
-        identityProvider: @escaping () -> String? = { nil }
+        identityProvider: @escaping () -> String? = { nil },
+        initialMessageUuid: String? = nil
     ) {
         self.chat = chat
         _viewModel = StateObject(wrappedValue: ChatConversationViewModel(
@@ -43,6 +46,8 @@ struct ChatConversationView: View {
             services: services,
             identityProvider: identityProvider
         ))
+        _pendingInitialMessage = State(initialValue: initialMessageUuid)
+        _lockedToInitial = State(initialValue: initialMessageUuid != nil)
         _input = State(initialValue: services.drafts.draft(chatUuid: chat.chatUuid) ?? "")
     }
 
@@ -84,14 +89,24 @@ struct ChatConversationView: View {
                 }
                 .onChange(of: viewModel.state.messages.last?.messageUuid) { _ in
                     guard !viewModel.state.isLoadingMore else { return }
-                    scroll(proxy, animated: true)
+                    if pendingInitialMessage != nil {
+                        scrollToInitialOrBottom(proxy)
+                    } else if !lockedToInitial {
+                        scroll(proxy, animated: true)
+                    }
                 }
                 .onChange(of: jumpTarget) { target in
                     guard let target else { return }
                     withAnimation { proxy.scrollTo(target, anchor: .center) }
                     jumpTarget = nil
                 }
-                .onAppear { scroll(proxy) }
+                .onAppear {
+                    if pendingInitialMessage != nil {
+                        scrollToInitialOrBottom(proxy)
+                    } else if !lockedToInitial {
+                        scroll(proxy)
+                    }
+                }
             }
 
             if chat.peerDeleted == true {
@@ -368,7 +383,15 @@ struct ChatConversationView: View {
             }
         }
         .onAppear {
-            Task { await viewModel.markReadUpTo(message) }
+            if message.messageUuid == viewModel.state.messages.last?.messageUuid {
+                // Дошли до конца — дальше можно снова автопрокручивать вниз.
+                lockedToInitial = false
+            }
+            Task {
+                if await viewModel.markReadUpTo(message) {
+                    container.scheduleBadgeRefresh()
+                }
+            }
         }
         .contextMenu {
             contextMenu(for: message, isMine: isMine)
@@ -706,6 +729,28 @@ struct ChatConversationView: View {
     private func replyTarget(for message: ChatMessage) -> ChatMessage? {
         guard let uuid = message.replyToMessageUuid else { return nil }
         return viewModel.state.messages.first { $0.messageUuid == uuid }
+    }
+
+    /// Открытие из push: показываем конкретное сообщение, а не низ чата.
+    /// Если сообщение ещё не пришло в первой странице — падаем вниз.
+    private func scrollToInitialOrBottom(_ proxy: ScrollViewProxy) {
+        guard !viewModel.state.messages.isEmpty else { return }
+        guard let target = pendingInitialMessage else {
+            scroll(proxy)
+            return
+        }
+        pendingInitialMessage = nil
+        didScrollToUnread = true
+        let found = viewModel.state.messages.contains { $0.messageUuid == target }
+        lockedToInitial = found
+        let destination = found ? target : (viewModel.state.messages.last?.messageUuid ?? target)
+        let anchor: UnitPoint = found ? .center : .bottom
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 120_000_000)
+            withAnimation(.easeOut(duration: 0.2)) {
+                proxy.scrollTo(destination, anchor: anchor)
+            }
+        }
     }
 
     private func scroll(_ proxy: ScrollViewProxy, animated: Bool = false) {

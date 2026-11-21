@@ -75,7 +75,12 @@ struct ChatListView: View {
 
     private func openPendingChat() {
         guard let chat = appRouter.consumeChatTarget() else { return }
-        router.push(.conversation(chat))
+        let messageUuid = appRouter.consumeChatTargetMessageUuid()
+        if let messageUuid {
+            router.push(.conversationMessage(chat, messageUuid))
+        } else {
+            router.push(.conversation(chat))
+        }
         Task { await viewModel.load() }
     }
 

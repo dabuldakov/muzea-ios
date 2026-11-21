@@ -41,6 +41,7 @@ final class AppContainer: ObservableObject {
     private let chatMessagesCache: ChatMessagesCache
     private let privateChatCache: PrivateChatCache
     private let videoListCache: VideoListCache
+    private var badgeRefreshTask: Task<Void, Never>?
 
     /// Держим координатор refresh живым: обработчики 401 ссылаются на него.
     private let tokenRefresher: TokenRefresher
@@ -213,14 +214,27 @@ final class AppContainer: ObservableObject {
     /// Красный бейдж на иконке = серверное число непрочитанных, а не «1» от
     /// последнего push. Вызывается при возврате в приложение и после чата.
     func updateBadge() {
-        Task {
+        scheduleBadgeRefresh(after: 0)
+    }
+
+    /// Частое обновление при чтении: пока пользователь листает чат, счётчик
+    /// уменьшается, но запросы к серверу дебаунсятся.
+    func scheduleBadgeRefresh(after seconds: Double = 0.5) {
+        badgeRefreshTask?.cancel()
+        badgeRefreshTask = Task {
+            if seconds > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            }
+            guard !Task.isCancelled else { return }
             let count = (try? await chatSessionRepository.totalUnreadCount()) ?? 0
+            guard !Task.isCancelled else { return }
             try? await UNUserNotificationCenter.current().setBadgeCount(Int(max(0, count)))
         }
     }
 
     /// Локально снять бейдж, когда пользователь уже открыл чат и читает.
     func clearBadge() {
+        badgeRefreshTask?.cancel()
         Task { try? await UNUserNotificationCenter.current().setBadgeCount(0) }
     }
 

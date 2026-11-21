@@ -3,6 +3,7 @@ import SwiftUI
 /// Маршруты навигации. Значения `Hashable`, чтобы складываться в `NavigationPath`.
 enum Route: Hashable {
     case conversation(Chat)
+    case conversationMessage(Chat, String)
     case groupSettings(Chat)
     case newsDetail(Int64)
     case videoDetail(Video)
@@ -45,6 +46,14 @@ struct RouteDestinationView: View {
                 myUserUuid: container.myUserUuid,
                 services: container.chatConversationServices,
                 identityProvider: { container.myUserUuid }
+            )
+        case .conversationMessage(let chat, let messageUuid):
+            ChatConversationView(
+                chat: chat,
+                myUserUuid: container.myUserUuid,
+                services: container.chatConversationServices,
+                identityProvider: { container.myUserUuid },
+                initialMessageUuid: messageUuid
             )
         case .groupSettings(let chat):
             GroupSettingsView(chat: chat, container: container)

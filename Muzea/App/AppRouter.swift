@@ -12,6 +12,7 @@ final class AppRouter: ObservableObject {
 
     @Published var selectedTab = tabNews
     @Published var chatTarget: Chat?
+    @Published var chatTargetMessageUuid: String?
     @Published var newsTarget: Int64?
     @Published var sharedText: String?
 
@@ -75,6 +76,12 @@ final class AppRouter: ObservableObject {
             lastMessage: nil,
             unreadCount: 0
         )
+        chatTargetMessageUuid = target.messageUuid
+    }
+
+    func consumeChatTargetMessageUuid() -> String? {
+        defer { chatTargetMessageUuid = nil }
+        return chatTargetMessageUuid
     }
 
     func consumeSharedText() -> String? {
