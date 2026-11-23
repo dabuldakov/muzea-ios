@@ -2,6 +2,8 @@ excluded:
   - .build
   - Muzea.xcodeproj
   - build
+  # В тестах допустимы force-unwrap и длинные фикстуры: линтуем прод-код.
+  - MuzeaTests
 
 disabled_rules:
   - line_length
@@ -34,3 +36,8 @@ identifier_name:
 
 empty_count: warning
 
+
+# API репозиториев повторяет контракт сервера; 8 — рабочий предел.
+function_parameter_count:
+  warning: 8
+  error: 10

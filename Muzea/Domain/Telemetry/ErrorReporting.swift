@@ -64,23 +64,24 @@ struct ErrorReportResponse: Decodable {
 /// Чистит почту, телефоны и токены перед сохранением и отправкой.
 /// Повторяет Android `ErrorSanitizer`.
 enum ErrorSanitizer {
-    private static let email = try! NSRegularExpression(
+    private static let email = try? NSRegularExpression(
         pattern: #"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"#
     )
-    private static let phone = try! NSRegularExpression(
+    private static let phone = try? NSRegularExpression(
         pattern: #"(?<!\d)(?:\+7|8)[\s(-]*\d{3}[\s)-]*\d{3}[\s-]*\d{2}[\s-]*\d{2}(?!\d)"#
     )
-    private static let bearer = try! NSRegularExpression(
+    private static let bearer = try? NSRegularExpression(
         pattern: #"(?i)bearer\s+[A-Za-z0-9._\-]+"#
     )
-    private static let jwt = try! NSRegularExpression(
+    private static let jwt = try? NSRegularExpression(
         pattern: #"[A-Za-z0-9_\-]{16,}\.[A-Za-z0-9_\-]{16,}\.[A-Za-z0-9_\-]{16,}"#
     )
-    private static let longToken = try! NSRegularExpression(
+    private static let longToken = try? NSRegularExpression(
         pattern: #"(?i)(token|password|secret|api[_-]?key)\s*[=:]\s*[^\s,;"']+"#
     )
 
     static func sanitize(_ text: String) -> String {
+        guard let email, let phone, let bearer, let jwt, let longToken else { return text }
         var result = text
         result = replace(email, in: result, with: "[email]")
         result = replace(phone, in: result, with: "[phone]")
