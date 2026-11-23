@@ -53,96 +53,7 @@ struct ChatConversationView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            if !viewModel.state.pinned.isEmpty {
-                PinnedMessagesBar(
-                    pinned: viewModel.state.pinned,
-                    onOpen: { jumpTarget = $0.messageUuid },
-                    onUnpin: {
-                        guard let first = viewModel.state.pinned.first else { return }
-                        Task { await viewModel.togglePin(first) }
-                    }
-                )
-            }
-
-            if viewModel.state.isSelecting {
-                selectionBar
-            }
-
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 6) {
-                        if viewModel.state.hasMoreHistory, didScrollToUnread {
-                            historyLoader(proxy)
-                        }
-
-                        ForEach(viewModel.state.messages) { message in
-                            row(for: message)
-                                .id(message.messageUuid)
-                                .transition(.opacity)
-                        }
-                    }
-                    .padding(8)
-                    .animation(
-                        .easeInOut(duration: 0.18),
-                        value: viewModel.state.messages.last?.messageUuid
-                    )
-                }
-                .onChange(of: viewModel.state.messages.last?.messageUuid) { _ in
-                    guard !viewModel.state.isLoadingMore else { return }
-                    if pendingInitialMessage != nil {
-                        scrollToInitialOrBottom(proxy)
-                    } else if !lockedToInitial {
-                        scroll(proxy, animated: true)
-                    }
-                }
-                .onChange(of: jumpTarget) { target in
-                    guard let target else { return }
-                    withAnimation { proxy.scrollTo(target, anchor: .center) }
-                    jumpTarget = nil
-                }
-                .onAppear {
-                    if pendingInitialMessage != nil {
-                        scrollToInitialOrBottom(proxy)
-                    } else if !lockedToInitial {
-                        scroll(proxy)
-                    }
-                }
-            }
-
-            if chat.peerDeleted == true {
-                // Аккаунт собеседника деактивирован: история видна, отправка нет.
-                Text(L10n.userDeletedBanner)
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(12)
-                    .background(Color(.secondarySystemBackground))
-            } else if !viewModel.state.isSelecting {
-                ChatComposerView(
-                    text: $input,
-                    replyTo: viewModel.state.replyTo,
-                    editing: viewModel.state.editing,
-                    myUserUuid: viewModel.myUserUuid,
-                    usernames: viewModel.mentionCandidates,
-                    pendingAttachments: viewModel.state.pendingAttachments,
-                    isUploadingAttachments: viewModel.state.isUploadingAttachments,
-                    onAttach: { showAttachMenu = true },
-                    onEmojiGif: { activeSheet = .emojiGif },
-                    onRemoveAttachment: { viewModel.removePendingAttachment($0) },
-                    onRetryAttachment: { id in
-                        Task { await viewModel.retryPendingAttachment(id) }
-                    },
-                    onSend: { power in send(power: power) },
-                    onVoiceRecorded: { recorded in
-                        Task { _ = await viewModel.sendVoice(recorded) }
-                    },
-                    onVoiceError: { viewModel.reportValidationError($0) },
-                    onVideoNote: { showVideoNoteRecorder = true },
-                    onCancel: cancelComposer
-                )
-            }
-        }
+        conversationContent
         .animation(.easeInOut(duration: 0.18), value: viewModel.state.isSelecting)
         .animation(.easeInOut(duration: 0.18), value: viewModel.state.pinned.count)
         .coordinateSpace(name: "chatSurface")
@@ -367,6 +278,111 @@ struct ChatConversationView: View {
             VideoNoteRecorderSheet { note in
                 Task { _ = await viewModel.sendVideoNote(note) }
             }
+        }
+    }
+
+    private var conversationContent: some View {
+        VStack(spacing: 0) {
+            if !viewModel.state.pinned.isEmpty {
+                pinnedMessagesBar
+            }
+
+            if viewModel.state.isSelecting {
+                selectionBar
+            }
+
+            messagesSection
+            composerSection
+        }
+    }
+
+    private var pinnedMessagesBar: some View {
+        PinnedMessagesBar(
+            pinned: viewModel.state.pinned,
+            onOpen: { jumpTarget = $0.messageUuid },
+            onUnpin: {
+                guard let first = viewModel.state.pinned.first else { return }
+                Task { await viewModel.togglePin(first) }
+            }
+        )
+    }
+
+    private var messagesSection: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 6) {
+                    if viewModel.state.hasMoreHistory, didScrollToUnread {
+                        historyLoader(proxy)
+                    }
+
+                    ForEach(viewModel.state.messages) { message in
+                        row(for: message)
+                            .id(message.messageUuid)
+                            .transition(.opacity)
+                    }
+                }
+                .padding(8)
+                .animation(
+                    .easeInOut(duration: 0.18),
+                    value: viewModel.state.messages.last?.messageUuid
+                )
+            }
+            .onChange(of: viewModel.state.messages.last?.messageUuid) { _ in
+                guard !viewModel.state.isLoadingMore else { return }
+                if pendingInitialMessage != nil {
+                    scrollToInitialOrBottom(proxy)
+                } else if !lockedToInitial {
+                    scroll(proxy, animated: true)
+                }
+            }
+            .onChange(of: jumpTarget) { target in
+                guard let target else { return }
+                withAnimation { proxy.scrollTo(target, anchor: .center) }
+                jumpTarget = nil
+            }
+            .onAppear {
+                if pendingInitialMessage != nil {
+                    scrollToInitialOrBottom(proxy)
+                } else if !lockedToInitial {
+                    scroll(proxy)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var composerSection: some View {
+        if chat.peerDeleted == true {
+            // Аккаунт собеседника деактивирован: история видна, отправка нет.
+            Text(L10n.userDeletedBanner)
+                .font(.footnote)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity)
+                .padding(12)
+                .background(Color(.secondarySystemBackground))
+        } else if !viewModel.state.isSelecting {
+            ChatComposerView(
+                text: $input,
+                replyTo: viewModel.state.replyTo,
+                editing: viewModel.state.editing,
+                myUserUuid: viewModel.myUserUuid,
+                usernames: viewModel.mentionCandidates,
+                pendingAttachments: viewModel.state.pendingAttachments,
+                isUploadingAttachments: viewModel.state.isUploadingAttachments,
+                onAttach: { showAttachMenu = true },
+                onEmojiGif: { activeSheet = .emojiGif },
+                onRemoveAttachment: { viewModel.removePendingAttachment($0) },
+                onRetryAttachment: { id in
+                    Task { await viewModel.retryPendingAttachment(id) }
+                },
+                onSend: { power in send(power: power) },
+                onVoiceRecorded: { recorded in
+                    Task { _ = await viewModel.sendVoice(recorded) }
+                },
+                onVoiceError: { viewModel.reportValidationError($0) },
+                onVideoNote: { showVideoNoteRecorder = true },
+                onCancel: cancelComposer
+            )
         }
     }
 
