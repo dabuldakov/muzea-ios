@@ -37,17 +37,18 @@ enum LinkPreviewExtractor {
 /// Разбор Open Graph/Twitter Card из HTML. Читает только первые килобайты,
 /// как Android `OgParser`.
 enum LinkPreviewParser {
-    private static let metaRegex = try! NSRegularExpression(
+    private static let metaRegex = try? NSRegularExpression(
         pattern: #"(?is)<meta\s+[^>]*>"#
     )
-    private static let attributeRegex = try! NSRegularExpression(
+    private static let attributeRegex = try? NSRegularExpression(
         pattern: #"(?is)([a-z][a-z0-9:_-]*)\s*=\s*["']([^"']*)["']"#
     )
-    private static let titleRegex = try! NSRegularExpression(
+    private static let titleRegex = try? NSRegularExpression(
         pattern: #"(?is)<title[^>]*>(.*?)</title>"#
     )
 
     static func parse(_ html: String, baseURL: URL) -> LinkPreview? {
+        guard let metaRegex, let attributeRegex else { return nil }
         let nsHTML = html as NSString
         var meta: [String: String] = [:]
 
@@ -101,7 +102,7 @@ enum LinkPreviewParser {
 
     private static func firstTitle(_ html: String) -> String? {
         let nsHTML = html as NSString
-        guard let match = titleRegex.firstMatch(
+        guard let titleRegex, let match = titleRegex.firstMatch(
             in: html,
             range: NSRange(location: 0, length: nsHTML.length)
         ) else { return nil }
