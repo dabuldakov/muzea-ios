@@ -141,6 +141,7 @@ enum CertificatePin {
 }
 
 /// URLSessionDelegate с проверкой пинов для наших трёх API-хостов.
+/// CI: syntax check trigger.
 final class PinnedSessionDelegate: NSObject, URLSessionDelegate {
     func urlSession(
         _ session: URLSession,
