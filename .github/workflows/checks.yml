@@ -9,6 +9,7 @@ on:
       - "MuzeaTests/**"
       - "scripts/**"
       - ".github/workflows/checks.yml"
+      - ".swiftlint.yml"
   pull_request:
   workflow_dispatch:
 
@@ -34,6 +35,19 @@ jobs:
 
       - name: Check Info.plist, PrivacyInfo, AASA and secrets
         run: python3 scripts/check_release.py
+
+  swiftlint:
+    name: SwiftLint
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Lint Swift sources
+        run: swiftlint lint --config .swiftlint.yml --reporter github-actions-logging
 
   swift-syntax:
     name: Swift syntax (parse)

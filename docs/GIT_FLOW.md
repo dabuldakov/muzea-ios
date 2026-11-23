@@ -19,8 +19,8 @@
 
 | Событие | Workflow | Где | Что делает |
 |---|---|---|---|
-| push в `main` (код, тесты, скрипты) | **Checks** (`checks.yml`) | Ubuntu | ключи локализации, `check_release.py` (Info.plist, PrivacyInfo, AASA, секреты), `swiftc -parse` всех Swift-файлов |
-| любой pull request | **Checks** | Ubuntu | то же самое |
+| push в `main` (код, тесты, скрипты) | **Checks** (`checks.yml`) | Ubuntu + macOS | ключи локализации, `check_release.py`, `swiftc -parse`, SwiftLint по `.swiftlint.yml` |
+| любой pull request | **Checks** | Ubuntu + macOS | то же самое |
 | push тега `v*` | **iOS CI** (`ios.yml`) | macOS | build, тесты, неподписанный `.ipa`, публикация в GitHub Release |
 | вручную | **iOS CI** | macOS | build + тесты + покрытие + неподписанный `.ipa` |
 | вручную | **TestFlight** (`testflight.yml`) | macOS | подписанный archive, проверка entitlement, загрузка в TestFlight |
@@ -127,3 +127,11 @@ Android-релизы живут в отдельном репозитории (`d
 
 iOS и Android версионируются независимо: iOS — `MARKETING_VERSION` +
 `CURRENT_PROJECT_VERSION`, Android — `versionName`/`versionCode`.
+
+
+## SwiftLint
+
+Правила — в `.swiftlint.yml` (в корне репозитория). Сейчас `force_cast`,
+`force_try` и `force_unwrapping` — предупреждения: сначала убираем опасные
+места, затем переводим в ошибки и включаем `--strict`. Запуск: job
+**SwiftLint** в `Checks`, локально — `swiftlint lint --config .swiftlint.yml`.

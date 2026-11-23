@@ -1,0 +1,32 @@
+excluded:
+  - .build
+  - Muzea.xcodeproj
+  - build
+
+disabled_rules:
+  - line_length
+  - file_length
+  - type_body_length
+  - function_body_length
+  - cyclomatic_complexity
+  - todo
+  - trailing_whitespace
+
+opt_in_rules:
+  - empty_count
+  - force_unwrapping
+  - unused_optional_binding
+
+# Пока это предупреждения: сначала убираем самые опасные места, потом
+# переводим в ошибки и включаем --strict.
+force_cast: warning
+force_try: warning
+force_unwrapping: warning
+
+identifier_name:
+  min_length:
+    warning: 1
+  excluded:
+    - id
+    - x
+    - y
