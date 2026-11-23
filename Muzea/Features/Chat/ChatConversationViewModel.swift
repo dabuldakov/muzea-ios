@@ -16,9 +16,15 @@ final class ChatConversationViewModel: ObservableObject {
     private var lastReceiptsRefreshAt: Date?
     private var lastOutboxRetryAt: Date?
     private var retryingPending = false
-    private var retryingAttachments = false
     private var inFlightClientIds: Set<String> = []
     private var pollTick = 0
+
+    private lazy var uploader = ChatAttachmentUploader(
+        chatUuid: chatUuid,
+        services: services,
+        state: { [weak self] in self?.state ?? ChatConversationUiState() },
+        mutate: { [weak self] body in self?.mutateState(body) }
+    )
 
     private static let pendingDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -327,7 +333,7 @@ final class ChatConversationViewModel: ObservableObject {
     // MARK: - Attachments
 
     func addImage(data: Data, fileName: String = "photo.jpg", width: Int?, height: Int?) async {
-        await upload(
+        await uploader.upload(
             data: data,
             fileName: fileName,
             mimeType: "image/jpeg",
@@ -340,7 +346,7 @@ final class ChatConversationViewModel: ObservableObject {
     }
 
     func addFile(data: Data, fileName: String, mimeType: String) async {
-        await upload(
+        await uploader.upload(
             data: data,
             fileName: fileName,
             mimeType: mimeType,
@@ -361,7 +367,7 @@ final class ChatConversationViewModel: ObservableObject {
         thumbnail: Data? = nil
     ) async {
         let rule = AttachmentPolicy.rule(for: fileName)
-        await upload(
+        await uploader.upload(
             data: data,
             fileName: fileName,
             mimeType: rule?.mimeType ?? "video/mp4",
@@ -375,7 +381,7 @@ final class ChatConversationViewModel: ObservableObject {
 
     func addAudio(data: Data, fileName: String, duration: Int?) async {
         let rule = AttachmentPolicy.rule(for: fileName)
-        await upload(
+        await uploader.upload(
             data: data,
             fileName: fileName,
             mimeType: rule?.mimeType ?? "audio/mpeg",
@@ -406,7 +412,7 @@ final class ChatConversationViewModel: ObservableObject {
     @discardableResult
     func sendVideoNote(_ recorded: RecordedVideoNote) async -> Bool {
         let before = state.pendingAttachments.count
-        await upload(
+        await uploader.upload(
             data: recorded.data,
             fileName: recorded.fileName,
             mimeType: "video/mp4",
@@ -484,164 +490,23 @@ final class ChatConversationViewModel: ObservableObject {
     }
 
     func removePendingAttachment(_ id: String) {
-        services.pendingAttachments.remove(id: id)
-        state.pendingAttachments.removeAll { $0.id == id }
-        state.isUploadingAttachments = state.pendingAttachments.contains { $0.isUploading }
+        uploader.remove(id: id)
     }
 
     /// Повторная загрузка одного файла — по тапу на ошибку, как на Android.
     func retryPendingAttachment(_ id: String) async {
-        guard let record = services.pendingAttachments.load(chatUuid: chatUuid)
-            .first(where: { $0.id == id }), record.uploaded == nil else { return }
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: record.filePath)) else {
-            removePendingAttachment(id)
-            return
-        }
-        let thumbnail = record.thumbnailPath.flatMap { path in
-            try? Data(contentsOf: URL(fileURLWithPath: path))
-        }
-        if let index = state.pendingAttachments.firstIndex(where: { $0.id == id }) {
-            state.pendingAttachments[index].error = nil
-            state.pendingAttachments[index].progress = 0
-        }
-        state.isUploadingAttachments = true
-        await performUpload(id: id, record: record, data: data, thumbnail: thumbnail)
-        state.isUploadingAttachments = state.pendingAttachments.contains { $0.isUploading }
+        await uploader.retry(id: id)
     }
 
     /// Догружает вложения, которые были выбраны до перезапуска приложения.
     func retryPendingAttachments() async {
-        guard !retryingAttachments else { return }
-        let stored = services.pendingAttachments.load(chatUuid: chatUuid)
-            .filter { $0.uploaded == nil }
-        guard !stored.isEmpty else { return }
-        retryingAttachments = true
-        defer { retryingAttachments = false }
-        state.isUploadingAttachments = true
-
-        for item in stored {
-            guard let data = try? Data(contentsOf: URL(fileURLWithPath: item.filePath)) else {
-                removePendingAttachment(item.id)
-                continue
-            }
-            let thumbnail = item.thumbnailPath.flatMap { path in
-                try? Data(contentsOf: URL(fileURLWithPath: path))
-            }
-            await performUpload(id: item.id, record: item, data: data, thumbnail: thumbnail)
-        }
-        state.isUploadingAttachments = state.pendingAttachments.contains { $0.isUploading }
-    }
-
-    private func upload(
-        data: Data,
-        fileName: String,
-        mimeType: String,
-        kind: AttachmentKind,
-        thumbnail: Data?,
-        width: Int?,
-        height: Int?,
-        duration: Int?
-    ) async {
-        guard state.pendingAttachments.count < AttachmentPolicy.maxAttachmentsPerMessage else {
-            state.error = L10n.attachmentLimit(AttachmentPolicy.maxAttachmentsPerMessage)
-            return
-        }
-        if let message = AttachmentPolicy.validationError(
-            fileName: fileName,
-            size: Int64(data.count)
-        ) {
-            state.error = message
-            return
-        }
-
-        let id = UUID().uuidString
-        let pending = PendingChatAttachment(
-            id: id,
-            fileName: fileName,
-            kind: kind,
-            uploaded: nil
-        )
-        state.pendingAttachments.append(pending)
-        state.isUploadingAttachments = true
-
-        let record = StoredPendingAttachment(
-            id: id,
-            chatUuid: chatUuid,
-            fileName: fileName,
-            mimeType: mimeType,
-            kind: kind.rawValue,
-            width: width,
-            height: height,
-            duration: duration,
-            filePath: "",
-            thumbnailPath: nil,
-            uploaded: nil
-        )
-        try? services.pendingAttachments.save(
-            record: record,
-            data: data,
-            thumbnail: thumbnail
-        )
-        let stored = services.pendingAttachments.load(chatUuid: chatUuid)
-            .first { $0.id == id } ?? record
-
-        await performUpload(id: id, record: stored, data: data, thumbnail: thumbnail)
-        state.isUploadingAttachments = state.pendingAttachments.contains { $0.isUploading }
-    }
-
-    /// Одна загрузка: прогресс обновляет только свой файл, ошибка тоже локальна.
-    private func performUpload(
-        id: String,
-        record: StoredPendingAttachment,
-        data: Data,
-        thumbnail: Data?
-    ) async {
-        let request = AttachmentUploadRequest(
-            chatUuid: chatUuid,
-            data: data,
-            fileName: record.fileName,
-            mimeType: record.mimeType,
-            kind: AttachmentKind(rawValue: record.kind) ?? .document,
-            thumbnail: thumbnail,
-            width: record.width,
-            height: record.height,
-            duration: record.duration,
-            onProgress: { [weak self] progress in
-                Task { @MainActor in
-                    self?.updateUploadProgress(id: id, progress: progress)
-                }
-            }
-        )
-
-        do {
-            let uploaded = try await services.attachments.upload(request)
-            var stored = record
-            stored.uploaded = uploaded
-            services.pendingAttachments.update(stored)
-            if let index = state.pendingAttachments.firstIndex(where: { $0.id == id }) {
-                state.pendingAttachments[index].uploaded = uploaded
-                state.pendingAttachments[index].error = nil
-                state.pendingAttachments[index].progress = 1
-            }
-        } catch {
-            ErrorReporter.logCaught("ChatUpload", error)
-            // Файл остаётся в дисковой очереди: повтор — тапом по вложению.
-            let message = error.localizedDescription
-            if let index = state.pendingAttachments.firstIndex(where: { $0.id == id }) {
-                state.pendingAttachments[index].error = message
-            } else {
-                state.error = message
-            }
-        }
+        await uploader.retryPending()
     }
 
     /// Обновление прогресса одного файла. Внутренний, чтобы тесты могли
     /// проверить адресность и зажим значений без реального URLSession.
     func updateUploadProgress(id: String, progress: Double) {
-        guard let index = state.pendingAttachments.firstIndex(where: { $0.id == id }) else {
-            return
-        }
-        state.pendingAttachments[index].progress = progress
+        uploader.updateProgress(id: id, progress: progress)
     }
 
     func beginEdit(_ message: ChatMessage) {
@@ -982,6 +847,12 @@ final class ChatConversationViewModel: ObservableObject {
             upToMessageUuid: reducer.serverUuid(message.messageUuid)
         )
         return true
+    }
+
+    private func mutateState(_ body: (inout ChatConversationUiState) -> Void) {
+        var copy = state
+        body(&copy)
+        state = copy
     }
 
     private func markDelivered() async {
