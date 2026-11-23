@@ -38,16 +38,20 @@ jobs:
 
   swiftlint:
     name: SwiftLint
-    runs-on: macos-15
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install SwiftLint
-        run: brew install swiftlint
-
+      # Linux-бинарник SwiftLint + toolchain из того же образа, что и parse:
+      # macOS-раннеры дорогие и периодически недоступны по capacity.
       - name: Lint Swift sources
-        run: swiftlint lint --config .swiftlint.yml --reporter github-actions-logging
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD":/work -w /work \
+            swift:6.0 \
+            bash -lc 'apt-get update -qq && apt-get install -y -qq curl unzip >/dev/null && curl -sSL -o /tmp/sl.zip https://github.com/realm/SwiftLint/releases/download/0.65.1/swiftlint_linux_amd64.zip && unzip -q /tmp/sl.zip -d /tmp && LD_LIBRARY_PATH=/usr/lib/swift/linux /tmp/swiftlint lint --config .swiftlint.yml --no-cache --reporter github-actions-logging'
 
   swift-syntax:
     name: Swift syntax (parse)
