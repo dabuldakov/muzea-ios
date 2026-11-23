@@ -220,13 +220,13 @@ struct ChatMessage: Identifiable, Hashable {
     let createdAt: String?
     let updatedAt: String?
     /// Сводка реакций. Сервер всегда отдаёт массив, но в старых ответах его нет.
-    var reactions: [MessageReaction]? = nil
+    var reactions: [MessageReaction]?
     /// Сила «заряда» отправителя, 0...100 (0 — обычное сообщение).
-    var power: Int? = nil
+    var power: Int?
     /// Вложения сообщения: фото, видео, аудио, документы, GIF.
-    var attachments: [ChatAttachment]? = nil
+    var attachments: [ChatAttachment]?
     /// Автор удалён: имя/аватар скрываются, показываем «Удалённый пользователь».
-    var senderDeleted: Bool? = nil
+    var senderDeleted: Bool?
 
     /// Копия сообщения с другим идентификатором. Нужна, чтобы подменить
     /// оптимистичный локальный пузырь серверным эхом, сохранив локальный UUID
@@ -420,15 +420,15 @@ struct SendMessageRequest: Encodable {
     let text: String
     let messageType: String
     /// Сообщение, на которое отвечаем. Сервер ждёт реальный uuid.
-    var replyToMessageUuid: String? = nil
+    var replyToMessageUuid: String?
     /// Идемпотентность текстовых отправок: повтор с тем же id не создаёт дубль.
-    var clientMessageId: String? = nil
+    var clientMessageId: String?
     /// Сила заряда кнопки отправки, 0...100.
-    var power: Int? = nil
+    var power: Int?
     /// UUID загруженных вложений (до 10).
-    var attachments: [String]? = nil
+    var attachments: [String]?
     /// Метаданные GIF: поиск делает клиент у Klipy.
-    var gif: GifPayload? = nil
+    var gif: GifPayload?
 }
 
 struct GifPayload: Encodable {
