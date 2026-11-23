@@ -264,27 +264,28 @@ final class KlipyGifRepository: GifRepository {
     }
 
     private struct KlipyResponse: Decodable {
-        let data: Page?
-
-        struct Page: Decodable {
-            let items: [KlipyItem]?
-
-            enum CodingKeys: String, CodingKey {
-                case items = "data"
-            }
-        }
+        let data: KlipyPage?
     }
 
-    private struct KlipyItem: Decodable {
-        let id: Int64?
-        let slug: String?
-        let title: String?
-        let file: [String: [String: KlipyMedia]]?
-    }
+}
 
-    private struct KlipyMedia: Decodable {
-        let url: String?
-        let width: Int?
-        let height: Int?
+private struct KlipyPage: Decodable {
+    let items: [KlipyItem]?
+
+    enum CodingKeys: String, CodingKey {
+        case items = "data"
     }
+}
+
+private struct KlipyItem: Decodable {
+    let id: Int64?
+    let slug: String?
+    let title: String?
+    let file: [String: [String: KlipyMedia]]?
+}
+
+private struct KlipyMedia: Decodable {
+    let url: String?
+    let width: Int?
+    let height: Int?
 }

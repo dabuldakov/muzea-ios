@@ -132,7 +132,7 @@ struct Chat: Identifiable, Hashable {
     let lastMessage: MessagePreview?
     let unreadCount: Int64?
     /// Личный чат с удалённым пользователем: имя скрыто, отправка запрещена.
-    var peerDeleted: Bool? = nil
+    var peerDeleted: Bool?
 }
 
 struct MessagePreview: Hashable {
@@ -203,7 +203,7 @@ struct ChatMessage: Identifiable, Hashable {
     let messageUuid: String
     /// Глобальный монотонный id сервера. У локальных сообщений — nil; по нему
     /// сравниваются водяные знаки прочтения и доставки.
-    var messageId: Int64? = nil
+    var messageId: Int64?
     let chatUuid: String?
     let senderId: Int64?
     let senderUuid: String?
@@ -212,8 +212,8 @@ struct ChatMessage: Identifiable, Hashable {
     let text: String?
     let messageType: String?
     let replyToMessageUuid: String?
-    var forwardedFromMessageUuid: String? = nil
-    var forwardedFromUserUuid: String? = nil
+    var forwardedFromMessageUuid: String?
+    var forwardedFromUserUuid: String?
     let isEdited: Bool?
     let isDeleted: Bool?
     let isPinned: Bool?

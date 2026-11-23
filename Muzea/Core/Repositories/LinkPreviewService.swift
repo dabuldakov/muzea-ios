@@ -74,6 +74,8 @@ actor LinkPreviewService {
                 if data.count >= maxBytes { break }
             }
             guard !data.isEmpty else { return nil }
+            // HTML может быть не в UTF-8: декодируем с заменой, а не роняем превью.
+            // swiftlint:disable:next optional_data_string_conversion
             let html = String(decoding: data, as: UTF8.self)
             guard let preview = LinkPreviewParser.parse(html, baseURL: http.url ?? url) else {
                 return nil
