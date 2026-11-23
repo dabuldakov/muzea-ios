@@ -11,7 +11,7 @@ struct LinkPreview: Equatable {
 
 /// Поиск первой ссылки в тексте сообщения.
 enum LinkPreviewExtractor {
-    private static let regex = try! NSRegularExpression(
+    private static let regex = try? NSRegularExpression(
         pattern: #"https?://[^\s<>"']+"#,
         options: [.caseInsensitive]
     )
@@ -19,7 +19,7 @@ enum LinkPreviewExtractor {
     static func firstURL(in text: String?) -> URL? {
         guard let text, !text.isEmpty else { return nil }
         let nsText = text as NSString
-        guard let match = regex.firstMatch(
+        guard let regex, let match = regex.firstMatch(
             in: text,
             range: NSRange(location: 0, length: nsText.length)
         ) else { return nil }

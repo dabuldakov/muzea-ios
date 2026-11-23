@@ -227,7 +227,8 @@ struct ChatConversationView: View {
             )
         }
         .sheet(item: $activeSheet) { sheet in
-            switch sheet {            case .forward:
+            switch sheet {
+            case .forward:
                 ForwardChatPickerView(chats: viewModel.state.forwardChats) { chatUuid, comment in
                     let targets = forwardTargets
                     forwardTargets = []

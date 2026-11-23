@@ -19,7 +19,7 @@ struct VideoNotePreviewView: UIViewRepresentable {
     }
 
     final class PreviewView: UIView {
-        override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
+        override static var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
 
         var previewLayer: AVCaptureVideoPreviewLayer {
             if let layer = layer as? AVCaptureVideoPreviewLayer {
