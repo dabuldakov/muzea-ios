@@ -30,3 +30,7 @@ identifier_name:
     - id
     - x
     - y
+
+empty_count: warning
+
+large_tuple: warning
