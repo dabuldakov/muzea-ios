@@ -152,6 +152,9 @@ App Store Connect, smoke, откат, публикация в App Store и ди�
 [`docs/TESTFLIGHT.md`](docs/TESTFLIGHT.md), альтернатива через Xcode Cloud — в
 [`docs/XCODE_CLOUD.md`](docs/XCODE_CLOUD.md).
 
+Ветки, автоматические проверки и порядок запуска сборок описаны в
+[`docs/GIT_FLOW.md`](docs/GIT_FLOW.md).
+
 Неподписанный `.ipa` из job **Release .ipa** годится только для локальной отладки:
 [Releases](https://github.com/dabuldakov/muzea-ios/releases) или артефакт Actions.
 
@@ -242,6 +245,7 @@ docs/
 ├── XCODE_CLOUD.md   сборка и TestFlight через Xcode Cloud
 ├── TESTFLIGHT.md    ручной TestFlight workflow и manual signing
 ├── DEPLOY.md        полный процесс деплоя: TestFlight, App Store, откат
+├── GIT_FLOW.md      ветки, автоматические проверки и запуск релизов
 ├── SMOKE.md         чек-лист проверки на устройстве
 ├── DEEP_LINKS.md    Universal Links, AASA и схемы
 ├── SECURITY.md      транспорт, токены, SSRF, диагностика, приватность
