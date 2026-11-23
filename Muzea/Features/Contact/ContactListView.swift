@@ -41,7 +41,7 @@ struct ContactListView: View {
         // Опрос статусов, пока экран на переднем плане: на возврате на экран
         // первый запрос уходит сразу, в фоне цикл снимается.
         .task(id: router.path.count) {
-            guard router.path.count == 0 else { return }
+            guard router.path.isEmpty else { return }
             await viewModel.refreshPresence()
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: Config.presencePollInterval)

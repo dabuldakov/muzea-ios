@@ -37,7 +37,7 @@ struct ChatListView: View {
         .environmentObject(router)
         // Опрос списка нужен только на корне: в переписке свой поллинг.
         .task(id: router.path.count) {
-            guard router.path.count == 0 else { return }
+            guard router.path.isEmpty else { return }
             await viewModel.startAutoRefresh()
         }
         .onAppear {
