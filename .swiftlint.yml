@@ -11,6 +11,7 @@ disabled_rules:
   - cyclomatic_complexity
   - todo
   - trailing_whitespace
+  - large_tuple
 
 opt_in_rules:
   - empty_count
@@ -33,4 +34,3 @@ identifier_name:
 
 empty_count: warning
 
-large_tuple: warning
