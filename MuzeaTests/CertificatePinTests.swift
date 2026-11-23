@@ -52,6 +52,23 @@ final class CertificatePinTests: XCTestCase {
         ))
     }
 
+    /// Регрессия P0: раньше delegate принимал сертификат только по совпадению
+    /// CA-пина и не вызывал `SecTrustEvaluateWithError`, поэтому не проверял
+    /// hostname. Сертификат, валидный для другого домена, не должен проходить.
+    func testTrustEvaluationRejectsCertificateForAnotherHost() throws {
+        let intermediate = try certificate(intermediateBase64)
+        let root = try certificate(rootBase64)
+        let policy = SecPolicyCreateSSL(true, "evil.example" as CFString)
+        var trust: SecTrust?
+        XCTAssertEqual(
+            SecTrustCreateWithCertificates([intermediate, root] as CFArray, policy, &trust),
+            errSecSuccess
+        )
+        let serverTrust = try XCTUnwrap(trust)
+
+        XCTAssertFalse(CertificatePin.isTrustedAndPinned(host: "api-muzea.su", trust: serverTrust))
+    }
+
     func testRSASubjectPublicKeyInfoWrapsPKCS1() {
         let pkcs1 = Data(repeating: 0xAB, count: 270)
         let spki = CertificatePin.rsaSubjectPublicKeyInfo(pkcs1)

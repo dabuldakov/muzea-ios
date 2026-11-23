@@ -26,6 +26,22 @@ enum CertificatePin {
         return spkiHashes.contains { pins.contains($0) }
     }
 
+    /// Проверяет, что системный `SecTrust` валиден (подпись, цепочка, срок,
+    /// hostname) И содержит один из наших пинов.
+    ///
+    /// Вызывать `SecTrustEvaluateWithError` обязательно: когда URLSession
+    /// delegate возвращает `.useCredential(URLCredential(trust:))`, платформа
+    /// больше не проверяет цепочку и hostname сама. Без этой проверки пиннинг
+    /// принимал любой сертификат, выданный CA из списка (например, на чужой
+    /// домен), и не защищал от MITM.
+    static func isTrustedAndPinned(host: String, trust: SecTrust) -> Bool {
+        var error: CFError?
+        guard SecTrustEvaluateWithError(trust, &error) else {
+            return false
+        }
+        return matches(host: host, spkiHashes: spkiHashes(trust: trust))
+    }
+
     /// SPKI-хэши всех сертификатов цепочки, которые удалось разобрать.
     static func spkiHashes(trust: SecTrust) -> [String] {
         guard let chain = SecTrustCopyCertificateChain(trust) as? [SecCertificate] else {
@@ -139,8 +155,8 @@ final class PinnedSessionDelegate: NSObject, URLSessionDelegate {
             return
         }
 
-        let hashes = CertificatePin.spkiHashes(trust: trust)
-        if CertificatePin.matches(host: space.host, spkiHashes: hashes) {
+        // Сначала штатная проверка доверия (включая hostname), затем пин.
+        if CertificatePin.isTrustedAndPinned(host: space.host, trust: trust) {
             completionHandler(.useCredential, URLCredential(trust: trust))
         } else {
             completionHandler(.cancelAuthenticationChallenge, nil)
