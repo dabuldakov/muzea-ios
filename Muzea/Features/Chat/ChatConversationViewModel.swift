@@ -46,7 +46,7 @@ final class ChatConversationViewModel: ObservableObject {
         let pending = services.outbox.pending(chatUuid: chatUuid)
         state.messages = reducer.merge(
             current: cached,
-            incoming: pending.map(pendingResponse)
+            incoming: pending.map { $0.optimistic(myUserUuid: myUserUuid) }
         )
         state.failedMessages = Set(pending.map(\.localUuid))
 
@@ -878,7 +878,7 @@ final class ChatConversationViewModel: ObservableObject {
     }
 
     private func loadIncremental() async {
-        guard let watermark = newestTimestamp else {
+        guard let watermark = state.newestTimestamp else {
             await loadFull()
             return
         }
@@ -966,42 +966,6 @@ final class ChatConversationViewModel: ObservableObject {
             failedMessages: state.failedMessages,
             receiptsLoaded: state.receiptsLoaded
         )
-    }
-
-    private func pendingResponse(_ item: PendingChatMessage) -> ChatMessage {
-        ChatMessage(
-            messageUuid: item.localUuid,
-            messageId: nil,
-            chatUuid: item.chatUuid,
-            senderId: nil,
-            senderUuid: myUserUuid,
-            senderName: nil,
-            senderAvatar: nil,
-            text: item.text,
-            messageType: item.messageType ?? "TEXT",
-            replyToMessageUuid: item.replyToMessageUuid,
-            forwardedFromMessageUuid: nil,
-            forwardedFromUserUuid: nil,
-            isEdited: false,
-            isDeleted: false,
-            isPinned: false,
-            createdAt: item.createdAt,
-            updatedAt: nil,
-            reactions: [],
-            power: item.power,
-            attachments: item.attachments
-        )
-    }
-
-    private var newestTimestamp: String? {
-        state.messages
-            .compactMap { message -> String? in
-                guard message.messageUuid.hasPrefix("local-") == false,
-                      let createdAt = message.createdAt,
-                      !createdAt.isEmpty else { return nil }
-                return createdAt
-            }
-            .max()
     }
 
     /// Отмечает прочитанным всё до указанного сообщения. Вызывается, когда
