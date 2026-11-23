@@ -269,8 +269,7 @@ extension VideoNoteRecorder: AVCaptureFileOutputRecordingDelegate {
         generator.appliesPreferredTrackTransform = true
         let time = CMTime(seconds: 0.1, preferredTimescale: 600)
         return await withCheckedContinuation { continuation in
-            generator.generateCGImagesAsynchronously(forTimes: [NSValue(time: time)]) {
-                _, image, _, _, _ in
+            generator.generateCGImagesAsynchronously(forTimes: [NSValue(time: time)]) { _, image, _, _, _ in
                 guard let image else {
                     continuation.resume(returning: nil)
                     return

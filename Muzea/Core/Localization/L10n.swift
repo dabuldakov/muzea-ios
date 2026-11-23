@@ -172,7 +172,6 @@ enum L10n {
         format("chat.reaction.accessibility", emoji, count)
     }
 
-
     // MARK: - Auth
 
     static var registerTitle: String { t("auth.register.title") }
@@ -318,7 +317,6 @@ enum L10n {
     static func videoLikes(_ count: Int) -> String {
         format("video.likes", count)
     }
-
 
     // MARK: - Tabs and common shell
 

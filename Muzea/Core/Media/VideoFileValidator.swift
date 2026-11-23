@@ -76,6 +76,6 @@ enum VideoFileValidator {
 
     private static func readType(_ data: Data, at offset: Int) -> String {
         guard offset + 4 <= data.count else { return "" }
-        return String(decoding: data[offset..<offset + 4], as: UTF8.self)
+        return String(bytes: data[offset..<offset + 4], encoding: .utf8) ?? ""
     }
 }
