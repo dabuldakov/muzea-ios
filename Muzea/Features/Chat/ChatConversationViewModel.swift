@@ -1,39 +1,5 @@
 import Foundation
 
-/// Единое состояние экрана переписки.
-struct ChatConversationUiState: Equatable {
-    var messages: [ChatMessage] = []
-    var isLoading = false
-    /// Догрузка истории вверх: true, пока сервер может отдать ещё страницу.
-    var hasMoreHistory = true
-    var isLoadingMore = false
-    var error: String?
-    var notice: String?
-
-    /// Сообщение, на которое сейчас отвечаем.
-    var replyTo: ChatMessage?
-    /// Сообщение, которое сейчас редактируем.
-    var editing: ChatMessage?
-
-    var pinned: [ChatMessage] = []
-    var receipts: [ChatReceipt] = []
-    var receiptsLoaded = false
-    /// Точные статусы по сообщению, загруженные при открытии «Деталей».
-    var messageStatuses: [String: [MessageStatus]] = [:]
-    /// Статусы собственных сообщений: uuid -> галочка.
-    var statuses: [String: MessageDeliveryStatus] = [:]
-    var failedMessages: Set<String> = []
-
-    var selection: Set<String> = []
-    var participants: [ChatParticipant] = []
-    var forwardChats: [Chat] = []
-    /// Выбранные вложения, ожидающие загрузки или уже загруженные.
-    var pendingAttachments: [PendingChatAttachment] = []
-    var isUploadingAttachments = false
-
-    var isSelecting: Bool { !selection.isEmpty }
-}
-
 @MainActor
 final class ChatConversationViewModel: ObservableObject {
     @Published private(set) var state = ChatConversationUiState()
