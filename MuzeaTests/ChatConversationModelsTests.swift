@@ -4,7 +4,7 @@ import XCTest
 
 final class ChatConversationModelsTests: XCTestCase {
 
-    private let message = FakeChatRepository.message("m-1")
+    private let message = TestData.message("m-1")
 
     func testMessagePopupIdUsesMessageUuid() {
         let popup = MessagePopupState(message: message, point: CGPoint(x: 4, y: 8))
