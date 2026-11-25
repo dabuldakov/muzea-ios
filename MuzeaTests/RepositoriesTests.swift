@@ -96,9 +96,12 @@ final class NewsRepositoryTests: XCTestCase {
         }
         let repo = repository()
 
-        XCTAssertEqual(try await repo.likeNews(5), 3)
-        XCTAssertEqual(try await repo.unlikeNews(5), 2)
-        XCTAssertEqual(try await repo.likedNewsIds(), [5, 6])
+        let likes = try await repo.likeNews(5)
+        let unlikes = try await repo.unlikeNews(5)
+        let liked = try await repo.likedNewsIds()
+        XCTAssertEqual(likes, 3)
+        XCTAssertEqual(unlikes, 2)
+        XCTAssertEqual(liked, [5, 6])
 
         let requests = MockURLProtocol.requests
         XCTAssertEqual(requests[0].httpMethod, "POST")

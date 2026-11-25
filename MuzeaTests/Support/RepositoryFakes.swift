@@ -667,13 +667,19 @@ final class FakeNewsRepository: NewsRepository {
     ) async throws -> News {
         if let updateError { throw updateError }
         updated.append((id, title, content, removeImage))
-        var item = byId[id] ?? News(
+        let base = byId[id] ?? News(
             id: id, title: title, content: content, imageUrl: nil,
             relatedVideo: nil, author: "me", publishedAt: "2026-01-01T00:00:00"
         )
-        item.title = title
-        item.content = content
-        if removeImage { item.imageUrl = nil }
+        let item = News(
+            id: base.id,
+            title: title,
+            content: content,
+            imageUrl: removeImage ? nil : base.imageUrl,
+            relatedVideo: base.relatedVideo,
+            author: base.author,
+            publishedAt: base.publishedAt
+        )
         byId[id] = item
         return item
     }
