@@ -128,6 +128,122 @@ final class NewsDetailViewModelTests: XCTestCase {
         XCTAssertFalse(failed)
         XCTAssertNotNil(viewModel.error)
     }
+
+    func testLoadCommentsRegistersViewOnce() async {
+        let repository = FakeNewsRepository()
+        repository.byId[7] = news()
+        repository.commentsByNews[7] = [
+            NewsComment(id: 1, newsId: 7, content: "old", author: "a", createdAt: "2026-01-01T00:00:00"),
+            NewsComment(id: 2, newsId: 7, content: "new", author: "b", createdAt: "2026-01-02T00:00:00")
+        ]
+        let viewModel = NewsDetailViewModel(repository: repository)
+
+        await viewModel.load(id: 7)
+        await viewModel.load(id: 7)
+
+        XCTAssertEqual(viewModel.comments.map(\.id), [1, 2])
+        XCTAssertEqual(viewModel.commentsTotal, 2)
+        XCTAssertFalse(viewModel.hasMoreComments)
+        XCTAssertEqual(repository.viewed, [7])
+    }
+
+    func testLoadCommentsErrorKeepsArticle() async {
+        let repository = FakeNewsRepository()
+        repository.byId[7] = news()
+        repository.commentsError = APIError.server(500, "boom")
+        let viewModel = NewsDetailViewModel(repository: repository)
+
+        await viewModel.load(id: 7)
+
+        XCTAssertEqual(viewModel.news?.id, 7)
+        XCTAssertNotNil(viewModel.error)
+        XCTAssertTrue(viewModel.comments.isEmpty)
+    }
+
+    func testLoadOlderCommentsPrepends() async {
+        let repository = FakeNewsRepository()
+        repository.byId[7] = news()
+        let all = (1...25).map {
+            NewsComment(id: Int64($0), newsId: 7, content: "c\($0)", author: "a", createdAt: "2026-01-01T00:00:00")
+        }
+        repository.commentsByNews[7] = all
+        let viewModel = NewsDetailViewModel(repository: repository)
+
+        await viewModel.load(id: 7)
+        XCTAssertEqual(viewModel.comments.map(\.id), Array(6...25).map(Int64.init))
+        XCTAssertTrue(viewModel.hasMoreComments)
+
+        await viewModel.loadOlderComments()
+        XCTAssertEqual(viewModel.comments.count, 25)
+        XCTAssertFalse(viewModel.hasMoreComments)
+    }
+
+    func testAddCommentAppendsAndReportsError() async {
+        let repository = FakeNewsRepository()
+        repository.byId[7] = news()
+        let viewModel = NewsDetailViewModel(repository: repository)
+        await viewModel.load(id: 7)
+
+        let ok = await viewModel.addComment("  Hi  ")
+        XCTAssertTrue(ok)
+        XCTAssertEqual(repository.addedComments.first?.content, "Hi")
+        XCTAssertEqual(viewModel.comments.count, 1)
+        XCTAssertEqual(viewModel.commentsTotal, 1)
+
+        repository.addCommentError = APIError.server(500, "boom")
+        let failed = await viewModel.addComment("second")
+        XCTAssertFalse(failed)
+        XCTAssertNotNil(viewModel.error)
+    }
+
+    func testDeleteCommentRemovesRow() async {
+        let repository = FakeNewsRepository()
+        repository.byId[7] = news()
+        let comment = NewsComment(id: 3, newsId: 7, content: "c", author: "me", createdAt: "2026-01-01T00:00:00")
+        repository.commentsByNews[7] = [comment]
+        let viewModel = NewsDetailViewModel(repository: repository)
+        await viewModel.load(id: 7)
+
+        await viewModel.deleteComment(comment)
+
+        XCTAssertTrue(viewModel.comments.isEmpty)
+        XCTAssertEqual(viewModel.commentsTotal, 0)
+        XCTAssertEqual(repository.deletedComments.first?.commentId, 3)
+    }
+
+    func testLikeAndUnlikeUpdateState() async {
+        let repository = FakeNewsRepository()
+        var item = news()
+        item.likes = 2
+        repository.byId[7] = item
+        let viewModel = NewsDetailViewModel(repository: repository)
+        await viewModel.load(id: 7)
+
+        await viewModel.toggleLike()
+        XCTAssertTrue(viewModel.news?.likedByMe == true)
+        XCTAssertEqual(viewModel.news?.likes, 1)
+        XCTAssertEqual(repository.likedCalls, [7])
+
+        await viewModel.toggleLike()
+        XCTAssertFalse(viewModel.news?.likedByMe == true)
+        XCTAssertEqual(repository.unlikedCalls, [7])
+    }
+
+    func testLikeErrorRollsBack() async {
+        let repository = FakeNewsRepository()
+        var item = news()
+        item.likes = 2
+        repository.byId[7] = item
+        repository.likeError = APIError.server(500, "boom")
+        let viewModel = NewsDetailViewModel(repository: repository)
+        await viewModel.load(id: 7)
+
+        await viewModel.toggleLike()
+
+        XCTAssertFalse(viewModel.news?.likedByMe == true)
+        XCTAssertEqual(viewModel.news?.likes, 2)
+        XCTAssertNotNil(viewModel.error)
+    }
 }
 
 @MainActor

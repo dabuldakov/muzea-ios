@@ -83,6 +83,92 @@ final class NewsRepositoryTests: XCTestCase {
         XCTAssertFalse(text.contains("filename="))
     }
 
+
+    func testLikeUnlikeAndLikedIdsUseExpectedEndpoints() async throws {
+        var responses = [
+            #"{"liked":true,"likes":3}"#,
+            #"{"liked":false,"likes":2}"#,
+            #"{"likedIds":[5,6]}"#
+        ]
+        MockURLProtocol.handler = { request in
+            let body = responses.removeFirst()
+            return (MockURLProtocol.response(for: request), TestSupport.data(body))
+        }
+        let repo = repository()
+
+        XCTAssertEqual(try await repo.likeNews(5), 3)
+        XCTAssertEqual(try await repo.unlikeNews(5), 2)
+        XCTAssertEqual(try await repo.likedNewsIds(), [5, 6])
+
+        let requests = MockURLProtocol.requests
+        XCTAssertEqual(requests[0].httpMethod, "POST")
+        XCTAssertEqual(requests[0].url?.path, "/api/news/5/like")
+        XCTAssertEqual(requests[1].httpMethod, "DELETE")
+        XCTAssertEqual(requests[1].url?.path, "/api/news/5/like")
+        XCTAssertEqual(requests[2].url?.path, "/api/news/likes/me")
+    }
+
+    func testRegisterViewPosts() async throws {
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request, status: 204), Data())
+        }
+
+        await repository().registerNewsView(5)
+
+        XCTAssertEqual(MockURLProtocol.requests.first?.httpMethod, "POST")
+        XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/news/5/view")
+    }
+
+    func testUpdateNewsSendsMultipart() async throws {
+        MockURLProtocol.handler = { request in
+            let json = #"{"id":5,"title":"T","content":"C","imageUrl":null,"publishedAt":"2026-01-01T00:00:00","author":"a","relatedVideo":null}"#
+            return (MockURLProtocol.response(for: request), TestSupport.data(json))
+        }
+
+        _ = try await repository().updateNews(
+            id: 5, title: "T", content: "C", videoId: nil,
+            removeVideo: false, image: nil, removeImage: true
+        )
+
+        let request = try XCTUnwrap(MockURLProtocol.requests.first)
+        XCTAssertEqual(request.httpMethod, "PUT")
+        XCTAssertEqual(request.url?.path, "/api/news/5")
+        let text = String(decoding: try XCTUnwrap(request.capturedBody), as: UTF8.self)
+        XCTAssertTrue(text.contains("name=\"removeImage\""))
+        XCTAssertTrue(text.contains("true"))
+    }
+
+    func testCommentsListAddAndDelete() async throws {
+        var responses = [
+            #"{"comments":[{"id":12,"newsId":5,"content":"Hi","author":"bob","createdAt":"2026-01-01T00:00:00"}],"total":1,"hasMore":false,"nextBefore":null}"#,
+            #"{"id":13,"newsId":5,"content":"New","author":"me","createdAt":"2026-01-01T00:00:00"}"#
+        ]
+        MockURLProtocol.handler = { request in
+            if request.httpMethod == "DELETE" {
+                return (MockURLProtocol.response(for: request, status: 204), Data())
+            }
+            let body = responses.removeFirst()
+            return (MockURLProtocol.response(for: request), TestSupport.data(body))
+        }
+        let repo = repository()
+
+        let page = try await repo.getNewsComments(5, before: 20, size: 10)
+        XCTAssertEqual(page.total, 1)
+        XCTAssertEqual(page.comments.first?.id, 12)
+
+        let added = try await repo.addNewsComment(5, content: "New")
+        XCTAssertEqual(added.id, 13)
+
+        try await repo.deleteNewsComment(5, commentId: 13)
+
+        let requests = MockURLProtocol.requests
+        XCTAssertEqual(requests[0].url?.query, "size=10&before=20")
+        XCTAssertEqual(requests[1].httpMethod, "POST")
+        XCTAssertEqual(requests[1].url?.path, "/api/news/5/comments")
+        XCTAssertEqual(requests[2].httpMethod, "DELETE")
+        XCTAssertEqual(requests[2].url?.path, "/api/news/5/comments/13")
+    }
+
     func testDeleteNewsUsesDelete() async throws {
         MockURLProtocol.handler = { request in
             (MockURLProtocol.response(for: request, status: 204), Data())

@@ -125,6 +125,64 @@ final class NewsListViewModelTests: XCTestCase {
         XCTAssertNotNil(viewModel.state.error)
     }
 
+
+    func testLoadMergesLikedIds() async {
+        let repository = FakeNewsRepository()
+        repository.pages = [
+            Page(content: [news(1, author: "me"), news(2, author: "me")],
+                 totalElements: 2, totalPages: 1, number: 0)
+        ]
+        repository.likedIds = [2]
+        let viewModel = NewsListViewModel(
+            newsRepository: repository,
+            contactRepository: FakeContactRepository(),
+            ownUsername: "me"
+        )
+
+        await viewModel.load()
+
+        XCTAssertFalse(viewModel.state.news[0].likedByMe)
+        XCTAssertTrue(viewModel.state.news[1].likedByMe)
+    }
+
+    func testToggleLikeAndUnlike() async {
+        let repository = FakeNewsRepository()
+        var item = news(1, author: "me")
+        item.likes = 2
+        repository.pages = [Page(content: [item], totalElements: 1, totalPages: 1, number: 0)]
+        let viewModel = NewsListViewModel(
+            newsRepository: repository,
+            contactRepository: FakeContactRepository(),
+            ownUsername: "me"
+        )
+        await viewModel.load()
+
+        await viewModel.toggleLike(1)
+        XCTAssertTrue(viewModel.state.news[0].likedByMe)
+        XCTAssertEqual(repository.likedCalls, [1])
+
+        await viewModel.toggleLike(1)
+        XCTAssertFalse(viewModel.state.news[0].likedByMe)
+        XCTAssertEqual(repository.unlikedCalls, [1])
+    }
+
+    func testLikedIdsFailureDoesNotBreakFeed() async {
+        let repository = FakeNewsRepository()
+        repository.pages = [Page(content: [news(1, author: "me")],
+                                 totalElements: 1, totalPages: 1, number: 0)]
+        repository.likedIdsError = APIError.server(500, "boom")
+        let viewModel = NewsListViewModel(
+            newsRepository: repository,
+            contactRepository: FakeContactRepository(),
+            ownUsername: "me"
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.state.news.map(\.id), [1])
+        XCTAssertNil(viewModel.state.error)
+    }
+
     func testConsumeErrorClearsMessage() async {
         let repository = FakeNewsRepository()
         repository.loadError = APIError.server(500, "boom")

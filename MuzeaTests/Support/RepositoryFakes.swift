@@ -624,6 +624,24 @@ final class FakeNewsRepository: NewsRepository {
     var createError: Error?
     var created: [(title: String, content: String, videoId: Int64?)] = []
 
+    var likedIds: Set<Int64> = []
+    var likeError: Error?
+    var likedIdsError: Error?
+    var likedCalls: [Int64] = []
+    var unlikedCalls: [Int64] = []
+    var viewed: [Int64] = []
+
+    var commentsByNews: [Int64: [NewsComment]] = [:]
+    var commentsHashesMore: [Int64: Bool] = [:]
+    var commentsError: Error?
+    var addCommentError: Error?
+    var deleteCommentError: Error?
+    var addedComments: [(newsId: Int64, content: String)] = []
+    var deletedComments: [(newsId: Int64, commentId: Int64)] = []
+
+    var updated: [(id: Int64, title: String, content: String, removeImage: Bool)] = []
+    var updateError: Error?
+
     func getNews(page: Int, size: Int) async throws -> Page<News> {
         if let loadError { throw loadError }
         return page < pages.count ? pages[page] : Page(content: [], totalElements: 0, totalPages: 0, number: page)
@@ -638,9 +656,86 @@ final class FakeNewsRepository: NewsRepository {
         created.append((title, content, videoId))
         return NewsCreateResponse(id: 1)
     }
+    func updateNews(
+        id: Int64,
+        title: String,
+        content: String,
+        videoId: Int64?,
+        removeVideo: Bool,
+        image: UploadFile?,
+        removeImage: Bool
+    ) async throws -> News {
+        if let updateError { throw updateError }
+        updated.append((id, title, content, removeImage))
+        var item = byId[id] ?? News(
+            id: id, title: title, content: content, imageUrl: nil,
+            relatedVideo: nil, author: "me", publishedAt: "2026-01-01T00:00:00"
+        )
+        item.title = title
+        item.content = content
+        if removeImage { item.imageUrl = nil }
+        byId[id] = item
+        return item
+    }
     func deleteNews(_ id: Int64) async throws {
         if let deleteError { throw deleteError }
         deleted.append(id)
+    }
+    func likeNews(_ id: Int64) async throws -> Int64 {
+        if let likeError { throw likeError }
+        likedCalls.append(id)
+        likedIds.insert(id)
+        return Int64(likedIds.count)
+    }
+    func unlikeNews(_ id: Int64) async throws -> Int64 {
+        if let likeError { throw likeError }
+        unlikedCalls.append(id)
+        likedIds.remove(id)
+        return Int64(likedIds.count)
+    }
+    func likedNewsIds() async throws -> Set<Int64> {
+        if let likedIdsError { throw likedIdsError }
+        return likedIds
+    }
+    func registerNewsView(_ id: Int64) async { viewed.append(id) }
+    func getNewsComments(_ newsId: Int64, before: Int64?, size: Int) async throws -> NewsCommentsPage {
+        if let commentsError { throw commentsError }
+        let all = (commentsByNews[newsId] ?? []).sorted { $0.id < $1.id }
+        if let before {
+            let older = all.filter { $0.id < before }.suffix(size)
+            return NewsCommentsPage(
+                comments: Array(older),
+                total: Int64(all.count),
+                hasMore: all.contains { $0.id < (older.first?.id ?? Int64.min) },
+                nextBefore: older.first?.id
+            )
+        }
+        let latest = all.suffix(size)
+        let hasMore = all.count > latest.count
+        return NewsCommentsPage(
+            comments: Array(latest),
+            total: Int64(all.count),
+            hasMore: hasMore,
+            nextBefore: hasMore ? latest.first?.id : nil
+        )
+    }
+    func addNewsComment(_ newsId: Int64, content: String) async throws -> NewsComment {
+        if let addCommentError { throw addCommentError }
+        addedComments.append((newsId, content))
+        let comment = NewsComment(
+            id: Int64.random(in: 1_000...9_999),
+            newsId: newsId,
+            content: content,
+            author: "me",
+            createdAt: "2026-01-01T00:00:00"
+        )
+        commentsByNews[newsId, default: []].append(comment)
+        return comment
+    }
+    func deleteNewsComment(_ newsId: Int64, commentId: Int64) async throws {
+        if let deleteCommentError { throw deleteCommentError }
+        deletedComments.append((newsId, commentId))
+        commentsByNews[newsId]?.removeAll { $0.id == commentId }
     }
 }
 
