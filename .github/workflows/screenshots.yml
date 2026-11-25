@@ -91,6 +91,8 @@ jobs:
           refresh=$(printf '%s' "$verify" | python3 -c 'import json,sys; print(json.load(sys.stdin)["refreshToken"])')
           test -n "$access"
           test -n "$refresh"
+          echo "::add-mask::$access"
+          echo "::add-mask::$refresh"
           {
             echo "access<<EOF"
             echo "$access"

@@ -20,10 +20,17 @@ NEWS_ID="20"
 
 mkdir -p "$OUT"
 
+# В macOS нет GNU timeout, а зависший simctl не должен блокировать job.
+run_timeout() {
+  local seconds="$1"
+  shift
+  perl -e 'alarm shift; exec @ARGV' "$seconds" "$@"
+}
+
 echo "==> install app"
-timeout 120 xcrun simctl install "$UDID" "$APP"
+run_timeout 120 xcrun simctl install "$UDID" "$APP"
 echo "==> status bar"
-timeout 30 xcrun simctl status_bar "$UDID" override \
+run_timeout 30 xcrun simctl status_bar "$UDID" override \
   --time "9:41" \
   --dataNetwork wifi \
   --wifiMode active \
@@ -32,16 +39,16 @@ timeout 30 xcrun simctl status_bar "$UDID" override \
   --cellularBars 4 \
   --batteryState charged \
   --batteryLevel 100
-timeout 30 xcrun simctl ui "$UDID" appearance light
+run_timeout 30 xcrun simctl ui "$UDID" appearance light
 
 launch() {
   local tab="$1"
   echo "==> launch tab $tab ($LOCALE)"
-  timeout 30 xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
+  run_timeout 30 xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
   SIMCTL_CHILD_MUZEA_SCREENSHOT_ACCESS="$ACCESS" \
   SIMCTL_CHILD_MUZEA_SCREENSHOT_REFRESH="$REFRESH" \
   SIMCTL_CHILD_MUZEA_SCREENSHOT_TAB="$tab" \
-    timeout 60 xcrun simctl launch "$UDID" "$BUNDLE" \
+    run_timeout 60 xcrun simctl launch "$UDID" "$BUNDLE" \
       -AppleLanguages "($LOCALE)" \
       -AppleLocale "$LOCALE" >/dev/null
 }
@@ -49,8 +56,8 @@ launch() {
 shot() {
   local name="$1"
   echo "==> screenshot $name"
-  timeout 45 xcrun simctl io "$UDID" screenshot "$OUT/$LOCALE-$name.png" >/dev/null
-  timeout 30 sips -s format jpeg -s formatOptions 100 \
+  run_timeout 45 xcrun simctl io "$UDID" screenshot "$OUT/$LOCALE-$name.png" >/dev/null
+  run_timeout 30 sips -s format jpeg -s formatOptions 100 \
     "$OUT/$LOCALE-$name.png" --out "$OUT/$LOCALE-$name.jpg" >/dev/null
   rm -f "$OUT/$LOCALE-$name.png"
 }
@@ -62,7 +69,7 @@ shot 01-news
 
 launch 0
 sleep 7
-timeout 30 xcrun simctl openurl "$UDID" "muzea://news/$NEWS_ID"
+run_timeout 30 xcrun simctl openurl "$UDID" "muzea://news/$NEWS_ID"
 sleep 6
 shot 02-news-detail
 
@@ -73,7 +80,7 @@ shot 03-chats
 
 launch 1
 sleep 7
-timeout 30 xcrun simctl openurl "$UDID" "muzea://chat/$CHAT_UUID"
+run_timeout 30 xcrun simctl openurl "$UDID" "muzea://chat/$CHAT_UUID"
 sleep 8
 shot 04-chat
 
