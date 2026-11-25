@@ -70,13 +70,23 @@ jobs:
           AUTH_URL: https://auth.muzea.su
         run: |
           set -euo pipefail
-          request=$(curl -fsS -X POST "$AUTH_URL/auth/otp/request" \
+          request=$(curl -sS -X POST "$AUTH_URL/auth/otp/request" \
             -H 'Content-Type: application/json' \
             -d '{"email":"demo@muzea.su"}')
           echo "OTP status: $request"
-          verify=$(curl -fsS -X POST "$AUTH_URL/auth/otp/verify" \
-            -H 'Content-Type: application/json' \
-            -d '{"email":"demo@muzea.su","code":"246810","deviceId":"screenshots-'"$GITHUB_RUN_ID"'","deviceName":"Screenshots"}')
+          # Между запросом и проверкой действует IP-cooldown, поэтому ждём.
+          sleep 3
+          verify=""
+          for attempt in 1 2 3; do
+            verify=$(curl -sS -X POST "$AUTH_URL/auth/otp/verify" \
+              -H 'Content-Type: application/json' \
+              -d '{"email":"demo@muzea.su","code":"246810","deviceId":"screenshots-'"$GITHUB_RUN_ID"'","deviceName":"Screenshots"}')
+            if printf '%s' "$verify" | grep -q '"accessToken"'; then
+              break
+            fi
+            echo "Verify attempt $attempt: $verify"
+            sleep 3
+          done
           access=$(printf '%s' "$verify" | python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
           refresh=$(printf '%s' "$verify" | python3 -c 'import json,sys; print(json.load(sys.stdin)["refreshToken"])')
           test -n "$access"
