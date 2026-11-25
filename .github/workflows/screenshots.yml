@@ -1,0 +1,118 @@
+name: Screenshots
+
+# Ручной запуск: собирает Debug-приложение, входит демо-аккаунтом и снимает
+# экраны для App Store Connect в симуляторе iPhone Pro Max (6.9").
+# Секреты не нужны: используется демо-код из docs/APP_STORE.md.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - screenshots/ios-1
+
+concurrency:
+  group: screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    name: Capture App Store screenshots
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 'latest-stable'
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Pick iPhone Pro Max simulator
+        id: simulator
+        run: |
+          set -euo pipefail
+          line=$(xcrun simctl list devices available \
+            | grep -E 'iPhone (17|16) Pro Max \(' \
+            | head -1)
+          test -n "$line" || { echo "::error::iPhone Pro Max simulator not found"; exit 1; }
+          udid=$(printf '%s' "$line" | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          echo "Using: $line"
+
+      - name: Build for simulator
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project Muzea.xcodeproj \
+            -scheme Muzea \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Boot simulator
+        run: |
+          set -euo pipefail
+          xcrun simctl boot "${{ steps.simulator.outputs.udid }}" || true
+          xcrun simctl bootstatus "${{ steps.simulator.outputs.udid }}" -b
+
+      - name: Login demo account
+        id: auth
+        env:
+          AUTH_URL: https://auth.muzea.su
+        run: |
+          set -euo pipefail
+          request=$(curl -fsS -X POST "$AUTH_URL/auth/otp/request" \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"demo@muzea.su"}')
+          echo "OTP status: $request"
+          verify=$(curl -fsS -X POST "$AUTH_URL/auth/otp/verify" \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"demo@muzea.su","code":"246810","deviceId":"screenshots-'"$GITHUB_RUN_ID"'","deviceName":"Screenshots"}')
+          access=$(printf '%s' "$verify" | python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
+          refresh=$(printf '%s' "$verify" | python3 -c 'import json,sys; print(json.load(sys.stdin)["refreshToken"])')
+          test -n "$access"
+          test -n "$refresh"
+          {
+            echo "access<<EOF"
+            echo "$access"
+            echo "EOF"
+            echo "refresh<<EOF"
+            echo "$refresh"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Capture Russian screenshots
+        env:
+          ACCESS: ${{ steps.auth.outputs.access }}
+          REFRESH: ${{ steps.auth.outputs.refresh }}
+        run: |
+          scripts/capture_screenshots.sh \
+            build/Build/Products/Debug-iphonesimulator/Muzea.app \
+            "${{ steps.simulator.outputs.udid }}" \
+            "$ACCESS" "$REFRESH" ru build/screenshots
+
+      - name: Capture English screenshots
+        env:
+          ACCESS: ${{ steps.auth.outputs.access }}
+          REFRESH: ${{ steps.auth.outputs.refresh }}
+        run: |
+          scripts/capture_screenshots.sh \
+            build/Build/Products/Debug-iphonesimulator/Muzea.app \
+            "${{ steps.simulator.outputs.udid }}" \
+            "$ACCESS" "$REFRESH" en build/screenshots
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-store-screenshots
+          path: build/screenshots/*.jpg
+          if-no-files-found: error
