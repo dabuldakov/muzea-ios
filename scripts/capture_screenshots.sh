@@ -20,8 +20,10 @@ NEWS_ID="20"
 
 mkdir -p "$OUT"
 
-xcrun simctl install "$UDID" "$APP"
-xcrun simctl status_bar "$UDID" override \
+echo "==> install app"
+timeout 120 xcrun simctl install "$UDID" "$APP"
+echo "==> status bar"
+timeout 30 xcrun simctl status_bar "$UDID" override \
   --time "9:41" \
   --dataNetwork wifi \
   --wifiMode active \
@@ -30,23 +32,25 @@ xcrun simctl status_bar "$UDID" override \
   --cellularBars 4 \
   --batteryState charged \
   --batteryLevel 100
-xcrun simctl ui "$UDID" appearance light
+timeout 30 xcrun simctl ui "$UDID" appearance light
 
 launch() {
   local tab="$1"
-  xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
+  echo "==> launch tab $tab ($LOCALE)"
+  timeout 30 xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
   SIMCTL_CHILD_MUZEA_SCREENSHOT_ACCESS="$ACCESS" \
   SIMCTL_CHILD_MUZEA_SCREENSHOT_REFRESH="$REFRESH" \
   SIMCTL_CHILD_MUZEA_SCREENSHOT_TAB="$tab" \
-    xcrun simctl launch "$UDID" "$BUNDLE" \
+    timeout 60 xcrun simctl launch "$UDID" "$BUNDLE" \
       -AppleLanguages "($LOCALE)" \
       -AppleLocale "$LOCALE" >/dev/null
 }
 
 shot() {
   local name="$1"
-  xcrun simctl io "$UDID" screenshot "$OUT/$LOCALE-$name.png" >/dev/null
-  sips -s format jpeg -s formatOptions 100 \
+  echo "==> screenshot $name"
+  timeout 45 xcrun simctl io "$UDID" screenshot "$OUT/$LOCALE-$name.png" >/dev/null
+  timeout 30 sips -s format jpeg -s formatOptions 100 \
     "$OUT/$LOCALE-$name.png" --out "$OUT/$LOCALE-$name.jpg" >/dev/null
   rm -f "$OUT/$LOCALE-$name.png"
 }
@@ -58,7 +62,7 @@ shot 01-news
 
 launch 0
 sleep 7
-xcrun simctl openurl "$UDID" "muzea://news/$NEWS_ID"
+timeout 30 xcrun simctl openurl "$UDID" "muzea://news/$NEWS_ID"
 sleep 6
 shot 02-news-detail
 
@@ -69,7 +73,7 @@ shot 03-chats
 
 launch 1
 sleep 7
-xcrun simctl openurl "$UDID" "muzea://chat/$CHAT_UUID"
+timeout 30 xcrun simctl openurl "$UDID" "muzea://chat/$CHAT_UUID"
 sleep 8
 shot 04-chat
 
