@@ -12,6 +12,7 @@ struct FullWidthImage: View {
     let url: URL?
     let height: CGFloat
     var placeholderIcon: String = "newspaper"
+    var contentMode: ContentMode = .fill
 
     @State private var image: UIImage?
 
@@ -22,7 +23,7 @@ struct FullWidthImage: View {
                 if let image {
                     Image(uiImage: image)
                         .resizable()
-                        .scaledToFill()
+                        .aspectRatio(contentMode: contentMode)
                 } else {
                     ZStack {
                         Color(.tertiarySystemBackground)

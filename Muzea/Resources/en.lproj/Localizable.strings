@@ -298,3 +298,11 @@
 "error.withDetails" = "Error: %@";
 "contact.fallbackName" = "Contact";
 "chat.group.role.owner" = "Owner";
+"news.edit.title" = "Edit news";
+"news.removeImage" = "Remove image";
+"news.comments.title" = "Comments";
+"news.comments.loadOlder" = "Show earlier comments";
+"news.comments.empty" = "No comments yet";
+"news.comments.hint" = "Write a comment…";
+"news.comments.delete.title" = "Delete comment?";
+"news.actions" = "News actions";

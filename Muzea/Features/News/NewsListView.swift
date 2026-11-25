@@ -58,10 +58,11 @@ struct NewsListView: View {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(viewModel.state.news) { item in
-                        NavigationLink(value: Route.newsDetail(item.id)) {
-                            NewsRow(item: item)
+                        NewsRow(item: item) {
+                            Task { await viewModel.toggleLike(item.id) }
                         }
-                        .buttonStyle(.plain)
+                        .contentShape(Rectangle())
+                        .onTapGesture { router.push(.newsDetail(item.id)) }
                         .task { await viewModel.loadMoreIfNeeded(currentItem: item) }
                     }
                 }
@@ -75,10 +76,15 @@ struct NewsListView: View {
 
 struct NewsRow: View {
     let item: News
+    let onLike: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            FullWidthImage(url: ImageURL.makeup(item.imageUrl), height: 180)
+            FullWidthImage(
+                url: ImageURL.makeup(item.imageUrl),
+                height: 180,
+                contentMode: .fit
+            )
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(item.title)
@@ -103,6 +109,23 @@ struct NewsRow: View {
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
                 .padding(.top, 12)
+
+                HStack(spacing: 14) {
+                    Button(action: onLike) {
+                        HStack(spacing: 4) {
+                            Image(systemName: item.likedByMe ? "heart.fill" : "heart")
+                                .foregroundColor(.red)
+                            Text(CountFormat.short(item.likes))
+                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    Label(CountFormat.short(item.views), systemImage: "eye")
+                    Label(CountFormat.short(item.commentsCount), systemImage: "bubble.right")
+                }
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+                .padding(.top, 8)
             }
             .padding(16)
         }

@@ -298,3 +298,11 @@
 "error.withDetails" = "Ошибка: %@";
 "contact.fallbackName" = "Контакт";
 "chat.group.role.owner" = "Владелец";
+"news.edit.title" = "Редактировать новость";
+"news.removeImage" = "Удалить изображение";
+"news.comments.title" = "Комментарии";
+"news.comments.loadOlder" = "Показать более ранние";
+"news.comments.empty" = "Пока нет комментариев";
+"news.comments.hint" = "Написать комментарий…";
+"news.comments.delete.title" = "Удалить комментарий?";
+"news.actions" = "Действия с новостью";

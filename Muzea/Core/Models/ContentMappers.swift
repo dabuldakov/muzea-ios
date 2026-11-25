@@ -45,7 +45,34 @@ extension NewsDTO {
             imageUrl: imageUrl,
             relatedVideo: relatedVideo?.toDomain(),
             author: author,
-            publishedAt: publishedAt
+            publishedAt: publishedAt,
+            views: views ?? 0,
+            likes: likes ?? 0,
+            commentsCount: commentsCount ?? 0,
+            likedByMe: likedByMe ?? false
+        )
+    }
+}
+
+extension NewsCommentDTO {
+    func toDomain() -> NewsComment {
+        NewsComment(
+            id: id,
+            newsId: newsId,
+            content: content,
+            author: author,
+            createdAt: createdAt
+        )
+    }
+}
+
+extension NewsCommentsResponseDTO {
+    func toDomain() -> NewsCommentsPage {
+        NewsCommentsPage(
+            comments: comments.map { $0.toDomain() },
+            total: total,
+            hasMore: hasMore,
+            nextBefore: nextBefore
         )
     }
 }

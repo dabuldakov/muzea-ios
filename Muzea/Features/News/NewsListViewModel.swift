@@ -68,6 +68,9 @@ final class NewsListViewModel: ObservableObject {
                 iterations += 1
             } while !endReached && state.news.count < pageSize && iterations < 10
 
+            if let liked = try? await newsRepository.likedNewsIds() {
+                applyLikedIds(liked)
+            }
             state.error = nil
         } catch {
             state.error = error.localizedDescription
@@ -83,6 +86,45 @@ final class NewsListViewModel: ObservableObject {
         guard !endReached, !isLoading else { return }
         guard let index = state.news.firstIndex(of: currentItem), index >= state.news.count - 2 else { return }
         await load(reset: false)
+    }
+
+    /// Оптимистичный лайк: сервер подтверждает количество, при ошибке откат.
+    func toggleLike(_ id: Int64) async {
+        guard let index = state.news.firstIndex(where: { $0.id == id }) else { return }
+        let current = state.news[index]
+        let target = !current.likedByMe
+        updateLike(id: id, liked: target, likes: current.likes + (target ? 1 : -1))
+
+        do {
+            let likes = target
+                ? try await newsRepository.likeNews(id)
+                : try await newsRepository.unlikeNews(id)
+            updateLike(id: id, liked: target, likes: likes)
+        } catch {
+            updateLike(id: id, liked: current.likedByMe, likes: current.likes)
+            state.error = error.localizedDescription
+        }
+    }
+
+    private func updateLike(id: Int64, liked: Bool, likes: Int64) {
+        let normalized = max(0, likes)
+        if let rawIndex = raw.firstIndex(where: { $0.id == id }) {
+            raw[rawIndex].likedByMe = liked
+            raw[rawIndex].likes = normalized
+        }
+        if let index = state.news.firstIndex(where: { $0.id == id }) {
+            state.news[index].likedByMe = liked
+            state.news[index].likes = normalized
+        }
+    }
+
+    private func applyLikedIds(_ ids: Set<Int64>) {
+        for index in raw.indices {
+            raw[index].likedByMe = ids.contains(raw[index].id)
+        }
+        for index in state.news.indices {
+            state.news[index].likedByMe = ids.contains(state.news[index].id)
+        }
     }
 
     func delete(_ item: News) async -> Bool {

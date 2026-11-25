@@ -247,6 +247,14 @@ enum L10n {
     static var newsVideoSection: String { t("news.video") }
     static var newsNone: String { t("news.none") }
     static var newsPublish: String { t("news.publish") }
+    static var newsEditTitle: String { t("news.edit.title") }
+    static var newsRemoveImage: String { t("news.removeImage") }
+    static var newsCommentsTitle: String { t("news.comments.title") }
+    static var newsLoadOlder: String { t("news.comments.loadOlder") }
+    static var newsCommentsEmpty: String { t("news.comments.empty") }
+    static var newsCommentHint: String { t("news.comments.hint") }
+    static var newsDeleteCommentTitle: String { t("news.comments.delete.title") }
+    static var newsActions: String { t("news.actions") }
 
     static func newsAuthor(_ name: String) -> String {
         format("news.author", name)

@@ -28,6 +28,38 @@ struct NewsDTO: Decodable, Identifiable, Hashable {
     let relatedVideo: VideoDTO?
     let author: String
     let publishedAt: String
+    let views: Int64?
+    let likes: Int64?
+    let commentsCount: Int64?
+    let likedByMe: Bool?
+}
+
+struct NewsCommentDTO: Decodable, Identifiable, Hashable {
+    let id: Int64
+    let newsId: Int64
+    let content: String
+    let author: String
+    let createdAt: String
+}
+
+struct NewsCommentsResponseDTO: Decodable {
+    let comments: [NewsCommentDTO]
+    let total: Int64
+    let hasMore: Bool
+    let nextBefore: Int64?
+}
+
+struct NewsLikeResponseDTO: Decodable {
+    let liked: Bool
+    let likes: Int64
+}
+
+struct LikedNewsResponseDTO: Decodable {
+    let likedIds: [Int64]
+}
+
+struct CreateNewsCommentRequest: Encodable {
+    let content: String
 }
 
 struct NewsCreateResponse: Decodable {

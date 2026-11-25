@@ -43,3 +43,24 @@ enum DateTimeFormat {
         return output.string(from: date)
     }
 }
+
+/// Компактный счётчик: 999, 1,2 тыс., 3,4 млн (как на Android).
+enum CountFormat {
+    static func short(_ value: Int64) -> String {
+        let absValue = abs(value)
+        if absValue < 1_000 { return "\(value)" }
+        if absValue < 1_000_000 { return compact(value, divisor: 1_000, suffix: "K") }
+        if absValue < 1_000_000_000 { return compact(value, divisor: 1_000_000, suffix: "M") }
+        return compact(value, divisor: 1_000_000_000, suffix: "B")
+    }
+
+    private static func compact(_ value: Int64, divisor: Double, suffix: String) -> String {
+        let scaled = Double(value) / divisor
+        let formatter = NumberFormatter()
+        formatter.locale = Locale.current
+        formatter.maximumFractionDigits = abs(scaled) >= 10 ? 0 : 1
+        formatter.minimumFractionDigits = 0
+        return "\(formatter.string(from: NSNumber(value: scaled)) ?? "\(Int(scaled))") \(suffix)"
+    }
+}
+

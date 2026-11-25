@@ -22,6 +22,25 @@ struct News: Identifiable, Hashable {
     let relatedVideo: Video?
     let author: String
     let publishedAt: String
+    var views: Int64 = 0
+    var likes: Int64 = 0
+    var commentsCount: Int64 = 0
+    var likedByMe: Bool = false
+}
+
+struct NewsComment: Identifiable, Hashable {
+    let id: Int64
+    let newsId: Int64
+    let content: String
+    let author: String
+    let createdAt: String
+}
+
+struct NewsCommentsPage {
+    let comments: [NewsComment]
+    let total: Int64
+    let hasMore: Bool
+    let nextBefore: Int64?
 }
 
 struct Video: Identifiable, Hashable {
