@@ -10,6 +10,7 @@ enum ScreenshotBootstrap {
     struct Session {
         let accessToken: String
         let refreshToken: String?
+        let username: String?
     }
 
     static var session: Session? {
@@ -19,7 +20,8 @@ enum ScreenshotBootstrap {
         }
         return Session(
             accessToken: accessToken,
-            refreshToken: value("MUZEA_SCREENSHOT_REFRESH")
+            refreshToken: value("MUZEA_SCREENSHOT_REFRESH"),
+            username: value("MUZEA_SCREENSHOT_USERNAME")
         )
     }
 
@@ -27,6 +29,9 @@ enum ScreenshotBootstrap {
         store.token = session.accessToken
         if let refreshToken = session.refreshToken, !refreshToken.isEmpty {
             store.refreshToken = refreshToken
+        }
+        if let username = session.username, !username.isEmpty {
+            store.username = username
         }
         consent.accept()
     }

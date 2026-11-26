@@ -51,6 +51,7 @@ launch() {
     export SIMCTL_CHILD_MUZEA_SCREENSHOT_ACCESS="$ACCESS"
     export SIMCTL_CHILD_MUZEA_SCREENSHOT_REFRESH="$REFRESH"
     export SIMCTL_CHILD_MUZEA_SCREENSHOT_TAB="$tab"
+    export SIMCTL_CHILD_MUZEA_SCREENSHOT_USERNAME="muzea_demo"
     if [ -n "$extra_name" ]; then
       export "SIMCTL_CHILD_$extra_name=$extra_value"
     fi
@@ -60,6 +61,7 @@ launch() {
       -MUZEA_SCREENSHOT_ACCESS "$ACCESS"
       -MUZEA_SCREENSHOT_REFRESH "$REFRESH"
       -MUZEA_SCREENSHOT_TAB "$tab"
+      -MUZEA_SCREENSHOT_USERNAME "muzea_demo"
     )
     if [ -n "$extra_name" ]; then
       launch_arguments+=("-$extra_name" "$extra_value")
