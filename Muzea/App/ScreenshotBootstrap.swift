@@ -4,18 +4,28 @@ import Foundation
 /// Запуск с готовой сессией для CI-скриншотов App Store.
 ///
 /// Код собирается только в Debug и никогда не попадает в релизную сборку.
-/// Токены передаются через переменные окружения симулятора, согласие на
-/// обработку данных принимается автоматически, чтобы не снимать экран согласия.
+/// Токены передаются через переменные окружения или аргументы запуска
+/// симулятора, согласие на обработку данных принимается автоматически.
 enum ScreenshotBootstrap {
-    static func apply(store: TokenStore, consent: ConsentManager) {
-        let environment = ProcessInfo.processInfo.environment
-        guard let accessToken = environment["MUZEA_SCREENSHOT_ACCESS"],
+    struct Session {
+        let accessToken: String
+        let refreshToken: String?
+    }
+
+    static var session: Session? {
+        guard let accessToken = value("MUZEA_SCREENSHOT_ACCESS"),
               !accessToken.isEmpty else {
-            return
+            return nil
         }
-        store.token = accessToken
-        if let refreshToken = environment["MUZEA_SCREENSHOT_REFRESH"],
-           !refreshToken.isEmpty {
+        return Session(
+            accessToken: accessToken,
+            refreshToken: value("MUZEA_SCREENSHOT_REFRESH")
+        )
+    }
+
+    static func apply(_ session: Session, store: TokenStore, consent: ConsentManager) {
+        store.token = session.accessToken
+        if let refreshToken = session.refreshToken, !refreshToken.isEmpty {
             store.refreshToken = refreshToken
         }
         consent.accept()
@@ -23,21 +33,24 @@ enum ScreenshotBootstrap {
 
     /// Начальная вкладка для детерминированного скриншота.
     static var initialTab: Int? {
-        let raw = ProcessInfo.processInfo.environment["MUZEA_SCREENSHOT_TAB"] ?? ""
-        guard let tab = Int(raw), (0...4).contains(tab) else { return nil }
+        guard let raw = value("MUZEA_SCREENSHOT_TAB"),
+              let tab = Int(raw),
+              (0...4).contains(tab) else {
+            return nil
+        }
         return tab
     }
 
     /// Карточка новости, открытая сразу при запуске (без URL-подтверждения).
     static var initialNews: Int64? {
-        let raw = ProcessInfo.processInfo.environment["MUZEA_SCREENSHOT_NEWS"] ?? ""
-        return Int64(raw)
+        value("MUZEA_SCREENSHOT_NEWS").flatMap(Int64.init)
     }
 
     /// Переписка, открытая сразу при запуске (без URL-подтверждения).
     static var initialChat: Chat? {
-        let uuid = ProcessInfo.processInfo.environment["MUZEA_SCREENSHOT_CHAT"] ?? ""
-        guard !uuid.isEmpty else { return nil }
+        guard let uuid = value("MUZEA_SCREENSHOT_CHAT"), !uuid.isEmpty else {
+            return nil
+        }
         return Chat(
             chatUuid: uuid,
             chatType: nil,
@@ -49,6 +62,18 @@ enum ScreenshotBootstrap {
             lastMessage: nil,
             unreadCount: 0
         )
+    }
+
+    private static func value(_ key: String) -> String? {
+        if let value = ProcessInfo.processInfo.environment[key], !value.isEmpty {
+            return value
+        }
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-\(key)"),
+              arguments.indices.contains(index + 1) else {
+            return nil
+        }
+        return arguments[index + 1]
     }
 }
 #endif

@@ -50,14 +50,25 @@ final class AppContainer: ObservableObject {
     @Published var isConsentAccepted: Bool
 
     init() {
+        #if DEBUG
+        let screenshotSession = ScreenshotBootstrap.session
+        // Неподписанная Debug-сборка в симуляторе может не иметь доступа к
+        // Keychain, поэтому для скриншотов держим токен в памяти процесса.
+        let store = TokenStore(
+            tokens: screenshotSession == nil ? KeychainTokenStore() : InMemoryTokenStore()
+        )
+        #else
         let store = TokenStore()
+        #endif
         tokenStore = store
         RemoteImageCache.shared.authTokenProvider = { [store] in store.token }
         let consent = ConsentManager()
         consentManager = consent
 
         #if DEBUG
-        ScreenshotBootstrap.apply(store: store, consent: consent)
+        if let screenshotSession {
+            ScreenshotBootstrap.apply(screenshotSession, store: store, consent: consent)
+        }
         #endif
 
         let api = API(tokenStore: store)

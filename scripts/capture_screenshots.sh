@@ -54,9 +54,17 @@ launch() {
     if [ -n "$extra_name" ]; then
       export "SIMCTL_CHILD_$extra_name=$extra_value"
     fi
-    run_timeout 60 xcrun simctl launch "$UDID" "$BUNDLE" \
-      -AppleLanguages "($LOCALE)" \
-      -AppleLocale "$LOCALE" >/dev/null
+    local -a launch_arguments=(
+      -AppleLanguages "($LOCALE)"
+      -AppleLocale "$LOCALE"
+      -MUZEA_SCREENSHOT_ACCESS "$ACCESS"
+      -MUZEA_SCREENSHOT_REFRESH "$REFRESH"
+      -MUZEA_SCREENSHOT_TAB "$tab"
+    )
+    if [ -n "$extra_name" ]; then
+      launch_arguments+=("-$extra_name" "$extra_value")
+    fi
+    run_timeout 60 xcrun simctl launch "$UDID" "$BUNDLE" "${launch_arguments[@]}" >/dev/null
   )
 }
 
