@@ -84,7 +84,7 @@ final class AppContainer: ObservableObject {
 
         let diskCache = VideoDiskCache()
         videoDiskCache = diskCache
-        let cacheDirectories = [
+        let cacheDirectories: [URL] = [
             FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first,
             FileManager.default.temporaryDirectory.appendingPathComponent("attachment-cache"),
             diskCache.directory
