@@ -7,6 +7,7 @@ import UserNotifications
 ///
 /// Зависимости объявлены протоколами, поэтому ViewModel-и легко подменяются в
 /// тестах и не знают о конкретных реализациях.
+@MainActor
 final class AppContainer: ObservableObject {
     let tokenStore: TokenStore
     let consentManager: ConsentManager
@@ -18,6 +19,8 @@ final class AppContainer: ObservableObject {
     let contentReportRepository: ContentReportRepository
     let cacheManager: CacheManager
     let networkMonitor: NetworkMonitor
+    let videoDiskCache: VideoDiskCache
+    let videoPlaybackManager: VideoPlaybackManager
     let chatRepository: ChatRepository
     let messageRepository: MessageRepository
     let messageActionsRepository: MessageActionsRepository
@@ -79,9 +82,12 @@ final class AppContainer: ObservableObject {
         newsRepository = NewsRepositoryImpl(client: api.makeup)
         contentReportRepository = ContentReportRepositoryImpl(client: api.makeup)
 
+        let diskCache = VideoDiskCache()
+        videoDiskCache = diskCache
         let cacheDirectories = [
             FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first,
-            FileManager.default.temporaryDirectory.appendingPathComponent("attachment-cache")
+            FileManager.default.temporaryDirectory.appendingPathComponent("attachment-cache"),
+            diskCache.directory
         ].compactMap { $0 }
         cacheManager = CacheManager(
             directories: cacheDirectories,
@@ -90,7 +96,13 @@ final class AppContainer: ObservableObject {
                 { RemoteImageCache.shared.clear() }
             ]
         )
-        networkMonitor = NetworkMonitor()
+        let monitor = NetworkMonitor()
+        networkMonitor = monitor
+        videoPlaybackManager = VideoPlaybackManager(
+            tokenProvider: { [store] in store.token },
+            networkMonitor: monitor,
+            cache: diskCache
+        )
 
         let videoCache = VideoListCache()
         videoListCache = videoCache
@@ -289,6 +301,8 @@ final class AppContainer: ObservableObject {
         chatMessagesCache.clear()
         privateChatCache.clear()
         videoListCache.clear()
+        videoPlaybackManager.close()
+        videoDiskCache.clear()
         // Аватары и картинки ленты могли принадлежать прошлому аккаунту.
         RemoteImageCache.shared.clear()
         // Черновики содержат текст прошлого пользователя — после выхода их быть

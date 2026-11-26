@@ -306,3 +306,11 @@
 "news.comments.hint" = "Написать комментарий…";
 "news.comments.delete.title" = "Удалить комментарий?";
 "news.actions" = "Действия с новостью";
+"video.actions" = "Действия с видео";
+"video.play" = "Воспроизвести";
+"video.replay10" = "Назад на 10 секунд";
+"video.forward10" = "Вперёд на 10 секунд";
+"video.seek" = "Позиция видео";
+"video.pip" = "Картинка в картинке";
+"video.pipUnavailable" = "Картинка в картинке недоступна";
+"video.playFailed" = "Не удалось воспроизвести видео";

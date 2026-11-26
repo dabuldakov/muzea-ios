@@ -313,6 +313,14 @@ enum L10n {
     static var videoUploadTitle: String { t("video.upload.title") }
     static var videoDelete: String { t("video.delete") }
     static var videoDeleteTitle: String { t("video.delete.title") }
+    static var videoActions: String { t("video.actions") }
+    static var videoPlay: String { t("video.play") }
+    static var videoReplay10: String { t("video.replay10") }
+    static var videoForward10: String { t("video.forward10") }
+    static var videoSeek: String { t("video.seek") }
+    static var videoPip: String { t("video.pip") }
+    static var videoPipUnavailable: String { t("video.pipUnavailable") }
+    static var videoPlayFailed: String { t("video.playFailed") }
 
     static func videoAuthor(_ name: String) -> String {
         format("video.author", name)

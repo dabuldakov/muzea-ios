@@ -306,3 +306,11 @@
 "news.comments.hint" = "Write a comment…";
 "news.comments.delete.title" = "Delete comment?";
 "news.actions" = "News actions";
+"video.actions" = "Video actions";
+"video.play" = "Play";
+"video.replay10" = "Back 10 seconds";
+"video.forward10" = "Forward 10 seconds";
+"video.seek" = "Video position";
+"video.pip" = "Picture in Picture";
+"video.pipUnavailable" = "Picture in Picture is unavailable";
+"video.playFailed" = "Could not play the video";

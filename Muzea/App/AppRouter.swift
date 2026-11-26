@@ -14,6 +14,7 @@ final class AppRouter: ObservableObject {
     @Published var chatTarget: Chat?
     @Published var chatTargetMessageUuid: String?
     @Published var newsTarget: Int64?
+    @Published var videoTarget: Video?
     @Published var sharedText: String?
 
     private var observer: NSObjectProtocol?
@@ -110,5 +111,15 @@ final class AppRouter: ObservableObject {
     func consumeNewsTarget() -> Int64? {
         defer { newsTarget = nil }
         return newsTarget
+    }
+
+    func openVideo(_ video: Video) {
+        selectedTab = Self.tabVideos
+        videoTarget = video
+    }
+
+    func consumeVideoTarget() -> Video? {
+        defer { videoTarget = nil }
+        return videoTarget
     }
 }

@@ -8,6 +8,16 @@ struct MainTabView: View {
     @State private var unreadCount: Int64 = 0
 
     var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            tabs
+            MiniPlayerView(playback: container.videoPlaybackManager) { video in
+                appRouter.openVideo(video)
+            }
+            .animation(.easeInOut(duration: 0.2), value: container.videoPlaybackManager.activeVideo?.id)
+        }
+    }
+
+    private var tabs: some View {
         TabView(selection: $appRouter.selectedTab) {
             NewsListView(container: container)
                 .tabItem { Label(L10n.tabNews, systemImage: "newspaper") }

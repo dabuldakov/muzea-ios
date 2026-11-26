@@ -2,6 +2,7 @@ import SwiftUI
 
 struct VideoListView: View {
     @EnvironmentObject private var container: AppContainer
+    @EnvironmentObject private var appRouter: AppRouter
     @StateObject private var viewModel: VideoListViewModel
     @StateObject private var router = Router()
     @State private var showUpload = false
@@ -34,6 +35,13 @@ struct VideoListView: View {
         .task {
             if viewModel.state.videos.isEmpty { await viewModel.load() }
         }
+        .onAppear { openPendingVideo() }
+        .onChange(of: appRouter.videoTarget) { _ in openPendingVideo() }
+    }
+
+    private func openPendingVideo() {
+        guard let video = appRouter.consumeVideoTarget() else { return }
+        router.push(.videoDetail(video))
     }
 
     @ViewBuilder

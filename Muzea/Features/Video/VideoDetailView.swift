@@ -1,14 +1,13 @@
-import SwiftUI
-import AVKit
 import AVFoundation
+import SwiftUI
 
 struct VideoDetailView: View {
     let video: Video
     let container: AppContainer
 
-    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var playback: VideoPlaybackManager
     @StateObject private var viewModel: VideoDetailViewModel
-    @State private var player: AVPlayer?
+    @State private var showActions = false
     @State private var showDeleteConfirm = false
     @State private var showReport = false
     @State private var reportNotice: String?
@@ -16,18 +15,36 @@ struct VideoDetailView: View {
     init(video: Video, container: AppContainer) {
         self.video = video
         self.container = container
+        _playback = ObservedObject(wrappedValue: container.videoPlaybackManager)
         _viewModel = StateObject(wrappedValue: VideoDetailViewModel(repository: container.videoRepository))
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                if let player {
-                    VideoPlayer(player: player)
-                        .frame(height: 220)
-                        .frame(maxWidth: .infinity)
-                        .clipped()
-                        .cornerRadius(8)
+                VideoPlayerSurface(
+                    player: playback.player,
+                    gravity: .resizeAspect,
+                    playback: playback
+                )
+                .frame(height: 220)
+                .frame(maxWidth: .infinity)
+                .background(Color.black)
+                .clipped()
+                .cornerRadius(8)
+                .overlay(alignment: .bottomTrailing) {
+                    if playback.isPictureInPictureSupported {
+                        Button {
+                            playback.startPictureInPicture()
+                        } label: {
+                            Image(systemName: "pip.enter")
+                                .font(.body)
+                                .padding(8)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
+                        .padding(8)
+                        .accessibilityLabel(L10n.videoPip)
+                    }
                 }
 
                 Text(video.title).font(.title3).bold()
@@ -54,23 +71,8 @@ struct VideoDetailView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
 
-                if let error = viewModel.error {
+                if let error = viewModel.error ?? playback.error {
                     Text(error).foregroundColor(.red).font(.footnote)
-                }
-
-                if canDelete {
-                    Button(role: .destructive) {
-                        showDeleteConfirm = true
-                    } label: {
-                        if viewModel.isDeleting {
-                            ProgressView().frame(maxWidth: .infinity)
-                        } else {
-                            Text(L10n.videoDelete).frame(maxWidth: .infinity)
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.red)
-                    .disabled(viewModel.isDeleting)
                 }
             }
             .padding()
@@ -78,17 +80,30 @@ struct VideoDetailView: View {
         .navigationTitle(L10n.videoTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if !canDelete {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showReport = true
-                    } label: {
-                        Image(systemName: "exclamationmark.bubble")
-                    }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showActions = true
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityLabel(L10n.videoActions)
+            }
+        }
+        .sheet(isPresented: $showActions) {
+            VideoActionsSheet(canDelete: canDelete) { action in
+                switch action {
+                case .delete:
+                    showDeleteConfirm = true
+                case .report:
+                    showReport = true
                 }
             }
         }
-        .confirmationDialog(L10n.videoDeleteTitle, isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+        .confirmationDialog(
+            L10n.videoDeleteTitle,
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
             Button(L10n.delete, role: .destructive) { delete() }
             Button(L10n.cancel, role: .cancel) {}
         }
@@ -105,23 +120,14 @@ struct VideoDetailView: View {
         } message: {
             Text(reportNotice ?? "")
         }
-        .onAppear { if player == nil { player = makePlayer() } }
+        .onAppear {
+            playback.setDetailVisible(true)
+            playback.play(video)
+        }
         .onDisappear {
-            player?.pause()
-            player = nil
+            // Не останавливаем видео: после возврата его покажет mini-плеер.
+            playback.setDetailVisible(false)
         }
-    }
-
-    private func makePlayer() -> AVPlayer? {
-        guard let url = video.fullVideoURL else { return nil }
-        if let authToken = container.tokenStore.token, !authToken.isEmpty {
-            let asset = AVURLAsset(
-                url: url,
-                options: ["AVURLAssetHTTPHeaderFieldsKey": ["Authorization": "Bearer \(authToken)"]]
-            )
-            return AVPlayer(playerItem: AVPlayerItem(asset: asset))
-        }
-        return AVPlayer(url: url)
     }
 
     private var canDelete: Bool {
@@ -133,10 +139,13 @@ struct VideoDetailView: View {
     private func delete() {
         Task {
             if await viewModel.delete(id: video.id) {
+                playback.close()
                 dismiss()
             }
         }
     }
+
+    @Environment(\.dismiss) private var dismiss
 
     private func report(reason: String) async {
         do {

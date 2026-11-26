@@ -43,6 +43,7 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>audio</string>
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Access to photos is needed to upload images and videos.</string>
