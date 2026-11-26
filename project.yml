@@ -41,8 +41,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.cyber.muzea
         PRODUCT_NAME: Muzea
-        MARKETING_VERSION: "1.1"
-        CURRENT_PROJECT_VERSION: "24"
+        MARKETING_VERSION: "1.2"
+        CURRENT_PROJECT_VERSION: "25"
         GENERATE_INFOPLIST_FILE: "NO"
         INFOPLIST_FILE: Muzea/Resources/Info.plist
         TARGETED_DEVICE_FAMILY: "1"
@@ -81,8 +81,8 @@ targets:
         SKIP_INSTALL: "YES"
         APPLICATION_EXTENSION_API_ONLY: "YES"
         TARGETED_DEVICE_FAMILY: "1"
-        MARKETING_VERSION: "1.1"
-        CURRENT_PROJECT_VERSION: "24"
+        MARKETING_VERSION: "1.2"
+        CURRENT_PROJECT_VERSION: "25"
       configs:
         Debug:
           CODE_SIGN_STYLE: Automatic
