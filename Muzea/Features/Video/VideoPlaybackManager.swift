@@ -243,7 +243,7 @@ final class VideoPlaybackManager: NSObject, ObservableObject {
                 let item = self.makeItem(url: remoteURL, remoteURL: remoteURL)
                 self.player.replaceCurrentItem(with: item)
                 self.observe(item)
-                self.player.seek(to: position)
+                await self.player.seek(to: position)
                 self.player.play()
                 self.isBuffering = false
                 self.error = nil
