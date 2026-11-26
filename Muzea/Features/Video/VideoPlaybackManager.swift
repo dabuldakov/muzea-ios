@@ -171,8 +171,7 @@ final class VideoPlaybackManager: NSObject, ObservableObject {
     // MARK: - Player observations
 
     private func observePlayer() {
-        timeControlObservation = player.observe(\.timeControlStatus, options: [.new]) {
-            [weak self] player, _ in
+        timeControlObservation = player.observe(\.timeControlStatus, options: [.new]) { [weak self] player, _ in
             Task { @MainActor in
                 self?.isPlaying = player.timeControlStatus == .playing
                 self?.isBuffering = player.timeControlStatus == .waitingToPlayAtSpecifiedRate
@@ -196,8 +195,7 @@ final class VideoPlaybackManager: NSObject, ObservableObject {
     }
 
     private func observe(_ item: AVPlayerItem) {
-        itemStatusObservation = item.observe(\.status, options: [.new]) {
-            [weak self] item, _ in
+        itemStatusObservation = item.observe(\.status, options: [.new]) { [weak self] item, _ in
             guard item.status == .failed else { return }
             Task { @MainActor in self?.handleFailure(item.error) }
         }

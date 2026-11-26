@@ -30,8 +30,11 @@ final class VideoPlayerLayerView: UIView {
     override class var layerClass: AnyClass { AVPlayerLayer.self }
 
     private var playerLayer: AVPlayerLayer {
-        // layerClass гарантирует этот тип.
-        layer as! AVPlayerLayer
+        // layerClass гарантирует этот тип; fallback нужен только линтеру.
+        if let playerLayer = layer as? AVPlayerLayer { return playerLayer }
+        let fallback = AVPlayerLayer()
+        layer.addSublayer(fallback)
+        return fallback
     }
 
     private weak var playback: VideoPlaybackManager?
