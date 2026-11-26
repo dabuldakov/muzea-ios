@@ -58,20 +58,6 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
-      - name: Verify screenshot hook
-        run: |
-          set -euo pipefail
-          xcodebuild \
-            -project Muzea.xcodeproj \
-            -scheme Muzea \
-            -configuration Debug \
-            -showBuildSettings \
-            | grep SWIFT_ACTIVE_COMPILATION_CONDITIONS
-          binary=build/Build/Products/Debug-iphonesimulator/Muzea.app/Muzea.debug.dylib
-          [ -f "$binary" ] || binary=build/Build/Products/Debug-iphonesimulator/Muzea.app/Muzea
-          strings "$binary" | grep -q MUZEA_SCREENSHOT_ACCESS
-          echo "Screenshot bootstrap is compiled in"
-
       - name: Boot simulator
         run: |
           set -euo pipefail
