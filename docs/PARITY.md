@@ -87,7 +87,7 @@ the iOS backlog: update the status as work lands. Status values:
 | — | Video feed/upload/delete/playback | partial | upload/delete/playback/report; block UI и device smoke pending |
 | VIDEO.01 | Плеер и дисковый кэш | partial | общий `AVPlayer`, повтор с текущей позиции, полный prefetch на Wi-Fi; прогрессивный кэш и device smoke pending |
 | VIDEO.02 | Mini-плеер | partial | глобальный overlay, play/pause, ±10 с, seek, drag, сохранение позиции; device smoke pending |
-| VIDEO.03 | Действия с видео | done | шторка «⋮»: удаление своего / жалоба на чужое; `VideoPlaybackTests` |
+| VIDEO.03 | Действия с видео | partial | шторка «⋮»: удаление своего / жалоба на чужое; `VideoPlaybackTests`; device smoke pending |
 | VIDEO.04 | PiP | partial | `AVPictureInPictureController` + background audio; device smoke pending |
 | — | News report (UGC) | done | `/api/reports`, кнопка в деталях новости |
 | — | Profile edit/avatar | done | |
