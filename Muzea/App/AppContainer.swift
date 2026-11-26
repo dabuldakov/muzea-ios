@@ -56,6 +56,10 @@ final class AppContainer: ObservableObject {
         let consent = ConsentManager()
         consentManager = consent
 
+        #if DEBUG
+        ScreenshotBootstrap.apply(store: store, consent: consent)
+        #endif
+
         let api = API(tokenStore: store)
 
         let authImpl = AuthRepositoryImpl(client: api.auth, store: store)

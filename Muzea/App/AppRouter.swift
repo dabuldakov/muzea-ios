@@ -19,6 +19,11 @@ final class AppRouter: ObservableObject {
     private var observer: NSObjectProtocol?
 
     init() {
+        #if DEBUG
+        if let tab = ScreenshotBootstrap.initialTab {
+            selectedTab = tab
+        }
+        #endif
         observer = NotificationCenter.default.addObserver(
             forName: PushRouteNotification.name,
             object: nil,
