@@ -45,6 +45,11 @@ final class VideoPlaybackManager: NSObject, ObservableObject {
         self.networkMonitor = networkMonitor
         self.cache = cache
         super.init()
+        URLCache.shared = URLCache(
+            memoryCapacity: 32 * 1024 * 1024,
+            diskCapacity: 300 * 1024 * 1024,
+            diskPath: "video_http_cache"
+        )
         player.automaticallyWaitsToMinimizeStalling = true
         observePlayer()
     }

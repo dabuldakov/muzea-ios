@@ -5,12 +5,14 @@ struct ProfileView: View {
     let container: AppContainer
 
     @StateObject private var viewModel: ProfileViewModel
+    @ObservedObject private var updates: AppUpdateRepository
     @State private var fullName = ""
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var deleteDialog: DeleteDialog?
     @State private var cacheSize: Int64 = 0
     @State private var cacheCleared = false
     @State private var showLanguagePicker = false
+    @State private var updateSheet: AppStoreUpdate?
     @ObservedObject private var localization = LocalizationStore.shared
 
     private enum DeleteDialog {
@@ -26,6 +28,7 @@ struct ProfileView: View {
             chatSessionRepository: container.chatSessionRepository,
             authRepository: container.authRepository
         ))
+        _updates = ObservedObject(wrappedValue: container.appUpdateRepository)
     }
 
     var body: some View {
@@ -67,6 +70,24 @@ struct ProfileView: View {
                     NavigationLink(value: Route.operatorInfo) {
                         Label(L10n.operatorLink, systemImage: "person.text.rectangle")
                     }
+                }
+
+                Section {
+                    Button {
+                        Task { await checkForUpdates(manual: true) }
+                    } label: {
+                        HStack {
+                            Label(L10n.appVersionLabel, systemImage: "arrow.down.circle")
+                            Spacer()
+                            Text(updates.currentVersion)
+                            if updates.availableUpdate != nil {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 8, height: 8)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 Section {
@@ -138,6 +159,10 @@ struct ProfileView: View {
                 await viewModel.load()
                 fullName = viewModel.state.user?.fullName ?? viewModel.state.user?.userName ?? ""
                 cacheSize = container.cacheManager.totalSizeBytes()
+                await checkForUpdates(manual: false)
+            }
+            .sheet(item: $updateSheet) { update in
+                UpdateAvailableSheet(update: update)
             }
             .onChange(of: selectedPhoto) { newValue in
                 Task { await loadPhoto(newValue) }
@@ -168,6 +193,18 @@ struct ProfileView: View {
                     EmptyView()
                 }
             }
+        }
+    }
+
+    private func checkForUpdates(manual: Bool) async {
+        let result = await updates.checkForUpdate()
+        switch result {
+        case .available(let update):
+            if manual { updateSheet = update }
+        case .upToDate:
+            if manual { viewModel.reportValidationError(L10n.updateLatest) }
+        case .failed:
+            if manual { viewModel.reportValidationError(L10n.updateFailed) }
         }
     }
 

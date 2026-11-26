@@ -314,3 +314,9 @@
 "video.pip" = "Picture in Picture";
 "video.pipUnavailable" = "Picture in Picture is unavailable";
 "video.playFailed" = "Could not play the video";
+"profile.appVersion" = "App version";
+"update.available.title" = "Update available";
+"update.available.message" = "Version %@ is available on the App Store. Open the app page?";
+"update.open" = "Open App Store";
+"update.latest" = "You are using the latest version";
+"update.failed" = "Could not check for updates";

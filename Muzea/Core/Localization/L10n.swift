@@ -294,6 +294,15 @@ enum L10n {
     static var operatorAddress: String { t("profile.operator.address") }
     static var operatorContacts: String { t("profile.operator.contacts") }
     static var operatorEmail: String { t("profile.operator.email") }
+    static var appVersionLabel: String { t("profile.appVersion") }
+    static var updateAvailableTitle: String { t("update.available.title") }
+    static var updateOpen: String { t("update.open") }
+    static var updateLatest: String { t("update.latest") }
+    static var updateFailed: String { t("update.failed") }
+    static func updateAvailableMessage(_ version: String) -> String {
+        format("update.available.message", version)
+    }
+
     static var operatorPhone: String { t("profile.operator.phone") }
     static var operatorDocuments: String { t("profile.operator.documents") }
 

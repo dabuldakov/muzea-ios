@@ -17,6 +17,7 @@ final class AppContainer: ObservableObject {
     let newsRepository: NewsRepository
     let videoRepository: VideoRepository
     let contentReportRepository: ContentReportRepository
+    let appUpdateRepository: AppUpdateRepository
     let cacheManager: CacheManager
     let networkMonitor: NetworkMonitor
     let videoDiskCache: VideoDiskCache
@@ -81,6 +82,7 @@ final class AppContainer: ObservableObject {
         userRepository = UserRepositoryImpl(client: api.makeup)
         newsRepository = NewsRepositoryImpl(client: api.makeup)
         contentReportRepository = ContentReportRepositoryImpl(client: api.makeup)
+        appUpdateRepository = AppUpdateRepository()
 
         let diskCache = VideoDiskCache()
         videoDiskCache = diskCache

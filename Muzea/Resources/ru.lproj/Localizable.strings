@@ -314,3 +314,9 @@
 "video.pip" = "Картинка в картинке";
 "video.pipUnavailable" = "Картинка в картинке недоступна";
 "video.playFailed" = "Не удалось воспроизвести видео";
+"profile.appVersion" = "Версия приложения";
+"update.available.title" = "Доступно обновление";
+"update.available.message" = "В App Store доступна версия %@. Открыть карточку приложения?";
+"update.open" = "Открыть App Store";
+"update.latest" = "Установлена последняя версия";
+"update.failed" = "Не удалось проверить обновления";
