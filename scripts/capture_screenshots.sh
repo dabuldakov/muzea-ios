@@ -43,14 +43,21 @@ run_timeout 30 xcrun simctl ui "$UDID" appearance light
 
 launch() {
   local tab="$1"
-  echo "==> launch tab $tab ($LOCALE)"
+  local extra_name="${2:-}"
+  local extra_value="${3:-}"
+  echo "==> launch tab $tab ($LOCALE)${extra_name:+ $extra_name}"
   run_timeout 30 xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
-  SIMCTL_CHILD_MUZEA_SCREENSHOT_ACCESS="$ACCESS" \
-  SIMCTL_CHILD_MUZEA_SCREENSHOT_REFRESH="$REFRESH" \
-  SIMCTL_CHILD_MUZEA_SCREENSHOT_TAB="$tab" \
-    run_timeout 60 xcrun simctl launch "$UDID" "$BUNDLE" \
-      -AppleLanguages "($LOCALE)" \
-      -AppleLocale "$LOCALE" >/dev/null
+  local -a variables=(
+    "SIMCTL_CHILD_MUZEA_SCREENSHOT_ACCESS=$ACCESS"
+    "SIMCTL_CHILD_MUZEA_SCREENSHOT_REFRESH=$REFRESH"
+    "SIMCTL_CHILD_MUZEA_SCREENSHOT_TAB=$tab"
+  )
+  if [ -n "$extra_name" ]; then
+    variables+=("SIMCTL_CHILD_$extra_name=$extra_value")
+  fi
+  env "${variables[@]}" run_timeout 60 xcrun simctl launch "$UDID" "$BUNDLE" \
+    -AppleLanguages "($LOCALE)" \
+    -AppleLocale "$LOCALE" >/dev/null
 }
 
 shot() {
@@ -67,10 +74,8 @@ launch 0
 sleep 9
 shot 01-news
 
-launch 0
-sleep 7
-run_timeout 30 xcrun simctl openurl "$UDID" "muzea://news/$NEWS_ID"
-sleep 6
+launch 0 MUZEA_SCREENSHOT_NEWS "$NEWS_ID"
+sleep 9
 shot 02-news-detail
 
 # Чаты: список и переписка.
@@ -78,10 +83,8 @@ launch 1
 sleep 9
 shot 03-chats
 
-launch 1
-sleep 7
-run_timeout 30 xcrun simctl openurl "$UDID" "muzea://chat/$CHAT_UUID"
-sleep 8
+launch 1 MUZEA_SCREENSHOT_CHAT "$CHAT_UUID"
+sleep 9
 shot 04-chat
 
 # Видео и профиль.

@@ -23,6 +23,14 @@ final class AppRouter: ObservableObject {
         if let tab = ScreenshotBootstrap.initialTab {
             selectedTab = tab
         }
+        if let news = ScreenshotBootstrap.initialNews {
+            selectedTab = Self.tabNews
+            newsTarget = news
+        }
+        if let chat = ScreenshotBootstrap.initialChat {
+            selectedTab = Self.tabChats
+            chatTarget = chat
+        }
         #endif
         observer = NotificationCenter.default.addObserver(
             forName: PushRouteNotification.name,
