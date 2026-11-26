@@ -71,9 +71,10 @@ AUTH_DEMO_TTL_SECONDS=7776000
 
 Workflow сам логинится демо-аккаунтом через `/auth/otp/request` и
 `/auth/otp/verify`, поэтому секреты не нужны. Для съёмки используются
-DEBUG-переменные окружения `MUZEA_SCREENSHOT_ACCESS`,
-`MUZEA_SCREENSHOT_REFRESH` и `MUZEA_SCREENSHOT_TAB`; в Release-сборку этот код
-не попадает (`#if DEBUG`).
+DEBUG-аргументы запуска `-MUZEA_SCREENSHOT_ACCESS`,
+`-MUZEA_SCREENSHOT_REFRESH`, `-MUZEA_SCREENSHOT_TAB`,
+`-MUZEA_SCREENSHOT_USERNAME` и `-MUZEA_SCREENSHOT_NEWS/CHAT`; в Release-сборку
+этот код не попадает (`#if DEBUG`).
 
 Комплект: новости, карточка новости, список чатов, переписка, видео, профиль.
 
