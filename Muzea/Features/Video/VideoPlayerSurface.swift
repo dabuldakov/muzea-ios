@@ -27,7 +27,7 @@ struct VideoPlayerSurface: UIViewRepresentable {
 }
 
 final class VideoPlayerLayerView: UIView {
-    override static var layerClass: AnyClass { AVPlayerLayer.self }
+    override class var layerClass: AnyClass { AVPlayerLayer.self }
 
     private var playerLayer: AVPlayerLayer {
         // layerClass гарантирует этот тип; fallback нужен только линтеру.
