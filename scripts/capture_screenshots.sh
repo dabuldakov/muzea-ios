@@ -46,7 +46,6 @@ launch() {
   local extra_name="${2:-}"
   local extra_value="${3:-}"
   echo "==> launch tab $tab ($LOCALE)${extra_name:+ $extra_name}"
-  run_timeout 30 xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
   (
     export SIMCTL_CHILD_MUZEA_SCREENSHOT_ACCESS="$ACCESS"
     export SIMCTL_CHILD_MUZEA_SCREENSHOT_REFRESH="$REFRESH"
@@ -66,7 +65,18 @@ launch() {
     if [ -n "$extra_name" ]; then
       launch_arguments+=("-$extra_name" "$extra_value")
     fi
-    run_timeout 60 xcrun simctl launch "$UDID" "$BUNDLE" "${launch_arguments[@]}" >/dev/null
+    launch_app() {
+      run_timeout 60 xcrun simctl launch --terminate-running-process \
+        "$UDID" "$BUNDLE" "${launch_arguments[@]}" >/dev/null
+    }
+    if ! launch_app; then
+      echo "==> simulator не ответил, перезапускаю"
+      run_timeout 30 xcrun simctl shutdown "$UDID" >/dev/null 2>&1 || true
+      run_timeout 120 xcrun simctl boot "$UDID" >/dev/null 2>&1 || true
+      run_timeout 180 xcrun simctl bootstatus "$UDID" -b >/dev/null
+      run_timeout 120 xcrun simctl install "$UDID" "$APP"
+      launch_app
+    fi
   )
 }
 
