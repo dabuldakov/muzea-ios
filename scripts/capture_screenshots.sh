@@ -47,17 +47,17 @@ launch() {
   local extra_value="${3:-}"
   echo "==> launch tab $tab ($LOCALE)${extra_name:+ $extra_name}"
   run_timeout 30 xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
-  local -a variables=(
-    "SIMCTL_CHILD_MUZEA_SCREENSHOT_ACCESS=$ACCESS"
-    "SIMCTL_CHILD_MUZEA_SCREENSHOT_REFRESH=$REFRESH"
-    "SIMCTL_CHILD_MUZEA_SCREENSHOT_TAB=$tab"
+  (
+    export SIMCTL_CHILD_MUZEA_SCREENSHOT_ACCESS="$ACCESS"
+    export SIMCTL_CHILD_MUZEA_SCREENSHOT_REFRESH="$REFRESH"
+    export SIMCTL_CHILD_MUZEA_SCREENSHOT_TAB="$tab"
+    if [ -n "$extra_name" ]; then
+      export "SIMCTL_CHILD_$extra_name=$extra_value"
+    fi
+    run_timeout 60 xcrun simctl launch "$UDID" "$BUNDLE" \
+      -AppleLanguages "($LOCALE)" \
+      -AppleLocale "$LOCALE" >/dev/null
   )
-  if [ -n "$extra_name" ]; then
-    variables+=("SIMCTL_CHILD_$extra_name=$extra_value")
-  fi
-  env "${variables[@]}" run_timeout 60 xcrun simctl launch "$UDID" "$BUNDLE" \
-    -AppleLanguages "($LOCALE)" \
-    -AppleLocale "$LOCALE" >/dev/null
 }
 
 shot() {
