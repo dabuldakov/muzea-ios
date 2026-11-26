@@ -99,6 +99,14 @@ DEBUG-переменные окружения `MUZEA_SCREENSHOT_ACCESS`,
 Доступа к галерее и телефонной книге нет: используются системные Photos Picker
 и file importer, камера/микрофон — только при записи.
 
+Порядок в веб-интерфейсе:
+
+1. App Store Connect → приложение Muzea → **App Privacy** → **Get Started**.
+2. Ответить **Yes, we collect data from this app**.
+3. Добавить типы из таблицы; для каждого выбрать **App Functionality**,
+   **Data linked to the user** = Yes, **Tracking** = No.
+4. **Publish** — без публикации App Review не примет версию.
+
 ## 5. Порядок релиза
 
 1. Поднять `CURRENT_PROJECT_VERSION` в `project.yml`, собрать и загрузить

@@ -225,12 +225,15 @@ xcodebuild archive \
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 ```
 
-## 8. Публикация в App Store (когда дойдём)
+## 8. Публикация в App Store
 
-1. В App Store Connect создать версию, заполнить метаданные: описание, ключевые
-   слова, скриншоты (iPhone), возрастной рейтинг, категории.
+Актуальный чек-лист, демо-аккаунт и готовые ответы App Privacy:
+[`docs/APP_STORE.md`](APP_STORE.md).
+
+1. В App Store Connect заполнить метаданные: описание, ключевые слова,
+   скриншоты (iPhone), возрастной рейтинг, категории.
 2. Privacy: политика конфиденциальности, `PrivacyInfo.xcprivacy` уже в проекте,
-   ответы про сбор данных.
+   ответы про сбор данных (раздел App Privacy заполняется в веб-интерфейсе).
 3. Export compliance: `ITSAppUsesNonExemptEncryption = false`.
 4. Учётная запись для ревью: тестовый аккаунт с заполненным профилем (вход по
    email-коду — описать в заметках для ревью, что код приходит на email).
