@@ -1,6 +1,7 @@
 import AVFoundation
 import Combine
 import SwiftUI
+import UIKit
 
 /// Плавающий mini-плеер поверх вкладок. Повторяет поведение Android:
 /// play/pause, ±10 секунд, перемотка, закрытие и перетаскивание.

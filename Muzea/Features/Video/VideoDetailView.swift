@@ -8,6 +8,7 @@ struct VideoDetailView: View {
     @ObservedObject private var playback: VideoPlaybackManager
     @StateObject private var viewModel: VideoDetailViewModel
     @State private var showActions = false
+    @State private var pendingAction: VideoAction?
     @State private var showDeleteConfirm = false
     @State private var showReport = false
     @State private var reportNotice: String?
@@ -89,14 +90,10 @@ struct VideoDetailView: View {
                 .accessibilityLabel(L10n.videoActions)
             }
         }
-        .sheet(isPresented: $showActions) {
+        .sheet(isPresented: $showActions, onDismiss: handlePendingAction) {
             VideoActionsSheet(canDelete: canDelete) { action in
-                switch action {
-                case .delete:
-                    showDeleteConfirm = true
-                case .report:
-                    showReport = true
-                }
+                pendingAction = action
+                showActions = false
             }
         }
         .confirmationDialog(
@@ -127,6 +124,17 @@ struct VideoDetailView: View {
         .onDisappear {
             // Не останавливаем видео: после возврата его покажет mini-плеер.
             playback.setDetailVisible(false)
+        }
+    }
+
+    private func handlePendingAction() {
+        guard let action = pendingAction else { return }
+        pendingAction = nil
+        switch action {
+        case .delete:
+            showDeleteConfirm = true
+        case .report:
+            showReport = true
         }
     }
 
