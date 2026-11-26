@@ -63,4 +63,3 @@ enum CountFormat {
         return "\(formatter.string(from: NSNumber(value: scaled)) ?? "\(Int(scaled))") \(suffix)"
     }
 }
-
