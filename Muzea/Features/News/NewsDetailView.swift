@@ -241,9 +241,7 @@ struct NewsDetailView: View {
 
     private func commentRow(_ comment: NewsComment, news: News) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "person.crop.circle.fill")
-                .font(.system(size: 32))
-                .foregroundColor(.secondary)
+            AvatarView(url: ImageURL.chat(comment.authorAvatarUrl), size: 32)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack {

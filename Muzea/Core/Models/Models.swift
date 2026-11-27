@@ -39,6 +39,7 @@ struct NewsCommentDTO: Decodable, Identifiable, Hashable {
     let newsId: Int64
     let content: String
     let author: String
+    let authorAvatarUrl: String?
     let createdAt: String
 }
 

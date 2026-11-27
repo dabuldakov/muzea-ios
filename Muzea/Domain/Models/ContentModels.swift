@@ -34,6 +34,7 @@ struct NewsComment: Identifiable, Hashable {
     let content: String
     let author: String
     let createdAt: String
+    let authorAvatarUrl: String? = nil
 }
 
 struct NewsCommentsPage {

@@ -61,7 +61,8 @@ extension NewsCommentDTO {
             newsId: newsId,
             content: content,
             author: author,
-            createdAt: createdAt
+            createdAt: createdAt,
+            authorAvatarUrl: authorAvatarUrl
         )
     }
 }
