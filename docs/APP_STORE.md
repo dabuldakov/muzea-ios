@@ -94,6 +94,8 @@ DEBUG-аргументы запуска `-MUZEA_SCREENSHOT_ACCESS`,
 | Identifiers | Device ID (device_id, FCM token) | Да | Нет | App Functionality |
 | Diagnostics | Crash Data | Да | Нет | App Functionality |
 | Diagnostics | Other Diagnostic Data | Да | Нет | App Functionality |
+| Search History | Поиск по GIF и пользователям | Да | Нет | App Functionality |
+| Usage Data | Other Usage Data | Да | Нет | App Functionality |
 
 Не заявляем: точную/приблизительную геолокацию, контакты телефонной книги,
 историю браузера, покупки, здоровье, финансовые данные, рекламные данные.
