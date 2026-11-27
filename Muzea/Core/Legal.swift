@@ -3,8 +3,23 @@ import Foundation
 /// Правовая информация об операторе персональных данных и ссылки на документы.
 /// Значения совпадают с `res/values/strings.xml` Android-приложения.
 enum Legal {
-    static let policyURL = "https://muzea.su/privacy"
-    static let termsURL = "https://muzea.su/terms"
+    /// Язык правовых страниц. Сайт поддерживает только ru/en, поэтому
+    /// для остальных языков открываем английскую версию.
+    private static var legalLanguage: String {
+        LocalizationStore.shared.resolvedLanguageCode == "ru" ? "ru" : "en"
+    }
+
+    static var policyURL: String {
+        legalLanguage == "ru"
+            ? "https://muzea.su/privacy?lang=ru"
+            : "https://muzea.su/en/privacy?lang=en"
+    }
+
+    static var termsURL: String {
+        legalLanguage == "ru"
+            ? "https://muzea.su/terms?lang=ru"
+            : "https://muzea.su/en/terms?lang=en"
+    }
 
     // l10n:ignore — имя оператора, данные
     static let operatorName = "Булдаков Дмитрий Александрович"
@@ -22,7 +37,7 @@ enum Legal {
     /// Текущая редакция согласия на обработку персональных данных.
     /// Увеличивайте при изменении текста согласия или политики — экран согласия
     /// покажется заново всем пользователям.
-    static let consentVersion = 3
+    static let consentVersion = 4
 
     /// Текст согласия, ст. 9 ФЗ-152. Подставляется операторский email.
     /// Сам текст живёт в `L10n`, чтобы на английском он тоже был английским.

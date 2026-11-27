@@ -205,9 +205,9 @@
 "profile.signOut" = "Sign out";
 "profile.delete.title" = "Delete account?";
 "profile.signOut.action" = "Sign out of the app";
-"profile.delete.body" = "The account will be deactivated: you will not be able to sign in, your name, surname and username will be hidden, and your chats will become read-only. Messages, posts, videos and other data are kept. You can restore the account through support.";
+"profile.delete.body" = "The account will be hidden immediately. You can restore it through support within 30 days. After 30 days the profile, messages, attachments and content will be permanently deleted. Recipients may keep local copies on their devices.";
 "profile.avatarTooLarge" = "Choose an image up to 5 MB";
-"profile.error.chat" = "Could not deactivate the account in the chat service. Check your connection and try again.";
+"profile.error.chat" = "Could not delete chat data. Check your connection and try again.";
 "profile.error.load" = "Could not load the profile. Try again later.";
 "profile.operator.title" = "Personal data of users is processed by:";
 "profile.operator.name" = "Full name";
@@ -241,7 +241,7 @@
 "app.tab.video" = "Video";
 "app.tab.profile" = "Profile";
 "app.noInternet" = "No internet connection";
-"legal.deactivateFallback" = "Could not deactivate the account on the server. Write to %@ and we will help manually.";
+"legal.deactivateFallback" = "Could not start account deletion on the server. Write to %@ and we will help manually.";
 "recorder.noPermission" = "No camera and microphone access";
 "recorder.cameraFailed" = "Could not open the camera";
 "recorder.writeFailed" = "Could not record the video: %@";
@@ -282,13 +282,13 @@
 "push.newMessage" = "New message";
 "push.news" = "News";
 "error.serverCode" = "Server error (%d).";
-"legal.consent.body" = "To use the muzea app, you need to accept the terms of use and give consent to personal data processing.\n\nData: login, full name, email, one-time confirmation codes (email sign-in), device identifier and model, device token for push notifications, chat message text, group composition and members, online status and last seen time, contacts list, images, posts and videos, technical account data.\n\nPurposes: registration and sign-in, messaging, push notifications, showing your profile to other users, posting content and videos, handling requests.\n\nThe device token for push notifications is transferred to Google services (Google Ireland Limited, Ireland) — a cross-border transfer. Other personal data is not transferred outside Russia.\n\nYou can withdraw consent in the profile (“Delete account”) or by email to %@ — then processing stops and the data is destroyed within 10 business days.";
+"legal.consent.body" = "To use the muzea app, you need to accept the terms of use and give consent to personal data processing.\n\nData: login, full name, email, one-time confirmation codes (email sign-in), device identifier and model, device token for push notifications, chat message text, group composition and members, online status and last seen time, contacts list, images, posts and videos, technical account data.\n\nPurposes: registration and sign-in, messaging, push notifications, showing your profile to other users, posting content and videos, handling requests.\n\nPush notifications are processed by Google (Ireland/USA), and on iOS by Apple (USA): the push token, notification type, and, if included, the notification text, sender name and chat title are transferred. GIF search and link previews may send the query and IP address to third parties. Sign-in code emails are sent via Mail.ru (Russia).\n\nYou can withdraw consent in the profile (“Delete account”) or by email to %@ — then processing stops and the data is destroyed within 30 days.";
 "auth.reauth.title" = "Sign-in update";
 "auth.reauth.body" = "Sign-in and registration now use an email code, no password.\n\nIf you already had an account, sign in with the same email. If access is not restored, contact support.";
 "auth.reauth.register" = "Register";
 "auth.reauth.ok" = "Got it";
 "auth.error.notRegistered" = "No account with this email. Tap “Sign up” to create one.";
-"auth.error.accountDeleted" = "This account is deactivated. Contact support to restore access.";
+"auth.error.accountDeleted" = "This account is deleted or pending deletion. If less than 30 days have passed, contact support; otherwise register again.";
 "auth.verificationSent" = "Email is not confirmed yet. We sent a new code to %@ — enter it below.";
 "profile.language" = "Language";
 "profile.language.title" = "Choose language";
