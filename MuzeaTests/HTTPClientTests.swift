@@ -257,6 +257,127 @@ final class HTTPClientTests: XCTestCase {
         XCTAssertEqual(calls, 1)
     }
 
+    func testDoesNotRetryWhenRefreshCannotProduceToken() async {
+        store.token = "old"
+        var calls = 0
+        let http = client()
+        http.unauthorizedHandler = { _ in
+            // Refresh «успешен», но токена в хранилище так и нет.
+            self.store.token = nil
+            return true
+        }
+        MockURLProtocol.handler = { request in
+            calls += 1
+            return (MockURLProtocol.response(for: request, status: 401), Data())
+        }
+
+        do {
+            let _: [String] = try await http.request("GET", "/api/chats")
+            XCTFail("Ожидалась ошибка авторизации")
+        } catch let error as APIError {
+            guard case .unauthorized = error else {
+                return XCTFail("Ожидался .unauthorized, получено \(error)")
+            }
+        } catch {
+            XCTFail("Неожиданная ошибка \(error)")
+        }
+
+        XCTAssertEqual(calls, 1, "Запрос без токена повторять бессмысленно")
+    }
+
+    func testDoesNotRefreshUnauthorizedRequests() async {
+        store.token = "old"
+        var handlerCalled = false
+        let http = client()
+        http.unauthorizedHandler = { _ in
+            handlerCalled = true
+            return true
+        }
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request, status: 401), Data())
+        }
+
+        do {
+            let _: AuthServiceMessage = try await http.request(
+                "POST",
+                "/auth/otp/verify",
+                body: AuthOtpVerifyRequest(email: "a@b.c", code: "000000", deviceId: nil, deviceName: nil),
+                authorized: false
+            )
+            XCTFail("Ожидалась ошибка авторизации")
+        } catch {}
+
+        XCTAssertFalse(handlerCalled)
+        XCTAssertEqual(MockURLProtocol.requests.count, 1)
+    }
+
+    func testRecoversSessionWhenSecureStoreReadsFail() async throws {
+        let secure = TestSupport.UnreliableTokenStore()
+        let session = TestSupport.makeStore(
+            defaults: UserDefaults(suiteName: "muzea-session-recovery-\(UUID().uuidString)")!,
+            tokens: secure
+        )
+        session.refreshToken = "old-refresh"
+        session.token = "old-access"
+        // После логина Keychain перестал отдавать значения (сбой чтения).
+        secure.failReads = true
+
+        var chatsCalls = 0
+        var refreshCalls = 0
+        MockURLProtocol.handler = { request in
+            if request.url?.path == "/auth/token/refresh" {
+                refreshCalls += 1
+                return (
+                    MockURLProtocol.response(for: request),
+                    TestSupport.data(#"{"accessToken":"new-access","refreshToken":"new-refresh","expiresIn":900}"#)
+                )
+            }
+            chatsCalls += 1
+            if chatsCalls == 1 {
+                return (MockURLProtocol.response(for: request, status: 401), Data())
+            }
+            return (MockURLProtocol.response(for: request), TestSupport.data("[]"))
+        }
+
+        let refresher = TokenRefresher(client: TestSupport.authClient(tokenStore: session), store: session)
+        let chat = TestSupport.chatClient(tokenStore: session)
+        chat.unauthorizedHandler = { failedToken in
+            await refresher.refresh(failedToken: failedToken)
+        }
+
+        let _: [String] = try await chat.request("GET", "/api/chats")
+
+        XCTAssertEqual(refreshCalls, 1, "401 должен приводить к refresh, даже если Keychain не читается")
+        XCTAssertEqual(chatsCalls, 2)
+        XCTAssertEqual(session.token, "new-access")
+        XCTAssertEqual(session.refreshToken, "new-refresh")
+    }
+
+    func testRefreshesAuthorizedRequestThatHadNoToken() async throws {
+        store.token = nil
+        store.refreshToken = "refresh"
+        var calls = 0
+        let http = client()
+        http.unauthorizedHandler = { failedToken in
+            XCTAssertNil(failedToken)
+            self.store.token = "new"
+            return true
+        }
+        MockURLProtocol.handler = { request in
+            calls += 1
+            if calls == 1 {
+                return (MockURLProtocol.response(for: request, status: 401), Data())
+            }
+            return (MockURLProtocol.response(for: request), TestSupport.data("[]"))
+        }
+
+        let _: [String] = try await http.request("GET", "/api/chats")
+
+        XCTAssertEqual(calls, 2)
+        XCTAssertNil(MockURLProtocol.requests[0].value(forHTTPHeaderField: "Authorization"))
+        XCTAssertEqual(MockURLProtocol.requests[1].value(forHTTPHeaderField: "Authorization"), "Bearer new")
+    }
+
     func testUploadBuildsMultipartWithFieldsAndFiles() async throws {
         MockURLProtocol.handler = { request in
             (MockURLProtocol.response(for: request), TestSupport.data(#"{"id":1}"#))

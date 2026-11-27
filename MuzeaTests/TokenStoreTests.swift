@@ -56,6 +56,41 @@ final class TokenStoreTests: XCTestCase {
         XCTAssertFalse(store.isLoggedIn)
     }
 
+    func testFallsBackToMemoryWhenSecureStoreReadFails() {
+        let tokens = TestSupport.UnreliableTokenStore()
+        let store = TokenStore(defaults: isolatedDefaults(), tokens: tokens)
+        store.refreshToken = "refresh"
+        store.token = "access"
+
+        // Keychain временно недоступен: значения уже в памяти процесса.
+        tokens.failReads = true
+
+        XCTAssertEqual(store.token, "access")
+        XCTAssertEqual(store.refreshToken, "refresh")
+        XCTAssertTrue(store.isLoggedIn)
+    }
+
+    func testClearSessionDropsMemoryFallbackEvenWhenKeychainFails() {
+        let tokens = TestSupport.UnreliableTokenStore()
+        let store = TokenStore(defaults: isolatedDefaults(), tokens: tokens)
+        store.refreshToken = "refresh"
+        store.token = "access"
+        tokens.failReads = true
+        tokens.failClear = true
+
+        store.clearSession()
+
+        XCTAssertNil(store.token)
+        XCTAssertNil(store.refreshToken)
+        XCTAssertFalse(store.isLoggedIn)
+
+        // Новый вход снова наполняет кэш.
+        store.token = "access-2"
+        store.refreshToken = "refresh-2"
+        XCTAssertEqual(store.token, "access-2")
+        XCTAssertEqual(store.refreshToken, "refresh-2")
+    }
+
     func testMigratesLegacyAuthTokenAndPurgesLegacySecrets() {
         let defaults = isolatedDefaults()
         defaults.set("legacy-access", forKey: "auth_token")

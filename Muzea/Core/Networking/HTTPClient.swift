@@ -129,7 +129,7 @@ final class HTTPClient {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         request.httpBody = multipartBody(boundary: boundary, fields: fields, files: files)
-        return try await execute(request, onProgress: onProgress)
+        return try await execute(request, authorized: authorized, onProgress: onProgress)
     }
 
     /// multipart/form-data только из текстовых полей (без файла).
@@ -148,7 +148,7 @@ final class HTTPClient {
         }
         request.httpBody = multipartFieldsBody(boundary: boundary, fields: fields)
 
-        let data = try await execute(request)
+        let data = try await execute(request, authorized: authorized)
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
@@ -174,11 +174,12 @@ final class HTTPClient {
         if authorized, let token = tokenProvider(), !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        return try await execute(request)
+        return try await execute(request, authorized: authorized)
     }
 
     private func execute(
         _ request: URLRequest,
+        authorized: Bool,
         onProgress: ((Double) -> Void)? = nil
     ) async throws -> Data {
         var current = request
@@ -195,17 +196,18 @@ final class HTTPClient {
                     return data
 
                 case 401:
-                    if attempt == 0, await refreshIfPossible(sentToken: Self.bearerToken(in: current)) {
+                    if attempt == 0, authorized,
+                       await refreshIfPossible(sentToken: Self.bearerToken(in: current)),
+                       applyLatestToken(to: &current) {
                         attempt += 1
-                        applyLatestToken(to: &current)
                         continue
                     }
                     throw APIError.unauthorized
 
-                case 403 where treatsForbiddenAsUnauthorized && attempt == 0:
-                    if await refreshIfPossible(sentToken: Self.bearerToken(in: current)) {
+                case 403 where treatsForbiddenAsUnauthorized && attempt == 0 && authorized:
+                    if await refreshIfPossible(sentToken: Self.bearerToken(in: current)),
+                       applyLatestToken(to: &current) {
                         attempt += 1
-                        applyLatestToken(to: &current)
                         continue
                     }
                     let message = String(data: data, encoding: .utf8) ?? "HTTP 403"
@@ -240,12 +242,16 @@ final class HTTPClient {
         return await handler(sentToken)
     }
 
-    private func applyLatestToken(to request: inout URLRequest) {
+    /// Возвращает `false`, если после refresh в хранилище так и нет токена:
+    /// повторять запрос без авторизации бессмысленно.
+    @discardableResult
+    private func applyLatestToken(to request: inout URLRequest) -> Bool {
         if let token = tokenProvider(), !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        } else {
-            request.setValue(nil, forHTTPHeaderField: "Authorization")
+            return true
         }
+        request.setValue(nil, forHTTPHeaderField: "Authorization")
+        return false
     }
 
     private static func bearerToken(in request: URLRequest) -> String? {

@@ -19,6 +19,20 @@ final class TokenStore {
     private let defaults: UserDefaults
     private let tokens: SecureTokenStoring
 
+    /// Последнее успешно прочитанное/записанное значение токена.
+    ///
+    /// Keychain может быть временно недоступен (`errSecInteractionNotAllowed`),
+    /// а запись — молча не сохраниться. Без такого кэша единичный сбой чтения
+    /// выглядит как «пользователь разлогинен»: access-токен пропадает, запросы
+    /// уходят без `Authorization`, а refresh даже не вызывается. Держим значения
+    /// в памяти процесса как fallback до явной очистки сессии.
+    private var cachedAccessToken: String?
+    private var cachedRefreshToken: String?
+    private var accessTokenLoaded = false
+    private var refreshTokenLoaded = false
+    private var sessionCleared = false
+    private let cacheLock = NSLock()
+
     init(defaults: UserDefaults = .standard, tokens: SecureTokenStoring = KeychainTokenStore()) {
         self.defaults = defaults
         self.tokens = tokens
@@ -29,13 +43,47 @@ final class TokenStore {
     // MARK: - Tokens (Keychain)
 
     var token: String? {
-        get { tokens.accessToken }
-        set { tokens.accessToken = newValue }
+        get {
+            cacheLock.lock()
+            defer { cacheLock.unlock() }
+            if sessionCleared { return nil }
+            if let stored = tokens.accessToken {
+                cachedAccessToken = stored
+                accessTokenLoaded = true
+                return stored
+            }
+            return accessTokenLoaded ? cachedAccessToken : nil
+        }
+        set {
+            cacheLock.lock()
+            defer { cacheLock.unlock() }
+            sessionCleared = false
+            cachedAccessToken = newValue
+            accessTokenLoaded = true
+            tokens.accessToken = newValue
+        }
     }
 
     var refreshToken: String? {
-        get { tokens.refreshToken }
-        set { tokens.refreshToken = newValue }
+        get {
+            cacheLock.lock()
+            defer { cacheLock.unlock() }
+            if sessionCleared { return nil }
+            if let stored = tokens.refreshToken {
+                cachedRefreshToken = stored
+                refreshTokenLoaded = true
+                return stored
+            }
+            return refreshTokenLoaded ? cachedRefreshToken : nil
+        }
+        set {
+            cacheLock.lock()
+            defer { cacheLock.unlock() }
+            sessionCleared = false
+            cachedRefreshToken = newValue
+            refreshTokenLoaded = true
+            tokens.refreshToken = newValue
+        }
     }
 
     // MARK: - Profile
@@ -90,11 +138,24 @@ final class TokenStore {
     /// Локальный выход: токены и профиль удаляются, deviceId и FCM-токен
     /// остаются (их можно переиспользовать после повторного входа).
     func clearSession() {
-        tokens.clear()
+        resetTokenCache()
         ["username", "email", "chat_user_uuid", "fcm_token_registered", "password",
          "chat_token", "chat_token_user"].forEach {
             defaults.removeObject(forKey: $0)
         }
+    }
+
+    /// Сбрасываем и Keychain, и in-memory fallback. `sessionCleared` не даёт
+    /// заново прочитать токен, если удаление из Keychain временно не удалось.
+    private func resetTokenCache() {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        sessionCleared = true
+        cachedAccessToken = nil
+        cachedRefreshToken = nil
+        accessTokenLoaded = true
+        refreshTokenLoaded = true
+        tokens.clear()
     }
 
     /// Совместимое имя для существующего кода.
@@ -105,12 +166,12 @@ final class TokenStore {
     /// Полная очистка локальных данных пользователя — при удалении аккаунта
     /// или отзыве согласия на обработку персональных данных.
     func clearAll() {
+        resetTokenCache()
         for key in Self.ownedKeys { defaults.removeObject(forKey: key) }
         // Подстраховка от ключей, добавленных в будущем.
         for key in defaults.dictionaryRepresentation().keys {
             defaults.removeObject(forKey: key)
         }
-        tokens.clear()
     }
 
     // MARK: - Migration

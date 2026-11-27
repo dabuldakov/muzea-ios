@@ -186,4 +186,63 @@ final class TokenRefresherTests: XCTestCase {
         XCTAssertTrue(MockURLProtocol.requests.isEmpty)
         XCTAssertNil(store.token)
     }
+
+    /// Если access-токен не прочитался (сбой Keychain), но refresh на месте,
+    /// 401 без `Authorization` всё равно должен приводить к refresh.
+    func testRecoversWhenAccessTokenIsMissing() async {
+        store.token = nil
+        store.refreshToken = "old-refresh"
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request), TestSupport.data(self.tokenJSON))
+        }
+
+        let ok = await refresher().refresh(failedToken: nil)
+
+        XCTAssertTrue(ok)
+        XCTAssertEqual(store.token, "new-access")
+        XCTAssertEqual(store.refreshToken, "new-refresh")
+        XCTAssertEqual(MockURLProtocol.requests.count, 1)
+        XCTAssertEqual(body(MockURLProtocol.requests.first)?["refreshToken"] as? String, "old-refresh")
+    }
+
+    /// Сессию уже очистил параллельный запрос — не дёргаем expired-handler
+    /// второй раз и не делаем сетевой вызов.
+    func testDoesNotExpireAlreadyClearedSession() async {
+        store.token = nil
+        store.refreshToken = nil
+        let expired = expectation(description: "not expired")
+        expired.isInverted = true
+        let refresher = refresher()
+        await refresher.setExpiredHandler { expired.fulfill() }
+
+        let ok = await refresher.refresh(failedToken: "old-access")
+        await fulfillment(of: [expired], timeout: 0.3)
+
+        XCTAssertFalse(ok)
+        XCTAssertTrue(MockURLProtocol.requests.isEmpty)
+    }
+
+    /// Новый refresh сохраняем раньше access: при падении между записями
+    /// использованный refresh-токен не должен остаться на диске.
+    func testPersistsRefreshTokenBeforeAccessToken() async {
+        let recorder = TestSupport.RecordingTokenStore()
+        let orderStore = TestSupport.makeStore(
+            defaults: UserDefaults(suiteName: "muzea-refresh-order-\(UUID().uuidString)")!,
+            tokens: recorder
+        )
+        orderStore.token = "old-access"
+        orderStore.refreshToken = "old-refresh"
+        recorder.resetWrites()
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request), TestSupport.data(self.tokenJSON))
+        }
+
+        let ok = await TokenRefresher(
+            client: TestSupport.authClient(tokenStore: orderStore),
+            store: orderStore
+        ).refresh(failedToken: "old-access")
+
+        XCTAssertTrue(ok)
+        XCTAssertEqual(recorder.writes, ["refresh", "access"])
+    }
 }

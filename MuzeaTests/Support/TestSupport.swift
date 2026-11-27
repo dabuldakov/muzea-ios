@@ -55,4 +55,57 @@ enum TestSupport {
     static func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
         try JSONDecoder().decode(T.self, from: data(json))
     }
+
+    /// Secure-хранилище, запоминающее порядок записей токенов.
+    final class RecordingTokenStore: SecureTokenStoring {
+        private(set) var writes: [String] = []
+        private(set) var clears = 0
+
+        var accessToken: String? {
+            didSet {
+                if accessToken != oldValue { writes.append("access") }
+            }
+        }
+
+        var refreshToken: String? {
+            didSet {
+                if refreshToken != oldValue { writes.append("refresh") }
+            }
+        }
+
+        func clear() {
+            clears += 1
+            accessToken = nil
+            refreshToken = nil
+        }
+
+        func resetWrites() {
+            writes.removeAll()
+        }
+    }
+
+    /// Secure-хранилище, у которого можно смоделировать сбой чтения/удаления,
+    /// сохранив при этом значения (как при `errSecInteractionNotAllowed`).
+    final class UnreliableTokenStore: SecureTokenStoring {
+        private var storedAccess: String?
+        private var storedRefresh: String?
+        var failReads = false
+        var failClear = false
+
+        var accessToken: String? {
+            get { failReads ? nil : storedAccess }
+            set { storedAccess = newValue }
+        }
+
+        var refreshToken: String? {
+            get { failReads ? nil : storedRefresh }
+            set { storedRefresh = newValue }
+        }
+
+        func clear() {
+            guard !failClear else { return }
+            storedAccess = nil
+            storedRefresh = nil
+        }
+    }
 }

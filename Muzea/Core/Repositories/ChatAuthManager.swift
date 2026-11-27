@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Готовность к работе с chat-сервером на едином access-токене IdP.
 ///
@@ -7,6 +8,8 @@ import Foundation
 /// однократно получить локальный chat-профиль (нужен `userUuid`) и
 /// зарегистрировать FCM-токен.
 final class ChatAuthManager {
+    private static let logger = Logger(subsystem: "com.cyber.muzea", category: "ChatAuth")
+
     private let client: HTTPClient
     private let store: TokenStore
 
@@ -35,6 +38,7 @@ final class ChatAuthManager {
                 store.chatUserUuid = user.userUuid
             }
         } catch {
+            Self.logger.error("chat profile fetch failed: \(error.localizedDescription, privacy: .public)")
             // Попробуем при следующем обращении.
         }
     }
@@ -50,6 +54,7 @@ final class ChatAuthManager {
             )
             store.registeredFcmToken = token
         } catch {
+            Self.logger.error("fcm token registration failed: \(error.localizedDescription, privacy: .public)")
             // Повторим при следующей проверке аутентификации.
         }
     }

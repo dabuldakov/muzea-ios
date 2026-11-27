@@ -197,4 +197,26 @@ final class AuthServiceTests: XCTestCase {
         store.token = "access-1"
         XCTAssertTrue(repository().isLoggedIn)
     }
+
+    /// Refresh сохраняется раньше access: падение между записями не должно
+    /// оставлять на диске уже использованный refresh-токен.
+    func testLoginPersistsRefreshTokenBeforeAccessToken() async throws {
+        let recorder = TestSupport.RecordingTokenStore()
+        let orderStore = TestSupport.makeStore(
+            defaults: UserDefaults(suiteName: "muzea-login-order-\(UUID().uuidString)")!,
+            tokens: recorder
+        )
+        MockURLProtocol.handler = { request in
+            (MockURLProtocol.response(for: request), TestSupport.data(self.tokenJSON))
+        }
+
+        try await AuthRepositoryImpl(
+            client: TestSupport.authClient(tokenStore: orderStore),
+            store: orderStore
+        ).verifyLoginCode(email: "a@b.c", code: "000000")
+
+        XCTAssertEqual(recorder.writes, ["refresh", "access"])
+        XCTAssertEqual(orderStore.token, "access-1")
+        XCTAssertEqual(orderStore.refreshToken, "refresh-1")
+    }
 }

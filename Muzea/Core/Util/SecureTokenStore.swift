@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Security
 
 /// Хранилище access/refresh токенов. В отличие от пароля, токены нужны для
@@ -24,6 +25,8 @@ final class KeychainTokenStore: SecureTokenStoring {
         static let access = "access_token"
         static let refresh = "refresh_token"
     }
+
+    private static let logger = Logger(subsystem: "com.cyber.muzea", category: "Keychain")
 
     private let service: String
 
@@ -71,10 +74,19 @@ final class KeychainTokenStore: SecureTokenStoring {
         query[kSecMatchLimit as String] = kSecMatchLimitOne
 
         var item: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-              let data = item as? Data
-        else { return nil }
-        return String(data: data, encoding: .utf8)
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        switch status {
+        case errSecSuccess:
+            guard let data = item as? Data else { return nil }
+            return String(data: data, encoding: .utf8)
+        case errSecItemNotFound:
+            return nil
+        default:
+            // Не выдаём ошибку за «токена нет»: наверху это выглядит как
+            // разлогин. Значение не логируем — только код ошибки.
+            Self.logger.error("keychain read failed account=\(account, privacy: .public) status=\(status)")
+            return nil
+        }
     }
 
     private func write(_ value: String?, account: String) {
@@ -88,16 +100,49 @@ final class KeychainTokenStore: SecureTokenStoring {
 
         // `kSecAttrAccessible` нельзя менять через SecItemUpdate (iOS вернёт
         // errSecParam), поэтому он передаётся только при вставке.
-        let status = SecItemUpdate(query as CFDictionary, valueAttributes as CFDictionary)
-        guard status == errSecItemNotFound else { return }
+        let updateStatus = SecItemUpdate(query as CFDictionary, valueAttributes as CFDictionary)
+        switch updateStatus {
+        case errSecSuccess:
+            return
+        case errSecItemNotFound:
+            add(data, account: account, query: query, valueAttributes: valueAttributes)
+        default:
+            Self.logger.error("keychain update failed account=\(account, privacy: .public) status=\(updateStatus)")
+            // errSecParam — несовместимый/повреждённый элемент, его нужно
+            // пересоздать. Временные ошибки (например, устройство заблокировано)
+            // не должны удалять уже сохранённый токен.
+            if updateStatus == errSecParam {
+                SecItemDelete(query as CFDictionary)
+                add(data, account: account, query: query, valueAttributes: valueAttributes)
+            }
+        }
+    }
 
+    private func add(
+        _ data: Data,
+        account: String,
+        query: [String: Any],
+        valueAttributes: [String: Any]
+    ) {
         var insert = query
         insert[kSecValueData as String] = data
         insert[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        SecItemAdd(insert as CFDictionary, nil)
+        var status = SecItemAdd(insert as CFDictionary, nil)
+
+        // Другой поток мог вставить элемент между update и add: обновляем его,
+        // иначе новый токен потеряется.
+        if status == errSecDuplicateItem {
+            status = SecItemUpdate(query as CFDictionary, valueAttributes as CFDictionary)
+        }
+        if status != errSecSuccess {
+            Self.logger.error("keychain write failed account=\(account, privacy: .public) status=\(status)")
+        }
     }
 
     private func delete(_ account: String) {
-        SecItemDelete(baseQuery(account) as CFDictionary)
+        let status = SecItemDelete(baseQuery(account) as CFDictionary)
+        if status != errSecSuccess && status != errSecItemNotFound {
+            Self.logger.error("keychain delete failed account=\(account, privacy: .public) status=\(status)")
+        }
     }
 }

@@ -103,8 +103,11 @@ final class AuthRepositoryImpl: AuthRepositoryProtocol {
     }
 
     private func persist(_ response: AuthTokenResponse) {
-        store.token = response.accessToken
+        // Refresh сохраняем первым: при падении между записями на диске
+        // останется новый refresh и старый access — следующий 401 восстановит
+        // пару. Обратный порядок оставил бы использованный refresh-токен.
         store.refreshToken = response.refreshToken
+        store.token = response.accessToken
         if let user = response.user {
             if let username = user.username { store.username = username }
             if let email = user.email { store.email = email }
