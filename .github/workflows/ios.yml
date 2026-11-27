@@ -4,9 +4,9 @@ name: iOS CI
 # только для ручного аварийного прогона, чтобы не тратить macOS-минуты.
 on:
   workflow_dispatch:
-  # Релизный тег собирает и публикует unsigned .ipa (job ipa ниже).
-  # Обычные пуши в main macOS-минуты не тратят.
   push:
+    branches:
+      - check/auth-27
     tags:
       - 'v*'
 
