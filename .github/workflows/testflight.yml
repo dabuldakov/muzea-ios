@@ -13,9 +13,6 @@ name: TestFlight
 # Bundlе ID должен быть создан в App Store Connect.
 
 on:
-  push:
-    branches:
-      - release/ios-26
   workflow_dispatch:
     inputs:
       changelog:
