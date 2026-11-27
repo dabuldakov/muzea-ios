@@ -34,7 +34,23 @@ struct NewsComment: Identifiable, Hashable {
     let content: String
     let author: String
     let createdAt: String
-    let authorAvatarUrl: String? = nil
+    let authorAvatarUrl: String?
+
+    init(
+        id: Int64,
+        newsId: Int64,
+        content: String,
+        author: String,
+        createdAt: String,
+        authorAvatarUrl: String? = nil
+    ) {
+        self.id = id
+        self.newsId = newsId
+        self.content = content
+        self.author = author
+        self.createdAt = createdAt
+        self.authorAvatarUrl = authorAvatarUrl
+    }
 }
 
 struct NewsCommentsPage {
