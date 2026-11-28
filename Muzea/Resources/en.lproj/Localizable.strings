@@ -287,10 +287,6 @@
 "push.news" = "News";
 "error.serverCode" = "Server error (%d).";
 "legal.consent.body" = "To use the muzea app, you need to accept the terms of use and give consent to personal data processing.\n\nData: login, full name, email, one-time confirmation codes (email sign-in), device identifier and model, device token for push notifications, chat message text, group composition and members, online status and last seen time, contacts list, images, posts and videos, technical account data.\n\nPurposes: registration and sign-in, messaging, push notifications, showing your profile to other users, posting content and videos, handling requests.\n\nPush notifications are processed by Google (Ireland/USA), and on iOS by Apple (USA): the push token, notification type, and, if included, the notification text, sender name and chat title are transferred. GIF search and link previews may send the query and IP address to third parties. Sign-in code emails are sent via Mail.ru (Russia).\n\nYou can withdraw consent in the profile (“Delete account”) or by email to %@ — then processing stops and the data is destroyed within 30 days.";
-"auth.reauth.title" = "Sign-in update";
-"auth.reauth.body" = "Sign-in and registration now use an email code, no password.\n\nIf you already had an account, sign in with the same email. If access is not restored, contact support.";
-"auth.reauth.register" = "Register";
-"auth.reauth.ok" = "Got it";
 "auth.error.notRegistered" = "No account with this email. Tap “Sign up” to create one.";
 "auth.error.accountDeleted" = "This account is deleted or pending deletion. If less than 30 days have passed, contact support; otherwise register again.";
 "auth.verificationSent" = "Email is not confirmed yet. We sent a new code to %@ — enter it below.";
