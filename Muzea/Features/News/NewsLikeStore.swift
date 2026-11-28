@@ -49,17 +49,25 @@ final class NewsLikeStore: ObservableObject {
             likedByMe: target,
             likes: max(0, previous.likes + (target ? 1 : -1))
         )
-        states[news.id] = optimistic
+        publish(news.id, optimistic)
 
         do {
             let likes = target
                 ? try await repository.likeNews(news.id)
                 : try await repository.unlikeNews(news.id)
-            states[news.id] = NewsLikeState(likedByMe: target, likes: max(0, likes))
+            publish(news.id, NewsLikeState(likedByMe: target, likes: max(0, likes)))
             return nil
         } catch {
-            states[news.id] = previous
+            publish(news.id, previous)
             return error.localizedDescription
         }
+    }
+
+    /// Меняем словарь целиком: так @Published гарантированно уведомляет
+    /// подписчиков даже при изменении одного элемента.
+    private func publish(_ id: Int64, _ state: NewsLikeState) {
+        var next = states
+        next[id] = state
+        states = next
     }
 }

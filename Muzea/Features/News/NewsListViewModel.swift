@@ -109,6 +109,7 @@ final class NewsListViewModel: ObservableObject {
         if let error = await likeStore.toggle(current) {
             state.error = error
         }
+        applyLikeStates()
     }
 
     private func applyLikeStates() {

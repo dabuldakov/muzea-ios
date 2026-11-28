@@ -141,6 +141,7 @@ final class NewsDetailViewModel: ObservableObject {
         if let error = await likeStore.toggle(current) {
             self.error = error
         }
+        applyLikeState()
     }
 
     func delete(id: Int64) async -> Bool {
