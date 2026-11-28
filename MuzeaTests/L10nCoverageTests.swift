@@ -159,6 +159,8 @@ final class L10nCoverageTests: XCTestCase {
         XCTAssertFalse(L10n.loginSubtitle.isEmpty, "loginSubtitle")
         XCTAssertFalse(L10n.loginTitle.isEmpty, "loginTitle")
         XCTAssertFalse(L10n.loginCaption.isEmpty, "loginCaption")
+        XCTAssertFalse(L10n.emailField.isEmpty, "emailField")
+        XCTAssertFalse(L10n.registerCaption.isEmpty, "registerCaption")
         XCTAssertFalse(L10n.getCode.isEmpty, "getCode")
         XCTAssertFalse(L10n.signIn.isEmpty, "signIn")
         XCTAssertFalse(L10n.changeEmail.isEmpty, "changeEmail")

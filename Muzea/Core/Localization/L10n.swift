@@ -188,6 +188,8 @@ enum L10n {
     static var loginSubtitle: String { t("auth.login.subtitle") }
     static var loginTitle: String { t("auth.login.title") }
     static var loginCaption: String { t("auth.login.caption") }
+    static var emailField: String { t("auth.email") }
+    static var registerCaption: String { t("auth.register.caption") }
     static var registerAction: String { t("auth.register.action") }
     static var confirmEmailSection: String { t("auth.confirm.section") }
     static var codeField: String { t("auth.code") }

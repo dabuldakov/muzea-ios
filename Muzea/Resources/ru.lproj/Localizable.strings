@@ -141,7 +141,7 @@
 "common.save" = "Сохранить";
 "common.report" = "Жалоба";
 "common.reported" = "Жалоба отправлена";
-"auth.register.title" = "Регистрация";
+"auth.register.title" = "Создать аккаунт";
 "auth.confirm.title" = "Подтверждение";
 "auth.account" = "Аккаунт";
 "auth.username" = "Имя пользователя";
@@ -150,8 +150,10 @@
 "auth.terms" = "Пользовательское соглашение";
 "app.name" = "muzea";
 "auth.login.subtitle" = "Новости, чаты и видео";
-"auth.login.title" = "Вход в muzea";
+"auth.login.title" = "Вход";
 "auth.login.caption" = "Введите email — пришлём код для входа. Пароль не нужен.";
+"auth.email" = "Email";
+"auth.register.caption" = "Заполните данные — отправим код для подтверждения email.";
 "auth.policy" = "Политика обработки ПДн";
 "auth.register.action" = "Зарегистрироваться";
 "auth.confirm.section" = "Подтверждение email";

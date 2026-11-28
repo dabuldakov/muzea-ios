@@ -22,109 +22,110 @@ struct RegisterView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                if viewModel.state.phase == .email {
-                    registrationForm
-                } else {
-                    confirmationForm
+            AuthScaffold {
+                AuthCard(title: cardTitle, caption: cardCaption) {
+                    if viewModel.state.phase == .email {
+                        registrationForm
+                    } else {
+                        confirmationForm
+                    }
+
+                    if let error = viewModel.state.error {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                    }
                 }
             }
-            .navigationTitle(viewModel.state.phase == .email ? L10n.registerTitle : L10n.confirmTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.clear, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.cancel) { dismiss() }
+                        .foregroundColor(AuthPalette.purple)
                 }
             }
         }
+    }
+
+    private var cardTitle: String {
+        viewModel.state.phase == .email ? L10n.registerTitle : L10n.codeTitle
+    }
+
+    private var cardCaption: String? {
+        viewModel.state.phase == .email ? L10n.registerCaption : viewModel.state.info
     }
 
     @ViewBuilder
     private var registrationForm: some View {
-        Section(L10n.authAccount) {
-            TextField("Email", text: $email)
-                .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .textContentType(.emailAddress)
-            TextField(L10n.usernameField, text: $username)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .textContentType(.username)
-            TextField(L10n.displayNameField, text: $displayName)
-        }
+        TextField(L10n.emailField, text: $email)
+            .authInput()
+            .keyboardType(.emailAddress)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .textContentType(.emailAddress)
 
-        Section {
-            Toggle(L10n.consentToggle, isOn: $consentAccepted)
-                .font(.footnote)
-            HStack(spacing: 16) {
-                Button(L10n.termsLink) { open(Legal.termsURL) }
-                Button(L10n.policyLink) { open(Legal.policyURL) }
+        TextField(L10n.usernameField, text: $username)
+            .authInput()
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .textContentType(.username)
+
+        TextField(L10n.displayNameField, text: $displayName)
+            .authInput()
+
+        Toggle(L10n.consentToggle, isOn: $consentAccepted)
+            .font(.footnote)
+            .foregroundColor(AuthPalette.ink)
+            .tint(AuthPalette.purple)
+
+        AuthLegalLinks(open: open)
+
+        Button(action: register) {
+            if viewModel.state.isLoading {
+                ProgressView().tint(.white)
+            } else {
+                Text(L10n.registerAction)
             }
-            .font(.caption)
         }
-
-        errorSection
-
-        Section {
-            Button(action: register) {
-                if viewModel.state.isLoading {
-                    ProgressView().frame(maxWidth: .infinity)
-                } else {
-                    Text(L10n.registerAction).frame(maxWidth: .infinity)
-                }
-            }
-            .disabled(!isValid || viewModel.state.isLoading)
-        }
+        .buttonStyle(AuthPrimaryButtonStyle())
+        .disabled(!isValid || viewModel.state.isLoading)
     }
 
     @ViewBuilder
     private var confirmationForm: some View {
-        Section(L10n.confirmEmailSection) {
-            Text(L10n.codeTitle)
-                .font(.headline)
-            if let info = viewModel.state.info {
-                Text(info).font(.footnote).foregroundColor(.secondary)
+        TextField(L10n.codeField, text: $code)
+            .authInput()
+            .multilineTextAlignment(.center)
+            .keyboardType(.numberPad)
+            .textContentType(.oneTimeCode)
+
+        Button(action: verify) {
+            if viewModel.state.isLoading {
+                ProgressView().tint(.white)
+            } else {
+                Text(L10n.confirmAction)
             }
-            TextField(L10n.codeField, text: $code)
-                .keyboardType(.numberPad)
-                .textContentType(.oneTimeCode)
         }
+        .buttonStyle(AuthPrimaryButtonStyle())
+        .disabled(code.isEmpty || viewModel.state.isLoading)
 
-        errorSection
-
-        Section {
-            Button(action: verify) {
-                if viewModel.state.isLoading {
-                    ProgressView().frame(maxWidth: .infinity)
-                } else {
-                    Text(L10n.confirmAction).frame(maxWidth: .infinity)
-                }
-            }
-            .disabled(code.isEmpty || viewModel.state.isLoading)
-
-            Button(viewModel.resendSeconds > 0
+        AuthLinkButton(
+            title: viewModel.resendSeconds > 0
                 ? L10n.resendIn(viewModel.resendSeconds)
-                : L10n.resendCode) {
-                Task { _ = await viewModel.resend() }
-            }
-            .disabled(viewModel.state.isLoading || viewModel.resendSeconds > 0)
-
-            Button(L10n.changeData) {
-                code = ""
-                viewModel.backToEmail()
-            }
-            .foregroundColor(.secondary)
-            .disabled(viewModel.state.isLoading)
+                : L10n.resendCode
+        ) {
+            Task { _ = await viewModel.resend() }
         }
-    }
+        .frame(maxWidth: .infinity)
+        .disabled(viewModel.state.isLoading || viewModel.resendSeconds > 0)
 
-    @ViewBuilder
-    private var errorSection: some View {
-        if let error = viewModel.state.error {
-            Section {
-                Text(error).foregroundColor(.red)
-            }
+        AuthLinkButton(title: L10n.changeData, color: AuthPalette.muted) {
+            code = ""
+            viewModel.backToEmail()
         }
+        .frame(maxWidth: .infinity)
+        .disabled(viewModel.state.isLoading)
     }
 
     private var isValid: Bool {

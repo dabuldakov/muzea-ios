@@ -141,7 +141,7 @@
 "common.save" = "Save";
 "common.report" = "Report";
 "common.reported" = "Report sent";
-"auth.register.title" = "Sign up";
+"auth.register.title" = "Create account";
 "auth.confirm.title" = "Confirmation";
 "auth.account" = "Account";
 "auth.username" = "Username";
@@ -150,8 +150,10 @@
 "auth.terms" = "Terms of Use";
 "app.name" = "muzea";
 "auth.login.subtitle" = "News, chats and video";
-"auth.login.title" = "Sign in to muzea";
+"auth.login.title" = "Sign in";
 "auth.login.caption" = "Enter your email and we will send a sign-in code. No password needed.";
+"auth.email" = "Email";
+"auth.register.caption" = "Fill in your details and we will email you a confirmation code.";
 "auth.policy" = "Personal Data Policy";
 "auth.register.action" = "Sign up";
 "auth.confirm.section" = "Email confirmation";
