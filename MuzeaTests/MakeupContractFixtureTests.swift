@@ -28,7 +28,7 @@ final class MakeupContractFixtureTests: XCTestCase {
         XCTAssertEqual(news.relatedVideo?.id, 18)
         XCTAssertEqual(
             news.relatedVideo?.fullVideoURL?.absoluteString,
-            "https://api-muzea.su/api/videos/stream/video.mp4"
+            "https://api.muzea.su/api/videos/stream/video.mp4"
         )
     }
 
@@ -49,11 +49,11 @@ final class MakeupContractFixtureTests: XCTestCase {
         XCTAssertEqual(video.likes, 3)
         XCTAssertEqual(
             video.fullVideoURL?.absoluteString,
-            "https://api-muzea.su/api/videos/stream/video.mp4"
+            "https://api.muzea.su/api/videos/stream/video.mp4"
         )
         XCTAssertEqual(
             video.fullThumbnailURL?.absoluteString,
-            "https://api-muzea.su/api/videos/thumbnail/video.jpeg"
+            "https://api.muzea.su/api/videos/thumbnail/video.jpeg"
         )
     }
 

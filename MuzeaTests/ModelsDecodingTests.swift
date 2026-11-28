@@ -10,7 +10,7 @@ final class ModelsDecodingTests: XCTestCase {
           "id": 54,
           "title": "Новая тол",
           "content": "ыыы",
-          "imageUrl": "https://api-muzea.su/api/news/image/3911eb61.jpeg",
+          "imageUrl": "https://api.muzea.su/api/news/image/3911eb61.jpeg",
           "publishedAt": "2026-09-20T11:09:12Z",
           "author": "dabuldakov",
           "relatedVideo": {
@@ -18,7 +18,7 @@ final class ModelsDecodingTests: XCTestCase {
             "title": "Tomsk river",
             "description": null,
             "url": "/api/videos/stream/0c0ec89e.mp4",
-            "thumbnailUrl": "https://api-muzea.su/api/videos/thumbnail/0c0ec89e.jpeg",
+            "thumbnailUrl": "https://api.muzea.su/api/videos/thumbnail/0c0ec89e.jpeg",
             "fileSize": 9478047,
             "durationSeconds": null,
             "views": 19,
@@ -37,11 +37,11 @@ final class ModelsDecodingTests: XCTestCase {
         XCTAssertEqual(news.relatedVideo?.fileSize, 9478047)
         XCTAssertEqual(
             news.relatedVideo?.fullVideoURL?.absoluteString,
-            "https://api-muzea.su/api/videos/stream/0c0ec89e.mp4"
+            "https://api.muzea.su/api/videos/stream/0c0ec89e.mp4"
         )
         XCTAssertEqual(
             news.relatedVideo?.fullThumbnailURL?.absoluteString,
-            "https://api-muzea.su/api/videos/thumbnail/0c0ec89e.jpeg"
+            "https://api.muzea.su/api/videos/thumbnail/0c0ec89e.jpeg"
         )
     }
 

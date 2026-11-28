@@ -55,8 +55,8 @@ final class GifParsingTests: XCTestCase {
         let gif = try TestSupport.decode(GifDTO.self, json).toDomain()
 
         XCTAssertEqual(gif.gifKey, "g1")
-        XCTAssertEqual(gif.url, "https://chat-muzea.su/api/gifs/file/a.webp")
-        XCTAssertEqual(gif.previewUrl, "https://chat-muzea.su/api/gifs/file/a.jpg")
+        XCTAssertEqual(gif.url, "https://chat.muzea.su/api/gifs/file/a.webp")
+        XCTAssertEqual(gif.previewUrl, "https://chat.muzea.su/api/gifs/file/a.jpg")
     }
 
     func testGifCacheKeepsFreshAndStale() async {        let url = FileManager.default.temporaryDirectory
@@ -200,7 +200,7 @@ final class ServerGifRepositoryTests: XCTestCase {
         let gifs = await repository().recent(page: 0, size: 30)
 
         XCTAssertEqual(gifs.first?.gifKey, "g1")
-        XCTAssertEqual(gifs.first?.url, "https://chat-muzea.su/api/gifs/file/a.webp")
+        XCTAssertEqual(gifs.first?.url, "https://chat.muzea.su/api/gifs/file/a.webp")
         XCTAssertEqual(MockURLProtocol.requests.first?.url?.path, "/api/gifs/recent")
     }
 

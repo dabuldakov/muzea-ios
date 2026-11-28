@@ -5,7 +5,7 @@ import XCTest
 final class ImageURLTests: XCTestCase {
 
     func testAbsoluteSameDomainURLIsReturnedUnchanged() {
-        let url = "https://api-muzea.su/api/news/image/abc.jpeg"
+        let url = "https://api.muzea.su/api/news/image/abc.jpeg"
         XCTAssertEqual(ImageURL.makeup(url)?.absoluteString, url)
     }
 
@@ -15,7 +15,7 @@ final class ImageURLTests: XCTestCase {
     }
 
     func testAbsoluteImageURLIsNotPrefixed() {
-        let serverURL = "https://api-muzea.su/api/news/image/4b1d5b51.jpeg"
+        let serverURL = "https://api.muzea.su/api/news/image/4b1d5b51.jpeg"
         XCTAssertEqual(ImageURL.makeup(serverURL)?.absoluteString, serverURL)
     }
 
