@@ -4,7 +4,7 @@
     "title": "Backstage",
     "description": "Видео",
     "url": "/api/videos/stream/video.mp4",
-    "thumbnailUrl": "https://api-muzea.su/api/videos/thumbnail/video.jpeg",
+    "thumbnailUrl": "https://api.muzea.su/api/videos/thumbnail/video.jpeg",
     "fileSize": 9478047,
     "durationSeconds": 12,
     "views": 19,
