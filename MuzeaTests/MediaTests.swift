@@ -146,11 +146,11 @@ final class AttachmentPolicyTests: XCTestCase {
 
         XCTAssertEqual(
             AttachmentURLResolver.fileURL(for: attachment)?.absoluteString,
-            "https://chat-muzea.su/api/attachments/a-1"
+            "https://chat.muzea.su/api/attachments/a-1"
         )
         XCTAssertEqual(
             AttachmentURLResolver.previewURL(for: attachment)?.absoluteString,
-            "https://chat-muzea.su/api/attachments/a-1/preview"
+            "https://chat.muzea.su/api/attachments/a-1/preview"
         )
     }
 
@@ -161,7 +161,7 @@ final class AttachmentPolicyTests: XCTestCase {
         )
         XCTAssertEqual(
             AttachmentURLResolver.absolute("/api/avatars/a.png", base: Config.chatBaseURL)?.absoluteString,
-            "https://chat-muzea.su/api/avatars/a.png"
+            "https://chat.muzea.su/api/avatars/a.png"
         )
         XCTAssertNil(AttachmentURLResolver.absolute(nil, base: Config.chatBaseURL))
     }

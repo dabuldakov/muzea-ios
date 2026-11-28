@@ -9,8 +9,8 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertEqual(Config.makeupBaseURL.scheme, "https")
         XCTAssertEqual(Config.chatBaseURL.scheme, "https")
         XCTAssertEqual(Config.authBaseURL.host, "auth.muzea.su")
-        XCTAssertEqual(Config.makeupBaseURL.host, "api-muzea.su")
-        XCTAssertEqual(Config.chatBaseURL.host, "chat-muzea.su")
+        XCTAssertEqual(Config.makeupBaseURL.host, "api.muzea.su")
+        XCTAssertEqual(Config.chatBaseURL.host, "chat.muzea.su")
     }
 
     func testLegalDocumentsUseHTTPS() {
@@ -27,6 +27,6 @@ final class ConfigurationTests: XCTestCase {
 
     func testRelativeImageURLResolvesAgainstHTTPSBackend() {
         let url = ImageURL.makeup("/api/news/image/x.jpeg")
-        XCTAssertEqual(url?.absoluteString, "https://api-muzea.su/api/news/image/x.jpeg")
+        XCTAssertEqual(url?.absoluteString, "https://api.muzea.su/api/news/image/x.jpeg")
     }
 }

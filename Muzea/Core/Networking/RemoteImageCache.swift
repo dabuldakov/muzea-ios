@@ -102,10 +102,15 @@ final class RemoteImageCache {
 
     private func shouldAuthorize(_ url: URL) -> Bool {
         guard let host = url.host?.lowercased() else { return false }
-        return [Config.chatBaseURL, Config.makeupBaseURL, Config.authBaseURL]
-            .compactMap { $0.host?.lowercased() }
-            .contains(host)
+        // Старые домены остаются авторизуемыми на время миграции: бэкенд ещё
+        // может отдавать абсолютные ссылки на них.
+        return Self.authorizedHosts.contains(host)
     }
+
+    private static let authorizedHosts: Set<String> = [
+        "api-muzea.su", "chat-muzea.su", "auth.muzea.su",
+        "api.muzea.su", "chat.muzea.su"
+    ]
 
     private func fileURL(for url: URL) -> URL {
         let digest = SHA256.hash(data: Data(url.absoluteString.utf8))

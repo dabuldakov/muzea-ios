@@ -156,7 +156,7 @@ final class DeleteAccountTests: XCTestCase {
         MockURLProtocol.handler = { request in
             let host = request.url?.host ?? ""
             order.append(host)
-            if host == "chat-muzea.su" {
+            if host == "chat.muzea.su" {
                 return (MockURLProtocol.response(for: request, status: 401), Data())
             }
             return (MockURLProtocol.response(for: request, status: 204), Data())
@@ -165,7 +165,7 @@ final class DeleteAccountTests: XCTestCase {
         let outcome = await makeProfileViewModel().deleteAccount()
 
         XCTAssertEqual(outcome, .deleted)
-        XCTAssertEqual(order, ["chat-muzea.su", "api-muzea.su", "auth.muzea.su"])
+        XCTAssertEqual(order, ["chat.muzea.su", "api.muzea.su", "auth.muzea.su"])
     }
 
     @MainActor
@@ -174,9 +174,9 @@ final class DeleteAccountTests: XCTestCase {
         var authCalled = false
         MockURLProtocol.handler = { request in
             switch request.url?.host {
-            case "chat-muzea.su":
+            case "chat.muzea.su":
                 return (MockURLProtocol.response(for: request, status: 500), Data())
-            case "api-muzea.su":
+            case "api.muzea.su":
                 makeupCalled = true
                 return (MockURLProtocol.response(for: request, status: 204), Data())
             case "auth.muzea.su":
@@ -199,7 +199,7 @@ final class DeleteAccountTests: XCTestCase {
         var authCalled = false
         MockURLProtocol.handler = { request in
             switch request.url?.host {
-            case "chat-muzea.su":
+            case "chat.muzea.su":
                 return (MockURLProtocol.response(for: request, status: 401), Data())
             case "auth.muzea.su":
                 authCalled = true

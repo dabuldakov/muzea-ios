@@ -11,6 +11,10 @@ enum CertificatePin {
                          "sCkq5UWXjg+7mKu9lMhhYF5bGLsy7VI/UNW3tccdR7w="],
         "chat-muzea.su": ["brzvtCELCIZUo4sD/qPX0ccRtPsd3DY6RfmxpOU9oB4=",
                           "sCkq5UWXjg+7mKu9lMhhYF5bGLsy7VI/UNW3tccdR7w="],
+        "api.muzea.su": ["brzvtCELCIZUo4sD/qPX0ccRtPsd3DY6RfmxpOU9oB4=",
+                         "sCkq5UWXjg+7mKu9lMhhYF5bGLsy7VI/UNW3tccdR7w="],
+        "chat.muzea.su": ["brzvtCELCIZUo4sD/qPX0ccRtPsd3DY6RfmxpOU9oB4=",
+                          "sCkq5UWXjg+7mKu9lMhhYF5bGLsy7VI/UNW3tccdR7w="],
         "auth.muzea.su": ["brzvtCELCIZUo4sD/qPX0ccRtPsd3DY6RfmxpOU9oB4=",
                           "sCkq5UWXjg+7mKu9lMhhYF5bGLsy7VI/UNW3tccdR7w="]
     ]

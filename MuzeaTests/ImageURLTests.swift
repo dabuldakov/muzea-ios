@@ -22,28 +22,28 @@ final class ImageURLTests: XCTestCase {
     func testRelativePathWithLeadingSlashIsJoinedToBase() {
         XCTAssertEqual(
             ImageURL.makeup("/api/videos/stream/file.mp4")?.absoluteString,
-            "https://api-muzea.su/api/videos/stream/file.mp4"
+            "https://api.muzea.su/api/videos/stream/file.mp4"
         )
     }
 
     func testRelativePathWithoutLeadingSlashIsJoinedToBase() {
         XCTAssertEqual(
             ImageURL.chat("api/avatars/uuid.png")?.absoluteString,
-            "https://chat-muzea.su/api/avatars/uuid.png"
+            "https://chat.muzea.su/api/avatars/uuid.png"
         )
     }
 
     func testBaseURLTrailingSlashDoesNotDouble() {
         XCTAssertEqual(
             ImageURL.chat("/api/avatars/uuid.png")?.absoluteString,
-            "https://chat-muzea.su/api/avatars/uuid.png"
+            "https://chat.muzea.su/api/avatars/uuid.png"
         )
     }
 
     func testSurroundingWhitespaceIsTrimmed() {
         XCTAssertEqual(
             ImageURL.makeup("  /a.png  ")?.absoluteString,
-            "https://api-muzea.su/a.png"
+            "https://api.muzea.su/a.png"
         )
     }
 

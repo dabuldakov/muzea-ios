@@ -3,8 +3,8 @@ import Foundation
 enum Config {
     /// Единый IdP: вход по email-коду, access/refresh.
     static let authBaseURL = URL(string: "https://auth.muzea.su")!
-    static let makeupBaseURL = URL(string: "https://api-muzea.su")!
-    static let chatBaseURL = URL(string: "https://chat-muzea.su")!
+    static let makeupBaseURL = URL(string: "https://api.muzea.su")!
+    static let chatBaseURL = URL(string: "https://chat.muzea.su")!
 
     static let newsPageSize = 20
     static let messagePageSize = 50
