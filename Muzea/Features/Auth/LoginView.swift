@@ -9,9 +9,6 @@ struct LoginView: View {
     @State private var email = ""
     @State private var code = ""
     @State private var showRegister = false
-    @State private var showReauthNotice = false
-
-    private let noticeStore = AuthNoticeStore()
 
     init(container: AppContainer) {
         self.container = container
@@ -20,54 +17,90 @@ struct LoginView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 48))
-                        .foregroundColor(.accentColor)
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.38, green: 0.0, blue: 0.93),
+                        Color(red: 0.50, green: 0.22, blue: 0.98),
+                        Color(red: 0.22, green: 0.0, blue: 0.70)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
 
-                    Text("Muzea")
-                        .font(.largeTitle).bold()
+                ScrollView {
+                    VStack(spacing: 16) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 46, weight: .medium))
+                            .foregroundColor(.white)
+                            .padding(22)
+                            .background(Circle().fill(Color.white.opacity(0.16)))
 
-                    if viewModel.state.phase == .email {
-                        emailStep
-                    } else {
-                        codeStep
+                        Text(L10n.appName)
+                            .font(.system(size: 34, weight: .bold))
+                            .foregroundColor(.white)
+
+                        Text(L10n.loginSubtitle)
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.8))
+
+                        loginCard
+                            .padding(.top, 12)
+
+                        legalNote
+                            .padding(.top, 4)
                     }
-
-                    if let error = viewModel.state.error {
-                        Text(error).foregroundColor(.red).font(.footnote)
-                    }
-
-                    legalNote
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 32)
                 }
-                .padding()
             }
             .sheet(isPresented: $showRegister) {
                 RegisterView(container: container, email: email)
             }
-            .alert(L10n.reauthTitle, isPresented: $showReauthNotice) {
-                Button(L10n.reauthRegister) {
-                    noticeStore.markPasswordlessNoticeShown()
-                    showRegister = true
-                }
-                Button(L10n.reauthOk, role: .cancel) {
-                    noticeStore.markPasswordlessNoticeShown()
-                }
-            } message: {
-                Text(L10n.reauthBody)
+        }
+    }
+
+    private var loginCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(L10n.loginTitle)
+                .font(.title3).bold()
+                .foregroundColor(.primary)
+
+            Text(L10n.loginCaption)
+                .font(.footnote)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if viewModel.state.phase == .email {
+                emailStep
+            } else {
+                codeStep
             }
-            .onAppear {
-                guard noticeStore.shouldShowPasswordlessNotice else { return }
-                showReauthNotice = true
+
+            if let error = viewModel.state.error {
+                Text(error)
+                    .foregroundColor(.red)
+                    .font(.footnote)
             }
         }
+        .padding(20)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.18), radius: 24, y: 12)
     }
 
     @ViewBuilder
     private var emailStep: some View {
         TextField("Email", text: $email)
-            .textFieldStyle(.roundedBorder)
+            .textFieldStyle(.plain)
+            .padding(14)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.secondary.opacity(0.18), lineWidth: 1)
+            )
             .keyboardType(.emailAddress)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
@@ -81,9 +114,13 @@ struct LoginView: View {
             }
         }
         .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .disabled(email.isEmpty || viewModel.state.isLoading)
 
         Button(L10n.registerTitle) { showRegister = true }
+            .font(.footnote)
+            .frame(maxWidth: .infinity)
             .disabled(viewModel.state.isLoading)
     }
 
@@ -100,7 +137,14 @@ struct LoginView: View {
         }
 
         TextField(L10n.codeField, text: $code)
-            .textFieldStyle(.roundedBorder)
+            .textFieldStyle(.plain)
+            .padding(14)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.secondary.opacity(0.18), lineWidth: 1)
+            )
             .keyboardType(.numberPad)
             .textContentType(.oneTimeCode)
 
@@ -112,6 +156,8 @@ struct LoginView: View {
             }
         }
         .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .disabled(code.isEmpty || viewModel.state.isLoading)
 
         Button(viewModel.resendSeconds > 0
@@ -119,6 +165,7 @@ struct LoginView: View {
             : L10n.resendCode) {
             Task { _ = await viewModel.resend() }
         }
+        .font(.footnote)
         .disabled(viewModel.state.isLoading || viewModel.resendSeconds > 0)
 
         Button(L10n.changeEmail) {
@@ -126,6 +173,7 @@ struct LoginView: View {
             code = ""
             viewModel.backToEmail()
         }
+        .font(.footnote)
         .foregroundColor(.secondary)
         .disabled(viewModel.state.isLoading)
     }
@@ -134,7 +182,7 @@ struct LoginView: View {
         VStack(spacing: 8) {
             Text(L10n.legalNote)
                 .font(.caption2)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
 
             HStack(spacing: 16) {
@@ -142,6 +190,7 @@ struct LoginView: View {
                 Button(L10n.policyLink) { open(Legal.policyURL) }
             }
             .font(.caption)
+            .foregroundColor(.white)
         }
     }
 

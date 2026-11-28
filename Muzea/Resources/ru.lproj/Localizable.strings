@@ -148,6 +148,10 @@
 "auth.displayName" = "Отображаемое имя (необязательно)";
 "auth.consent.toggle" = "Я принимаю Пользовательское соглашение и Политику обработки персональных данных";
 "auth.terms" = "Пользовательское соглашение";
+"app.name" = "muzea";
+"auth.login.subtitle" = "Новости, чаты и видео";
+"auth.login.title" = "Вход в muzea";
+"auth.login.caption" = "Введите email — пришлём код для входа. Пароль не нужен.";
 "auth.policy" = "Политика обработки ПДн";
 "auth.register.action" = "Зарегистрироваться";
 "auth.confirm.section" = "Подтверждение email";

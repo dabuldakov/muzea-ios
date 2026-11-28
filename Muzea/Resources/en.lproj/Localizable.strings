@@ -148,6 +148,10 @@
 "auth.displayName" = "Display name (optional)";
 "auth.consent.toggle" = "I accept the Terms of Use and the Personal Data Policy";
 "auth.terms" = "Terms of Use";
+"app.name" = "muzea";
+"auth.login.subtitle" = "News, chats and video";
+"auth.login.title" = "Sign in to muzea";
+"auth.login.caption" = "Enter your email and we will send a sign-in code. No password needed.";
 "auth.policy" = "Personal Data Policy";
 "auth.register.action" = "Sign up";
 "auth.confirm.section" = "Email confirmation";

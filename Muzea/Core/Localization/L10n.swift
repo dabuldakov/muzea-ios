@@ -182,6 +182,12 @@ enum L10n {
     static var consentToggle: String { t("auth.consent.toggle") }
     static var termsLink: String { t("auth.terms") }
     static var policyLink: String { t("auth.policy") }
+
+    static var appName: String { t("app.name") }
+
+    static var loginSubtitle: String { t("auth.login.subtitle") }
+    static var loginTitle: String { t("auth.login.title") }
+    static var loginCaption: String { t("auth.login.caption") }
     static var registerAction: String { t("auth.register.action") }
     static var confirmEmailSection: String { t("auth.confirm.section") }
     static var codeField: String { t("auth.code") }
