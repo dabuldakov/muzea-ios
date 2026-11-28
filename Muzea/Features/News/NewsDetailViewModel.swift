@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 @MainActor
@@ -13,15 +14,29 @@ final class NewsDetailViewModel: ObservableObject {
     @Published private(set) var error: String?
 
     private let repository: NewsRepository
+    private let likeStore: NewsLikeStore
+    private var likeCancellable: AnyCancellable?
     private var newsId: Int64 = 0
     private var nextBefore: Int64?
     private var viewRegistered = false
-    private var likeInFlight = false
 
     private let commentsPageSize = 20
 
-    init(repository: NewsRepository) {
+    init(repository: NewsRepository, likeStore: NewsLikeStore? = nil) {
         self.repository = repository
+        let store = likeStore ?? NewsLikeStore(repository: repository)
+        self.likeStore = store
+        likeCancellable = store.$states.sink { [weak self] _ in
+            self?.applyLikeState()
+        }
+    }
+
+    private func applyLikeState() {
+        guard let current = news else { return }
+        let updated = likeStore.apply(current)
+        if updated != current {
+            news = updated
+        }
     }
 
     func load(id: Int64) async {
@@ -38,7 +53,8 @@ final class NewsDetailViewModel: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         do {
-            news = try await repository.getNewsById(newsId)
+            let loaded = try await repository.getNewsById(newsId)
+            news = likeStore.apply(loaded)
             error = nil
         } catch {
             self.error = error.localizedDescription
@@ -121,25 +137,9 @@ final class NewsDetailViewModel: ObservableObject {
     }
 
     func toggleLike() async {
-        guard var current = news, !likeInFlight else { return }
-        likeInFlight = true
-        defer { likeInFlight = false }
-        let target = !current.likedByMe
-        current.likedByMe = target
-        current.likes = max(0, current.likes + (target ? 1 : -1))
-        news = current
-
-        do {
-            let likes = target
-                ? try await repository.likeNews(newsId)
-                : try await repository.unlikeNews(newsId)
-            current.likes = likes
-            news = current
-        } catch {
-            current.likedByMe = !target
-            current.likes = max(0, current.likes + (target ? -1 : 1))
-            news = current
-            self.error = error.localizedDescription
+        guard let current = news else { return }
+        if let error = await likeStore.toggle(current) {
+            self.error = error
         }
     }
 

@@ -20,7 +20,8 @@ struct NewsDetailView: View {
         self.newsId = newsId
         self.container = container
         _viewModel = StateObject(wrappedValue: NewsDetailViewModel(
-            repository: container.newsRepository
+            repository: container.newsRepository,
+            likeStore: container.newsLikeStore
         ))
     }
 

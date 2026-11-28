@@ -15,6 +15,7 @@ final class AppContainer: ObservableObject {
     let authRepository: AuthRepositoryProtocol
     let userRepository: UserRepository
     let newsRepository: NewsRepository
+    let newsLikeStore: NewsLikeStore
     let videoRepository: VideoRepository
     let contentReportRepository: ContentReportRepository
     let appUpdateRepository: AppUpdateRepository
@@ -80,7 +81,9 @@ final class AppContainer: ObservableObject {
         let authImpl = AuthRepositoryImpl(client: api.auth, store: store)
         authRepository = authImpl
         userRepository = UserRepositoryImpl(client: api.makeup)
-        newsRepository = NewsRepositoryImpl(client: api.makeup)
+        let news = NewsRepositoryImpl(client: api.makeup)
+        newsRepository = news
+        newsLikeStore = NewsLikeStore(repository: news)
         contentReportRepository = ContentReportRepositoryImpl(client: api.makeup)
         appUpdateRepository = AppUpdateRepository()
 

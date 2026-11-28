@@ -197,6 +197,56 @@ final class NewsListViewModelTests: XCTestCase {
 
         XCTAssertNil(viewModel.state.error)
     }
+
+    func testLikeFromFeedIsVisibleInDetail() async {
+        let repository = FakeNewsRepository()
+        let item = news(1, author: "me")
+        repository.pages = [
+            Page(content: [item], totalElements: 1, totalPages: 1, number: 0)
+        ]
+        repository.byId[1] = item
+        let store = NewsLikeStore(repository: repository)
+        let feed = NewsListViewModel(
+            newsRepository: repository,
+            contactRepository: FakeContactRepository(),
+            ownUsername: "me",
+            likeStore: store
+        )
+        let detail = NewsDetailViewModel(repository: repository, likeStore: store)
+
+        await feed.load()
+        await detail.load(id: 1)
+        await feed.toggleLike(1)
+
+        XCTAssertTrue(feed.state.news.first?.likedByMe == true)
+        XCTAssertTrue(detail.news?.likedByMe == true)
+        XCTAssertEqual(detail.news?.likes, 1)
+    }
+
+    func testLikeFromDetailIsVisibleInFeed() async {
+        let repository = FakeNewsRepository()
+        let item = news(1, author: "me")
+        repository.pages = [
+            Page(content: [item], totalElements: 1, totalPages: 1, number: 0)
+        ]
+        repository.byId[1] = item
+        let store = NewsLikeStore(repository: repository)
+        let feed = NewsListViewModel(
+            newsRepository: repository,
+            contactRepository: FakeContactRepository(),
+            ownUsername: "me",
+            likeStore: store
+        )
+        let detail = NewsDetailViewModel(repository: repository, likeStore: store)
+
+        await feed.load()
+        await detail.load(id: 1)
+        await detail.toggleLike()
+
+        XCTAssertTrue(detail.news?.likedByMe == true)
+        XCTAssertTrue(feed.state.news.first?.likedByMe == true)
+        XCTAssertEqual(feed.state.news.first?.likes, 1)
+    }
 }
 
 @MainActor

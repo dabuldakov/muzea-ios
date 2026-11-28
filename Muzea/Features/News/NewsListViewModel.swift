@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 /// Единое состояние ленты новостей.
@@ -16,7 +17,9 @@ final class NewsListViewModel: ObservableObject {
     private let newsRepository: NewsRepository
     private let contactRepository: ContactRepository
     private let ownUsername: String?
+    private let likeStore: NewsLikeStore
     private let pageSize = Config.newsPageSize
+    private var likeCancellable: AnyCancellable?
 
     private var raw: [News] = []
     private var contactUsernames: Set<String> = []
@@ -25,10 +28,20 @@ final class NewsListViewModel: ObservableObject {
     private var endReached = false
     private var isLoading = false
 
-    init(newsRepository: NewsRepository, contactRepository: ContactRepository, ownUsername: String?) {
+    init(
+        newsRepository: NewsRepository,
+        contactRepository: ContactRepository,
+        ownUsername: String?,
+        likeStore: NewsLikeStore? = nil
+    ) {
         self.newsRepository = newsRepository
         self.contactRepository = contactRepository
         self.ownUsername = ownUsername
+        let store = likeStore ?? NewsLikeStore(repository: newsRepository)
+        self.likeStore = store
+        likeCancellable = store.$states.sink { [weak self] _ in
+            self?.applyLikeStates()
+        }
     }
 
     func load(reset: Bool = true) async {
@@ -65,11 +78,13 @@ final class NewsListViewModel: ObservableObject {
                     if items.count < pageSize { endReached = true }
                 }
                 state.news = NewsFeedFilter.filter(raw, contactUsernames: contactUsernames, ownUsername: ownUsername)
+                applyLikeStates()
                 iterations += 1
             } while !endReached && state.news.count < pageSize && iterations < 10
 
             if let liked = try? await newsRepository.likedNewsIds() {
                 applyLikedIds(liked)
+                applyLikeStates()
             }
             state.error = nil
         } catch {
@@ -88,34 +103,24 @@ final class NewsListViewModel: ObservableObject {
         await load(reset: false)
     }
 
-    /// Оптимистичный лайк: сервер подтверждает количество, при ошибке откат.
+    /// Лайк из ленты. Общий store сразу обновляет и детальную новость.
     func toggleLike(_ id: Int64) async {
-        guard let index = state.news.firstIndex(where: { $0.id == id }) else { return }
-        let current = state.news[index]
-        let target = !current.likedByMe
-        updateLike(id: id, liked: target, likes: current.likes + (target ? 1 : -1))
-
-        do {
-            let likes = target
-                ? try await newsRepository.likeNews(id)
-                : try await newsRepository.unlikeNews(id)
-            updateLike(id: id, liked: target, likes: likes)
-        } catch {
-            updateLike(id: id, liked: current.likedByMe, likes: current.likes)
-            state.error = error.localizedDescription
+        guard let current = state.news.first(where: { $0.id == id }) else { return }
+        if let error = await likeStore.toggle(current) {
+            state.error = error
         }
     }
 
-    private func updateLike(id: Int64, liked: Bool, likes: Int64) {
-        let normalized = max(0, likes)
-        if let rawIndex = raw.firstIndex(where: { $0.id == id }) {
-            raw[rawIndex].likedByMe = liked
-            raw[rawIndex].likes = normalized
+    private func applyLikeStates() {
+        var next = state
+        next.news = next.news.map { likeStore.apply($0) }
+        state = next
+
+        var nextRaw = raw
+        for index in nextRaw.indices {
+            nextRaw[index] = likeStore.apply(nextRaw[index])
         }
-        if let index = state.news.firstIndex(where: { $0.id == id }) {
-            state.news[index].likedByMe = liked
-            state.news[index].likes = normalized
-        }
+        raw = nextRaw
     }
 
     private func applyLikedIds(_ ids: Set<Int64>) {

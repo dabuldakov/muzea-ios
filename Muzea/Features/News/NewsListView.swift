@@ -11,7 +11,8 @@ struct NewsListView: View {
         _viewModel = StateObject(wrappedValue: NewsListViewModel(
             newsRepository: container.newsRepository,
             contactRepository: container.contactRepository,
-            ownUsername: container.tokenStore.username
+            ownUsername: container.tokenStore.username,
+            likeStore: container.newsLikeStore
         ))
     }
 
